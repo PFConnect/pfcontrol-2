@@ -9,7 +9,9 @@ import cookieParser from 'cookie-parser';
 import apiRoutes from './routes/index.js';
 
 import dotenv from 'dotenv';
-dotenv.config();
+import { authLimiter } from './middleware/security.js';
+const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
+dotenv.config({ path: envFile });
 
 const PORT = process.env.PORT || 5000;
 
