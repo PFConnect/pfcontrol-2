@@ -4,3 +4,5 @@
 - `npm run prod` just runs the server with the .env.production
 
 If you need the `.env` files please contact Banana or Linuss.
+
+### Our current plan is to open-source PFControl v2, so please don't write gibberish code.
