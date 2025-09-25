@@ -1,7 +1,13 @@
 interface ButtonProps {
 	children: React.ReactNode;
 	onClick?: () => void;
-	variant?: 'primary' | 'secondary' | 'outline' | 'danger';
+	variant?:
+		| 'primary'
+		| 'secondary'
+		| 'outline'
+		| 'danger'
+		| 'success'
+		| 'ghost';
 	size?: 'sm' | 'md' | 'lg';
 	disabled?: boolean;
 	className?: string;
@@ -30,7 +36,7 @@ export default function Button({
 		success:
 			'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl',
 		danger: 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl',
-		ghost: 'bg-transparent hover:text-white hover:border-blue-600 border-2 border-transparent text-gray-300'
+		ghost: 'bg-transparent hover:text-white hover:border-white border-2 border-transparent text-gray-300'
 	};
 
 	const sizes = {

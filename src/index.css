@@ -13,3 +13,26 @@ html, body {
 button {
   cursor: pointer;
 }
+
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+    width: 12px;
+    background: #000000;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #000000;
+    border-radius: 6px;
+    transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #000000;
+}
+
+/* Firefox */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: #193cb8 transparent;
+}

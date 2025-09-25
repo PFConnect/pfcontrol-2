@@ -22,7 +22,7 @@ export default function ProtectedRoute({
 	}
 
 	if (!user) {
-		return <Navigate to="/" replace />;
+		return <Navigate to="/login" replace />;
 	}
 
 	if (requireAdmin && !user.isAdmin) {

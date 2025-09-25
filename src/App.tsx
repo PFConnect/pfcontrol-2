@@ -4,17 +4,35 @@ import Home from './pages/Home';
 import Create from './pages/Create';
 import Sessions from './pages/Sessions';
 
+import Login from './pages/Login';
 import NotFound from './pages/NotFound';
 
 import Test from './pages/Test';
+import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
 	return (
 		<Router>
 			<Routes>
 				<Route path="/" element={<Home />} />
-				<Route path="/create" element={<Create />} />
-				<Route path="/sessions" element={<Sessions />} />
+				<Route
+					path="/create"
+					element={
+						<ProtectedRoute>
+							<Create />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/sessions"
+					element={
+						<ProtectedRoute>
+							<Sessions />
+						</ProtectedRoute>
+					}
+				/>
+
+				<Route path="/login" element={<Login />} />
 
 				<Route path="/test" element={<Test />} />
 

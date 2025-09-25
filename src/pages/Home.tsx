@@ -1,278 +1,291 @@
-import {
-	ArrowRight,
-	Clock,
-	Plane,
-	Shield,
-	TowerControl,
-	Users
-} from 'lucide-react';
+import { ArrowRight, Plane, Shield, TowerControl, Users } from 'lucide-react';
+import Button from '../components/common/Button';
 import Navbar from '../components/Navbar';
 
 export default function Home() {
 	return (
-		<div className="min-h-screen">
+		<div>
 			<Navbar />
-
-			<section className="relative min-h-[97vh] flex items-center justify-between overflow-hidden px-36 bg-gradient-to-b from-black via-zinc-900 to-blue-950">
-				<div className="flex flex-col justify-center mt-16">
-					<div>
-						<h1 className="text-[8rem] font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent">
+			{/* Hero Section */}
+			<section className="relative bg-gradient-to-t from-black via-zinc-900 to-blue-950 text-white min-h-[90vh] flex items-center px-4">
+				<div className="flex flex-col md:flex-row items-center justify-between w-full max-w-7xl mx-auto mt-16 md:mt-24 gap-10 md:gap-0">
+					<div className="flex-1 max-w-xl text-center md:text-left">
+						<h1 className="text-5xl sm:text-6xl md:text-[5rem] lg:text-[7rem] font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent leading-tight mb-4">
 							PFControl
 						</h1>
-						<p className="text-xl text-white max-w-2xl ml-1">
+						<p className="text-base sm:text-xl text-white max-w-lg mx-auto md:mx-0 mb-8 sm:mb-10">
 							The next-generation flight strip platform built for
 							real-time coordination between air traffic
 							controllers with enterprise-level reliability.
 						</p>
+						<div className="flex flex-col sm:flex-row gap-4 w-full">
+							<Button
+								onClick={() =>
+									(window.location.href = '/create')
+								}
+								variant="outline"
+								className="flex items-center justify-center px-8 py-4 text-base sm:text-lg font-semibold transition-all w-full sm:w-auto"
+							>
+								Start Session Now
+								<ArrowRight className="ml-2 h-5 w-5" />
+							</Button>
+							<Button
+								onClick={() =>
+									(window.location.href = '/pfatc')
+								}
+								variant="ghost"
+								className="flex items-center justify-center px-8 py-4 text-base sm:text-lg font-semibold transition-all w-full sm:w-auto"
+							>
+								<TowerControl className="mr-2 h-5 w-5" />
+								See PFATC Flights
+							</Button>
+						</div>
 					</div>
-					<div className="flex items-center space-x-6 mt-8">
-						<button
-							onClick={() => (window.location.href = '/create')}
-							className="group inline-flex items-center px-10 py-5 rounded-full bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 text-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
-						>
-							Start Session Now
-							<ArrowRight className="ml-3 h-6 w-6 group-hover:translate-x-1 transition-transform duration-300" />
-						</button>
-						<button
-							onClick={() => (window.location.href = '/pfatc')}
-							className="group inline-flex items-center px-10 py-5 rounded-full bg-gradient-to-r from-purple-600 to-purple-700 text-white hover:from-purple-700 hover:to-purple-800 text-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl"
-						>
-							<TowerControl className="mr-3 h-6 w-6 group-hover:scale-110 transition-transform duration-300" />
-							See PFATC Flights
-						</button>
-					</div>
-				</div>
 
-				<div className="flex-1 flex justify-center items-center ml-16 mt-12">
-					<div className="relative">
+					{/* Hero image - hidden on mobile and small screens */}
+					<div className="flex-1 justify-center items-center mt-8 md:mt-0 md:ml-52 ml-0 w-full hidden md:flex">
 						<img
 							src="/assets/app/hero-rotated.png"
-							alt="Application Preview"
-							className="max-w-full h-[30rem] transform hover:scale-105 transition-transform duration-500"
+							alt="Description of image"
+							className="w-4/5 max-w-[260px] sm:max-w-xs md:max-w-md h-auto rounded-lg shadow-lg"
 						/>
 					</div>
 				</div>
-
-				<svg
-					className="absolute bottom-0 left-0 w-full h-16 fill-[#1b1b1e] z-0"
-					viewBox="0 0 1440 120"
-					preserveAspectRatio="none"
-				>
-					<path d="M0,60 Q720,0 1440,60 L1440,120 L0,120 Z"></path>
-				</svg>
 			</section>
 
-			<section className="relative bg-[#1b1b1e] py-20">
-				<div className="max-w-7xl mx-auto px-6 lg:px-8 mb-32">
+			<section className="relative bg-black py-36 px-2 sm:px-6">
+				<div className="max-w-5xl mx-auto px-2 sm:px-6">
 					<h2
-						className="text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
+						className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
 						style={{ lineHeight: 1.4 }}
 					>
 						How it works
 					</h2>
-					<div className="w-16 h-1 bg-blue-500 mx-auto mb-6"></div>
+					<div className="w-16 h-1 bg-blue-500 mx-auto mb-6 -mt-4"></div>
 					<p className="text-xl text-center text-gray-300 max-w-3xl mx-auto">
 						Get started with PFControl in three simple steps.
 					</p>
 
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-12 mt-20">
-						<div className="text-center">
-							<div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold">
-								1
+					<div className="flex flex-col md:flex-row items-center justify-between gap-8 mt-20">
+						<div className="flex flex-col items-center flex-1">
+							<div className="bg-blue-800 rounded-full p-6 mb-3">
+								<TowerControl className="h-12 w-12 text-white" />
 							</div>
-							<h3 className="text-2xl font-bold mb-4">
+							<span className="text-white font-semibold mb-2 text-xl">
 								Create Session
-							</h3>
-							<p className="text-gray-400">
-								Start a new flight strip session and receive a
-								unique identifier for your control position
+							</span>
+							<p className="text-gray-400 text-md text-center max-w-[220px]">
+								Start a new session and get your control session
+								ready.
 							</p>
 						</div>
-
-						<div className="text-center">
-							<div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold">
-								2
+						<div className="hidden md:block h-1 w-12 bg-zinc-700 rounded-full"></div>
+						<div className="flex flex-col items-center flex-1">
+							<div className="bg-blue-800 rounded-full p-6 mb-3">
+								<Users className="h-12 w-12 text-white" />
 							</div>
-							<h3 className="text-2xl font-bold mb-4">
-								Share Submission Link
-							</h3>
-							<p className="text-gray-400">
-								Share the form link with pilots to start
-								receiving flight plans instantly
+							<span className="text-white font-semibold mb-2 text-xl">
+								Share Link
+							</span>
+							<p className="text-gray-400 text-md text-center max-w-[220px]">
+								Send the link to pilots to receive flight plans.
 							</p>
 						</div>
-
-						<div className="text-center">
-							<div className="bg-blue-600 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-6 text-2xl font-bold">
-								3
+						<div className="hidden md:block h-1 w-12 bg-zinc-700 rounded-full"></div>
+						<div className="flex flex-col items-center flex-1">
+							<div className="bg-blue-800 rounded-full p-6 mb-3">
+								<Plane className="h-12 w-12 text-white" />
 							</div>
-							<h3 className="text-2xl font-bold mb-4">
+							<span className="text-white font-semibold mb-2 text-xl">
 								Manage Strips
-							</h3>
-							<p className="text-gray-400">
-								Update clearance status, assign SIDs, and track
-								departures in real-time
+							</span>
+							<p className="text-gray-400 text-md text-center max-w-[220px]">
+								Update status and track departures in real-time.
 							</p>
 						</div>
 					</div>
 				</div>
-
-				<svg
-					className="absolute bottom-0 w-full h-24 fill-blue-950"
-					viewBox="0 0 1440 120"
-					preserveAspectRatio="none"
-				>
-					<path d="M0,60 Q360,0 720,60 T1440,60 L1440,120 L0,120 Z"></path>
-				</svg>
 			</section>
 
-			<section className="relative bg-gradient-to-b from-blue-950 via-zinc-900 to-black py-20">
-				<div className="max-w-7xl mx-auto mb-36">
-					<div className="text-center mb-16">
-						<h2
-							className="text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
-							style={{ lineHeight: 1.4 }}
-						>
-							Platform Statistics
-						</h2>
-						<div className="w-16 h-1 bg-blue-500 mx-auto mb-6"></div>
-						<p className="text-xl text-gray-300 max-w-3xl mx-auto">
-							Join thousands of controllers and pilots using
-							PFControl worldwide
-						</p>
+			<section className="relative bg-black py-36 px-2 sm:px-6">
+				<div className="max-w-4xl mx-auto px-2 sm:px-6">
+					<h2
+						className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
+						style={{ lineHeight: 1.4 }}
+					>
+						Join our community
+					</h2>
+					<div className="w-16 h-1 bg-blue-500 mx-auto mb-6 -mt-4"></div>
+					<p className="text-xl text-center text-gray-300 max-w-3xl mx-auto">
+						Join thousands of controllers and pilots using PFControl
+						worldwide.
+					</p>
+				</div>
+
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-10 cursor-default mt-20 max-w-7xl mx-auto px-2 sm:px-6">
+					{/* Card 1 */}
+					<div className="relative bg-zinc-900 border-2 border-blue-800 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
+						<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-900 p-3 rounded-full shadow-lg border-2 border-blue-800">
+							<TowerControl className="h-8 w-8 text-white" />
+						</div>
+						<h3 className="text-2xl font-semibold mt-6 mb-4 text-blue-200">
+							Sessions Created
+						</h3>
+						<div className="text-4xl font-bold text-white mb-3">
+							2.518
+						</div>
+						<p className="text-gray-400">Last 30 days</p>
 					</div>
-
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-10 cursor-default">
-						<div className="relative bg-gray-800/60 backdrop-blur-md border border-blue-700 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
-							<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-700 p-3 rounded-full shadow-lg">
-								<TowerControl className="h-8 w-8 text-white" />
-							</div>
-							<h3 className="text-2xl font-semibold mt-8 mb-4 text-blue-200">
-								Sessions Created
-							</h3>
-							<div className="text-4xl font-bold text-white mb-3">
-								2.518
-							</div>
-							<p className="text-gray-400">Last 30 days</p>
+					{/* Card 2 */}
+					<div className="relative bg-zinc-900 border-2 border-blue-800 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
+						<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-900 p-3 rounded-full shadow-lg border-2 border-blue-800">
+							<Users className="h-8 w-8 text-white" />
 						</div>
-
-						<div className="relative bg-gray-800/60 backdrop-blur-md border border-blue-700 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
-							<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-700 p-3 rounded-full shadow-lg">
-								<Users className="h-8 w-8 text-white" />
-							</div>
-							<h3 className="text-2xl font-semibold mt-8 mb-4 text-blue-200">
-								Registered Users
-							</h3>
-							<div className="text-4xl font-bold text-white mb-3">
-								4.611
-							</div>
-							<p className="text-gray-400">All time</p>
+						<h3 className="text-2xl font-semibold mt-6 mb-4 text-blue-200">
+							Registered Users
+						</h3>
+						<div className="text-4xl font-bold text-white mb-3">
+							4.611
 						</div>
+						<p className="text-gray-400">All time</p>
+					</div>
+					{/* Card 3 */}
+					<div className="relative bg-zinc-900 border-2 border-blue-800 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
+						<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-900 p-3 rounded-full shadow-lg border-2 border-blue-800">
+							<Plane className="h-8 w-8 text-white" />
+						</div>
+						<h3 className="text-2xl font-semibold mt-6 mb-4 text-blue-200">
+							Flights Logged
+						</h3>
+						<div className="text-4xl font-bold text-white mb-3">
+							7.346
+						</div>
+						<p className="text-gray-400">Last 30 days</p>
+					</div>
+				</div>
+			</section>
 
-						<div className="relative bg-gray-800/60 backdrop-blur-md border border-blue-700 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
-							<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-700 p-3 rounded-full shadow-lg">
-								<Plane className="h-8 w-8 text-white" />
-							</div>
-							<h3 className="text-2xl font-semibold mt-8 mb-4 text-blue-200">
-								Flights Logged
-							</h3>
-							<div className="text-4xl font-bold text-white mb-3">
-								7.346
-							</div>
-							<p className="text-gray-400">Last 30 days</p>
+			<section className="bg-black text-white py-24 text-center px-2 sm:px-6">
+				<div className="max-w-4xl mx-auto px-2 sm:px-6">
+					<h2
+						className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
+						style={{ lineHeight: 1.4 }}
+					>
+						Our Partners
+					</h2>
+					<div className="w-16 h-1 bg-blue-500 mx-auto mb-6 -mt-4"></div>
+					<p className="text-xl text-center text-gray-300 max-w-3xl mx-auto">
+						We are proud to partner with leading virtual airlines
+						and aviation organizations to enhance our community
+						experience.
+					</p>
+				</div>
+
+				<div className="bg-blue-900 py-12 mt-16">
+					<div className="grid grid-cols-2 md:grid-cols-4 gap-10 max-w-7xl mx-auto px-2 sm:px-6">
+						<div className="flex items-center justify-center">
+							<img
+								src="/assets/app/partners/lufthansa.gif"
+								alt="PF Lufthansa Virtual Logo"
+								className="h-24 w-24 rounded-full"
+							/>
+						</div>
+						<div className="flex items-center justify-center">
+							<img
+								src="/assets/app/partners/pfconnect.webp"
+								alt="PFConnect Studios Logo"
+								className="h-24 w-24 rounded-full"
+							/>
+						</div>
+						<div className="flex items-center justify-center">
+							<img
+								src="/assets/app/partners/southwest.webp"
+								alt="Southwest Airlines Logo"
+								className="h-24 w-24 rounded-full"
+							/>
+						</div>
+						<div className="flex items-center justify-center">
+							<img
+								src="/assets/app/partners/pfcalc.webp"
+								alt="PFCalculator Logo"
+								className="h-28 w-28 rounded-full"
+							/>
 						</div>
 					</div>
 				</div>
-
-				<svg
-					className="absolute bottom-0 w-full h-24 fill-[#1b1b1e]"
-					viewBox="0 0 1440 120"
-					preserveAspectRatio="none"
-				>
-					<path d="M0,60 Q360,0 720,60 T1440,60 L1440,120 L0,120 Z"></path>
-				</svg>
 			</section>
 
-			<section className="relative bg-[#1b1b1e] py-20">
-				<div className="max-w-7xl mx-auto mb-24">
+			<section className="bg-black text-white py-24 text-center px-2 sm:px-6">
+				<div className="max-w-4xl mx-auto px-2 sm:px-6">
 					<h2
-						className="text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
+						className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
 						style={{ lineHeight: 1.4 }}
 					>
 						Why Choose PFControl?
 					</h2>
-					<div className="w-16 h-1 bg-blue-500 mx-auto mb-6"></div>
-					<p className="text-xl text-center text-gray-300 max-w-3xl mx-auto">
-						Experience the future of air traffic control with
-						PFControl.
-					</p>
-					<div className="grid grid-cols-1 md:grid-cols-3 gap-10 mt-12">
-						<div className="relative bg-gray-800/60 backdrop-blur-md border border-blue-700 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
-							<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-700 p-3 rounded-full shadow-lg">
-								<Shield className="h-8 w-8 text-white" />
-							</div>
-							<h3 className="text-2xl font-semibold mt-8 mb-2 text-blue-200">
-								Secure & Reliable
-							</h3>
-							<p className="text-gray-300">
-								Enterprise-grade reliability and security for
-								every session, ensuring your data is always
-								protected.
-							</p>
+					<div className="w-16 h-1 bg-blue-500 mx-auto mb-6 -mt-4"></div>
+				</div>
+				<div className="grid grid-cols-1 md:grid-cols-3 gap-10 cursor-default mt-20 max-w-7xl mx-auto px-2 sm:px-6">
+					{/* Card 1 */}
+					<div className="relative bg-zinc-900 border-2 border-blue-800 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
+						<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-900 p-3 rounded-full shadow-lg border-2 border-blue-800">
+							<Shield className="h-8 w-8 text-white" />
 						</div>
-						<div className="relative bg-gray-800/60 backdrop-blur-md border border-blue-700 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
-							<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-700 p-3 rounded-full shadow-lg">
-								<Clock className="h-8 w-8 text-white" />
-							</div>
-							<h3 className="text-2xl font-semibold mt-8 mb-2 text-blue-200">
-								Real-Time Updates
-							</h3>
-							<p className="text-gray-300">
-								Instantly see changes and updates as they
-								happen, keeping your team in sync at all times.
-							</p>
+						<h3 className="text-2xl font-semibold mt-6 mb-4 text-blue-200">
+							Secure & Reliable
+						</h3>
+						<p className="text-gray-400">
+							Your sessions and data are protected with end-to-end
+							encryption and regular backups.
+						</p>
+					</div>
+					{/* Card 2 */}
+					<div className="relative bg-zinc-900 border-2 border-blue-800 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
+						<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-900 p-3 rounded-full shadow-lg border-2 border-blue-800">
+							<Users className="h-8 w-8 text-white" />
 						</div>
-						<div className="relative bg-gray-800/60 backdrop-blur-md border border-blue-700 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
-							<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-700 p-3 rounded-full shadow-lg">
-								<Users className="h-8 w-8 text-white" />
-							</div>
-							<h3 className="text-2xl font-semibold mt-8 mb-2 text-blue-200">
-								Collaborative
-							</h3>
-							<p className="text-gray-300">
-								Designed for seamless teamwork between
-								controllers, pilots, and staff across any
-								device.
-							</p>
+						<h3 className="text-2xl font-semibold mt-6 mb-4 text-blue-200">
+							Real Time Updates
+						</h3>
+						<p className="text-gray-400">
+							Instantly see changes and updates as they happen,
+							keeping your controlling in sync at all times.
+						</p>
+					</div>
+					{/* Card 3 */}
+					<div className="relative bg-zinc-900 border-2 border-blue-800 rounded-2xl p-10 text-center shadow-xl transition-transform hover:-translate-y-2 hover:shadow-2xl hover:border-blue-400">
+						<div className="absolute -top-6 left-1/2 -translate-x-1/2 bg-blue-900 p-3 rounded-full shadow-lg border-2 border-blue-800">
+							<Plane className="h-8 w-8 text-white" />
 						</div>
+						<h3 className="text-2xl font-semibold mt-6 mb-4 text-blue-200">
+							Collaborative
+						</h3>
+						<p className="text-gray-400">
+							Chat and collaborate with your controllers in our
+							secure chats and voice channels across any device.
+						</p>
 					</div>
 				</div>
-
-				<svg
-					className="absolute bottom-0 left-0 w-full h-16 fill-black z-0"
-					viewBox="0 0 1440 120"
-					preserveAspectRatio="none"
-				>
-					<path d="M0,60 Q720,0 1440,60 L1440,120 L0,120 Z"></path>
-				</svg>
 			</section>
 
-			<section className="relative bg-gradient-to-b from-black via-zinc-900 to-blue-950 py-20">
+			{/* CTA Section - PFControl v2 */}
+			<section className="bg-gradient-to-b from-black via-zinc-900 to-blue-950 text-white py-24 pt-24 sm:pt-36 px-4 sm:px-6">
 				<div className="max-w-7xl mx-auto">
 					<div className="flex flex-col md:flex-row items-center gap-8 lg:gap-16">
-						<div className="w-full md:w-1/2 space-y-6">
+						<div className="w-full md:w-1/2 space-y-6 text-center md:text-left">
 							<h2
-								className="text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-left"
+								className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6"
 								style={{ lineHeight: 1.4 }}
 							>
 								PFControl v2
 							</h2>
-							<div className="w-16 h-1 bg-blue-500 mb-6"></div>
-							<p className="text-xl text-gray-300">
-								Watch our official trailer showcasing the
-								powerful features of our latest stable release.
+							<div className="w-16 h-1 bg-blue-500 mx-auto md:mx-0 mb-6"></div>
+							<p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-lg mx-auto md:mx-0">
+								The next-generation flight strip platform built
+								for real-time coordination between air traffic
+								controllers.
 							</p>
-							<ul className="space-y-4 text-gray-300 mt-6">
+							<ul className="space-y-4 text-gray-300 mt-6 text-left max-w-lg mx-auto md:mx-0">
 								<li className="flex items-start">
 									<ArrowRight className="mr-3 h-5 w-5 text-blue-400 flex-shrink-0 mt-1" />
 									<span>
@@ -299,19 +312,20 @@ export default function Home() {
 									onClick={() =>
 										(window.location.href = '/create')
 									}
-									className="px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-full text-lg font-medium transition-all"
+									className="w-full sm:w-auto px-8 py-3 bg-blue-600 hover:bg-blue-700 rounded-full text-base sm:text-lg font-medium transition-all"
 								>
 									Try the Latest Version Now
 								</button>
 							</div>
 						</div>
 
-						<div className="w-full md:w-1/2 mt-10 md:mt-0">
+						{/* CTA image - hidden on mobile */}
+						<div className="w-full md:w-1/2 mt-10 md:mt-0 justify-center hidden md:flex">
 							<div className="relative">
 								<img
 									src="/assets/app/hero-rotated.png"
 									alt="Application Preview"
-									className="max-w-full h-[30rem] transform hover:scale-105 transition-transform duration-500"
+									className="max-w-[260px] sm:max-w-xs md:max-w-full h-48 xs:h-64 sm:h-[30rem] transform hover:scale-105 transition-transform duration-500"
 								/>
 							</div>
 						</div>
