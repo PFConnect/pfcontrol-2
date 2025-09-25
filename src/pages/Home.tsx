@@ -181,7 +181,7 @@ export default function Home() {
 					</p>
 				</div>
 
-				<div className="bg-blue-900 py-12 mt-16">
+				<div className="py-12 mt-16">
 					<div className="grid grid-cols-2 md:grid-cols-4 gap-10 max-w-7xl mx-auto px-2 sm:px-6">
 						<div className="flex items-center justify-center">
 							<img
