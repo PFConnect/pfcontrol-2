@@ -6,8 +6,8 @@ dotenv.config({ path: envFile });
 
 const { Pool } = pg;
 
-const pool = new Pool({
-    connectionString: process.env.POSTGRES_DB_URL,
+const flightsPool = new Pool({
+    connectionString: process.env.POSTGRES_DB_URL_FLIGHTS,
     ssl: {
         rejectUnauthorized: false,
         require: true
@@ -16,11 +16,11 @@ const pool = new Pool({
 
 (async () => {
     try {
-        await pool.query('SELECT 1');
-        console.log('\x1b[34m%s\x1b[0m', 'PFControl DB connected');
+        await flightsPool.query('SELECT 1');
+        console.log('\x1b[34m%s\x1b[0m', 'Flights DB connected');
     } catch (err) {
-        console.error('Error connecting to PFControl DB:', err);
+        console.error('Error connecting to Flights DB:', err);
     }
 })();
 
-export default pool;
+export default flightsPool;

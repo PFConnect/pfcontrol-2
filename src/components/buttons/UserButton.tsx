@@ -78,7 +78,6 @@ export default function CustomUserButton({
 	if (isMobile) {
 		return (
 			<div className={`w-full space-y-3 ${className}`}>
-				{/* User Info Card */}
 				<div className="flex items-center space-x-3 px-4 py-3 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
 					{user.avatar ? (
 						<img
@@ -103,7 +102,6 @@ export default function CustomUserButton({
 					</div>
 				</div>
 
-				{/* Action Buttons */}
 				<div className="space-y-2">
 					<button
 						onClick={() =>

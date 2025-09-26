@@ -34,9 +34,6 @@ async function initializeUsersTable() {
                     updated_at TIMESTAMP DEFAULT NOW()
                 )
             `);
-            console.log('\x1b[34m%s\x1b[0m', 'Users table created');
-        } else {
-            console.log('\x1b[33m%s\x1b[0m', 'Users table already exists');
         }
     } catch (error) {
         console.error('Error initializing users table:', error);

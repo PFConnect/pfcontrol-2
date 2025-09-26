@@ -68,7 +68,6 @@ router.get('/:sessionId', async (req, res) => {
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        const flightStrips = decrypt(JSON.parse(session.flight_strips));
         const atis = decrypt(JSON.parse(session.atis));
         res.json({
             sessionId: session.session_id,
@@ -78,7 +77,6 @@ router.get('/:sessionId', async (req, res) => {
             createdAt: session.created_at,
             createdBy: session.created_by,
             isPFATC: session.is_pfatc,
-            flightStrips: flightStrips || [],
             atis: atis || { letter: 'A', text: '', timestamp: new Date().toISOString() }
         });
     } catch (error) {
@@ -90,12 +88,11 @@ router.get('/:sessionId', async (req, res) => {
 router.put('/:sessionId', async (req, res) => {
     try {
         const { sessionId } = req.params;
-        const { activeRunway, flightStrips, atis } = req.body;
-        const session = await updateSession(sessionId, { activeRunway, flightStrips, atis });
+        const { activeRunway, atis } = req.body;
+        const session = await updateSession(sessionId, { activeRunway, atis });
         if (!session) {
             return res.status(404).json({ error: 'Session not found' });
         }
-        const decryptedFlightStrips = decrypt(JSON.parse(session.flight_strips));
         const decryptedAtis = decrypt(JSON.parse(session.atis));
         res.json({
             sessionId: session.session_id,
@@ -105,7 +102,6 @@ router.put('/:sessionId', async (req, res) => {
             createdAt: session.created_at,
             createdBy: session.created_by,
             isPFATC: session.is_pfatc,
-            flightStrips: decryptedFlightStrips || [],
             atis: decryptedAtis || { letter: 'A', text: '', timestamp: new Date().toISOString() }
         });
     } catch (error) {

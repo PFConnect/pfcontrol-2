@@ -1,0 +1,521 @@
+import React, { useEffect, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
+import Navbar from '../components/Navbar';
+import WindDisplay from '../components/tools/WindDisplay';
+import Button from '../components/common/Button';
+import {
+	AlertCircle,
+	Check,
+	X,
+	AlertTriangle,
+	PlaneTakeoff,
+	PlaneLanding,
+	Navigation,
+	ArrowUpDown,
+	Route,
+	StickyNote,
+	BadgeCheck,
+	PlusCircle,
+	ClipboardList,
+	ParkingCircle,
+	Loader2,
+	MapPinCheck,
+	Plane
+} from 'lucide-react';
+import { addFlight } from '../utils/fetch/flights';
+import type { Flight } from '../types/flight';
+import AirportDropdown from '../components/dropdowns/AirportDropdown';
+import Dropdown from '../components/common/Dropdown';
+
+interface SessionData {
+	sessionId: string;
+	airportIcao: string;
+	activeRunway?: string;
+	atis?: unknown;
+}
+
+export default function Submit() {
+	const { sessionId } = useParams<{ sessionId: string }>();
+	const navigate = useNavigate();
+
+	const [session, setSession] = useState<SessionData | null>(null);
+	const [loading, setLoading] = useState(true);
+	const [error, setError] = useState('');
+	const [success, setSuccess] = useState(false);
+	const [submittedFlight, setSubmittedFlight] = useState<Flight | null>(null);
+	const [form, setForm] = useState({
+		callsign: '',
+		aircraft_type: '',
+		departure: '',
+		arrival: '',
+		route: '',
+		stand: '',
+		remark: '',
+		flight_type: 'IFR',
+		cruisingFL: ''
+	});
+
+	const [isSubmitting, setIsSubmitting] = useState(false);
+
+	useEffect(() => {
+		if (!sessionId) return;
+		setLoading(true);
+		fetch(`${import.meta.env.VITE_SERVER_URL}/api/sessions/${sessionId}`)
+			.then((res) => (res.ok ? res.json() : Promise.reject(res)))
+			.then((data) => {
+				setSession(data);
+				setForm((f) => ({
+					...f,
+					departure: data.airportIcao || ''
+				}));
+			})
+			.catch(() => setError('Session not found'))
+			.finally(() => setLoading(false));
+	}, [sessionId]);
+
+	const handleChange = (name: string) => (value: string) => {
+		setForm((f) => ({ ...f, [name]: value }));
+	};
+
+	const handleSubmit = async (e: React.FormEvent) => {
+		e.preventDefault();
+		setError('');
+		setSuccess(false);
+		setIsSubmitting(true);
+
+		if (!form.callsign || !form.arrival || !form.aircraft_type) {
+			setError('Please fill all required fields.');
+			setIsSubmitting(false);
+			return;
+		}
+
+		try {
+			const flight = await addFlight(sessionId!, {
+				...form,
+				flight_type: form.flight_type,
+				cleared_fl: form.cruisingFL,
+				status: 'PENDING'
+			});
+			setSubmittedFlight(flight);
+			setSuccess(true);
+		} catch {
+			setError('Failed to submit flight.');
+		} finally {
+			setIsSubmitting(false);
+		}
+	};
+
+	const handleCreateAnother = () => {
+		setSuccess(false);
+		setSubmittedFlight(null);
+		setForm({
+			callsign: '',
+			aircraft_type: '',
+			departure: session?.airportIcao || '',
+			arrival: '',
+			route: '',
+			stand: '',
+			remark: '',
+			flight_type: 'IFR',
+			cruisingFL: ''
+		});
+	};
+
+	if (loading) {
+		return (
+			<div className="min-h-screen bg-black text-white flex items-center justify-center">
+				<Navbar />
+				<div>Loading...</div>
+			</div>
+		);
+	}
+
+	if (!sessionId || !session) {
+		return (
+			<div className="min-h-screen bg-black text-white flex items-center justify-center">
+				<Navbar />
+				<div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 text-center">
+					<AlertCircle className="h-8 w-8 text-red-500 mb-4" />
+					<h2 className="text-xl font-semibold mb-2">
+						Invalid session
+					</h2>
+					<Button onClick={() => navigate('/')}>Go Home</Button>
+				</div>
+			</div>
+		);
+	}
+
+	return (
+		<div className="min-h-screen bg-gray-950 text-white">
+			<Navbar />
+			{/* Banner */}
+			<div className="relative w-full h-56 md:h-72 overflow-hidden">
+				<div className="absolute inset-0 bg-gradient-to-t from-gray-950 to-transparent">
+					<img
+						src="/assets/app/backgrounds/mdpc_01.png"
+						alt="Banner"
+						className="object-cover w-full h-full blur-xs scale-110 opacity-60"
+					/>
+				</div>
+				<div className="absolute bottom-0 left-64 right-0 p-6 md:p-10">
+					<h1 className="text-3xl md:text-5xl font-bold text-white">
+						{session.airportIcao ? (
+							<h2
+								className="text-3xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6"
+								style={{ lineHeight: 1.4 }}
+							>
+								<span className="font-mono">
+									{session.airportIcao}
+								</span>{' '}
+								- Submit Flight Plan
+							</h2>
+						) : (
+							'Submit Flight Plan'
+						)}
+					</h1>
+					{session.activeRunway && (
+						<div className="-mt-6 text-blue-400 text-md">
+							Departure Runway:{' '}
+							<span className="font-semibold">
+								{session.activeRunway}
+							</span>
+						</div>
+					)}
+				</div>
+			</div>
+
+			<div className="container mx-auto max-w-3xl px-4 pb-8 pt-8">
+				{/* Success Message */}
+				{success && submittedFlight && (
+					<div className="bg-green-900/30 border border-green-700 rounded-xl mb-8 overflow-hidden">
+						<div className="bg-green-900/50 p-4 border-b border-green-700 flex items-center">
+							<div className="bg-green-700 rounded-full p-2 mr-3">
+								<Check className="h-6 w-6 text-green-200" />
+							</div>
+							<div className="flex-1">
+								<h3 className="text-lg font-semibold text-green-200">
+									Flight Plan Submitted Successfully!
+								</h3>
+								<p className="text-green-300 text-sm">
+									Your flight plan has been submitted to ATC
+									and is awaiting clearance.
+								</p>
+							</div>
+							<button
+								onClick={() => {
+									setSuccess(false);
+									setSubmittedFlight(null);
+								}}
+								className="text-green-300 hover:text-green-100 ml-4"
+							>
+								<X className="h-5 w-5" />
+							</button>
+						</div>
+						<div className="p-6">
+							<div className="flex items-center mb-4">
+								<ClipboardList className="h-5 w-5 text-green-400 mr-2" />
+								<h4 className="text-lg font-semibold text-green-200">
+									Flight Plan Details
+								</h4>
+							</div>
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div className="space-y-3">
+									<div>
+										<span className="text-sm font-medium text-gray-400">
+											Callsign:
+										</span>
+										<p className="text-white font-semibold">
+											{submittedFlight.callsign}
+										</p>
+									</div>
+									<div>
+										<span className="text-sm font-medium text-gray-400">
+											Aircraft:
+										</span>
+										<p className="text-white">
+											{submittedFlight.aircraft_type}
+										</p>
+									</div>
+									<div>
+										<span className="text-sm font-medium text-gray-400">
+											Flight Type:
+										</span>
+										<p className="text-white">
+											{submittedFlight.flight_type}
+										</p>
+									</div>
+									{submittedFlight.stand && (
+										<div>
+											<span className="text-sm font-medium text-gray-400">
+												Stand:
+											</span>
+											<p className="text-white">
+												{submittedFlight.stand}
+											</p>
+										</div>
+									)}
+								</div>
+								<div className="space-y-3">
+									<div>
+										<span className="text-sm font-medium text-gray-400">
+											Departure:
+										</span>
+										<p className="text-white">
+											{submittedFlight.departure}
+										</p>
+									</div>
+									<div>
+										<span className="text-sm font-medium text-gray-400">
+											Arrival:
+										</span>
+										<p className="text-white">
+											{submittedFlight.arrival}
+										</p>
+									</div>
+									{submittedFlight.route && (
+										<div>
+											<span className="text-sm font-medium text-gray-400">
+												Route:
+											</span>
+											<p className="text-white font-mono">
+												{submittedFlight.route}
+											</p>
+										</div>
+									)}
+								</div>
+							</div>
+							{submittedFlight.remark && (
+								<div className="mt-4 pt-4 border-t border-green-800">
+									<span className="text-sm font-medium text-gray-400">
+										Remarks:
+									</span>
+									<p className="text-white mt-1">
+										{submittedFlight.remark}
+									</p>
+								</div>
+							)}
+							<div className="mt-6 pt-4 border-t border-green-800">
+								<Button
+									onClick={handleCreateAnother}
+									className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg transition-colors"
+								>
+									<PlusCircle className="h-5 w-5 mr-2" />
+									Create Another Flight Plan
+								</Button>
+							</div>
+						</div>
+					</div>
+				)}
+
+				<div className="mb-8">
+					<WindDisplay icao={session.airportIcao} />
+				</div>
+
+				{/* Form */}
+				{!success && (
+					<div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 shadow-xl overflow-hidden">
+						<form onSubmit={handleSubmit} className="p-6 space-y-6">
+							{error && (
+								<div className="p-3 bg-red-900/40 border border-red-700 rounded-md flex items-center text-sm mb-2">
+									<AlertTriangle className="h-5 w-5 mr-2 text-red-400" />
+									{error}
+								</div>
+							)}
+							<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+								<div className="space-y-4">
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<BadgeCheck className="h-4 w-4 mr-2 text-gray-400" />
+											Callsign{' '}
+											<span className="text-red-400 ml-1">
+												*
+											</span>
+										</label>
+										<input
+											type="text"
+											name="callsign"
+											value={form.callsign}
+											onChange={(e) =>
+												handleChange('callsign')(
+													e.target.value
+												)
+											}
+											required
+											placeholder="e.g. BAW123"
+											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+										/>
+									</div>
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<Plane className="h-4 w-4 mr-2 text-gray-400" />
+											Aircraft Type{' '}
+											<span className="text-red-400 ml-1">
+												*
+											</span>
+										</label>
+										<input
+											type="text"
+											name="aircraft_type"
+											value={form.aircraft_type}
+											onChange={(e) =>
+												handleChange('aircraft_type')(
+													e.target.value
+												)
+											}
+											required
+											placeholder="e.g. A320"
+											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+										/>
+									</div>
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<Navigation className="h-4 w-4 mr-2 text-gray-400" />
+											Flight Type
+										</label>
+										<Dropdown
+											value={form.flight_type}
+											onChange={handleChange(
+												'flight_type'
+											)}
+											placeholder="IFR or VFR"
+											options={[
+												{ label: 'IFR', value: 'IFR' },
+												{ label: 'VFR', value: 'VFR' }
+											]}
+										/>
+									</div>
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<ParkingCircle className="h-4 w-4 mr-2 text-gray-400" />
+											Stand
+										</label>
+										<input
+											type="text"
+											name="stand"
+											value={form.stand}
+											onChange={(e) =>
+												handleChange('stand')(
+													e.target.value
+												)
+											}
+											placeholder="e.g. A12"
+											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+										/>
+									</div>
+								</div>
+								<div className="space-y-4">
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<PlaneTakeoff className="h-4 w-4 mr-2 text-gray-400" />
+											Departure Airport
+										</label>
+										<AirportDropdown
+											value={form.departure}
+											onChange={handleChange('departure')}
+											disabled
+										/>
+									</div>
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<PlaneLanding className="h-4 w-4 mr-2 text-gray-400" />
+											Arrival Airport{' '}
+											<span className="text-red-400 ml-1">
+												*
+											</span>
+										</label>
+										<AirportDropdown
+											value={form.arrival}
+											onChange={handleChange('arrival')}
+										/>
+									</div>
+									<div>
+										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+											<ArrowUpDown className="h-4 w-4 mr-2 text-gray-400" />
+											Cruising Flight Level
+										</label>
+										<input
+											type="text"
+											name="cruisingFL"
+											value={form.cruisingFL}
+											onChange={(e) =>
+												handleChange('cruisingFL')(
+													e.target.value
+												)
+											}
+											placeholder="e.g. 350"
+											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+										/>
+									</div>
+								</div>
+							</div>
+							<div>
+								<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+									<Route className="h-4 w-4 mr-2 text-gray-400" />
+									Route
+								</label>
+								<input
+									type="text"
+									name="route"
+									value={form.route}
+									onChange={(e) =>
+										handleChange('route')(e.target.value)
+									}
+									placeholder="e.g. HAZEL NOVMA LEDGO"
+									className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+								/>
+							</div>
+							<div>
+								<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
+									<StickyNote className="h-4 w-4 mr-2 text-gray-400" />
+									Remarks
+								</label>
+								<input
+									type="text"
+									name="remark"
+									value={form.remark}
+									onChange={(e) =>
+										handleChange('remark')(e.target.value)
+									}
+									placeholder="Any additional information"
+									className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+								/>
+							</div>
+							<div className="mt-8">
+								<Button
+									type="submit"
+									className="w-full flex justify-center items-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
+									disabled={isSubmitting}
+								>
+									{isSubmitting ? (
+										<>
+											<Loader2 className="animate-spin h-5 w-5 mr-2" />
+											Submitting...
+										</>
+									) : (
+										<>
+											<MapPinCheck className="h-5 w-5 mr-2" />
+											Submit Flight Plan
+										</>
+									)}
+								</Button>
+								<p className="text-xs text-gray-500 text-center mt-4">
+									By clicking "Submit Flight Plan", you agree
+									to our{' '}
+									<a
+										href="https://terms.pfconnect.online/#24"
+										className="text-blue-600 hover:underline"
+										target="_blank"
+										rel="noopener noreferrer"
+									>
+										terms and conditions
+									</a>
+									.
+								</p>
+							</div>
+						</form>
+					</div>
+				)}
+			</div>
+		</div>
+	);
+}

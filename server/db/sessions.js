@@ -24,9 +24,6 @@ export async function initializeSessionsTable() {
                     atis TEXT
                 )
             `);
-            console.log('\x1b[34m%s\x1b[0m', 'Sessions table created');
-        } else {
-            console.log('\x1b[33m%s\x1b[0m', 'Sessions table already exists');
         }
     } catch (error) {
         console.error('Error initializing sessions table:', error);
@@ -34,7 +31,6 @@ export async function initializeSessionsTable() {
 }
 
 export async function createSession({ sessionId, accessId, activeRunway, airportIcao, createdBy, isPFATC }) {
-    const encryptedFlightStrips = encrypt([]);
     const encryptedAtis = encrypt({
         letter: 'A',
         text: '',
@@ -44,8 +40,8 @@ export async function createSession({ sessionId, accessId, activeRunway, airport
     await pool.query(`
         INSERT INTO sessions (
             session_id, access_id, active_runway, airport_icao,
-            created_by, is_pfatc, flight_strips, atis
-        ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+            created_by, is_pfatc, atis
+        ) VALUES ($1, $2, $3, $4, $5, $6, $7)
     `, [
         sessionId,
         accessId,
@@ -53,7 +49,6 @@ export async function createSession({ sessionId, accessId, activeRunway, airport
         airportIcao.toUpperCase(),
         createdBy,
         isPFATC,
-        JSON.stringify(encryptedFlightStrips),
         JSON.stringify(encryptedAtis)
     ]);
 }
@@ -82,10 +77,6 @@ export async function updateSession(sessionId, updates) {
     if (updates.activeRunway !== undefined) {
         fields.push(`active_runway = $${paramCounter++}`);
         values.push(updates.activeRunway);
-    }
-    if (updates.flightStrips !== undefined) {
-        fields.push(`flight_strips = $${paramCounter++}`);
-        values.push(JSON.stringify(encrypt(updates.flightStrips)));
     }
     if (updates.atis !== undefined) {
         fields.push(`atis = $${paramCounter++}`);
@@ -119,33 +110,22 @@ export async function updateSessionName(sessionId, customName) {
 
 export async function getSessionsByUserDetailed(userId) {
     const result = await pool.query(
-        `SELECT session_id, access_id, airport_icao, active_runway, created_at, refreshed_at, custom_name, flight_strips, is_pfatc
+        `SELECT session_id, access_id, airport_icao, active_runway, created_at, refreshed_at, custom_name, is_pfatc
         FROM sessions WHERE created_by = $1 ORDER BY created_at DESC`,
         [userId]
     );
-    return result.rows.map(row => {
-        let flightCount = 0;
-        try {
-            const strips = decrypt(JSON.parse(row.flight_strips));
-            flightCount = Array.isArray(strips) ? strips.length : 0;
-        } catch {
-            flightCount = 0;
-        }
-
-        const isLegacy = !row.flight_strips || row.flight_strips[0] !== '{';
-        return {
-            sessionId: row.session_id,
-            accessId: row.access_id,
-            airportIcao: row.airport_icao,
-            activeRunway: row.active_runway,
-            createdAt: row.created_at,
-            refreshedAt: row.refreshed_at,
-            customName: row.custom_name,
-            flightCount,
-            isLegacy,
-            isPFATC: row.is_pfatc
-        };
-    });
+    return result.rows.map(row => ({
+        sessionId: row.session_id,
+        accessId: row.access_id,
+        airportIcao: row.airport_icao,
+        activeRunway: row.active_runway,
+        createdAt: row.created_at,
+        refreshedAt: row.refreshed_at,
+        customName: row.custom_name,
+        flightCount: 0, // Will be set by frontend using flights API
+        isLegacy: false,
+        isPFATC: row.is_pfatc
+    }));
 }
 
 export async function deleteSession(sessionId) {

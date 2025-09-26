@@ -9,6 +9,8 @@ interface TextInputProps {
 	maxLength?: number;
 	autoFocus?: boolean;
 	onKeyDown?: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+	name?: string;
+	required?: boolean;
 }
 
 export default function TextInput({
@@ -19,7 +21,9 @@ export default function TextInput({
 	className = '',
 	maxLength,
 	autoFocus = false,
-	onKeyDown
+	onKeyDown,
+	name,
+	required = false
 }: TextInputProps) {
 	return (
 		<input
@@ -34,6 +38,8 @@ export default function TextInput({
 			maxLength={maxLength}
 			autoFocus={autoFocus}
 			onKeyDown={onKeyDown}
+			name={name}
+			required={required}
 		/>
 	);
 }
