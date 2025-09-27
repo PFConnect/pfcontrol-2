@@ -28,14 +28,14 @@ export default function Button({
 
 	const variants = {
 		primary:
-			'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl',
+			'bg-blue-600 hover:bg-blue-700 text-white shadow-lg hover:shadow-xl border-2 border-blue-600',
 		secondary:
-			'bg-gray-600 hover:bg-gray-700 text-white shadow-lg hover:shadow-xl',
+			'bg-gray-600 hover:bg-gray-700 text-white shadow-lg hover:shadow-xl border-2 border-gray-600',
 		outline:
-			'border-2 border-blue-600 text-blue-600 hover:bg-blue-600 hover:text-white',
+			'text-blue-600 hover:bg-blue-600 hover:text-white border-2 border-blue-600',
 		success:
-			'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl',
-		danger: 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl',
+			'bg-green-600 hover:bg-green-700 text-white shadow-lg hover:shadow-xl border-2 border-green-600',
+		danger: 'bg-red-600 hover:bg-red-700 text-white shadow-lg hover:shadow-xl border-2 border-red-600',
 		ghost: 'bg-transparent hover:text-white hover:border-white border-2 border-transparent text-gray-300'
 	};
 

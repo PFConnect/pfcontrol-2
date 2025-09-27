@@ -1,4 +1,4 @@
-import { TowerControl, Menu, X, ClipboardCopy } from 'lucide-react';
+import { TowerControl, Menu, X } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import CustomUserButton from './buttons/UserButton';
 import Button from './common/Button';
@@ -12,6 +12,9 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
 	const [atTop, setAtTop] = useState(true);
 	const [copied, setCopied] = useState<string | null>(null);
+	const [utcTime, setUtcTime] = useState<string>(
+		new Date().toISOString().slice(11, 19)
+	);
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -53,6 +56,15 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 		};
 	}, [isMenuOpen]);
 
+	useEffect(() => {
+		if (sessionId && accessId) {
+			const interval = setInterval(() => {
+				setUtcTime(new Date().toISOString().slice(11, 19));
+			}, 1000);
+			return () => clearInterval(interval);
+		}
+	}, [sessionId, accessId]);
+
 	const navClass = [
 		'fixed top-0 w-full z-50 transition-all duration-300',
 		atTop
@@ -83,26 +95,31 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 
 					{sessionId && accessId && (
 						<div className="flex-1 flex justify-center items-center space-x-4">
+							<span className="text-white font-mono text-sm px-3 py-1 rounded bg-black/30 border border-white/10">
+								{utcTime} UTC
+							</span>
 							<Button
 								variant="primary"
 								className="flex items-center space-x-2"
+								size="sm"
 								onClick={() =>
-									handleCopy(`/submit/${sessionId}`)
+									handleCopy(
+										`${window.location.origin}/submit/${sessionId}`
+									)
 								}
 							>
-								<ClipboardCopy className="w-4 h-4" />
 								<span>Copy Submit Link</span>
 							</Button>
 							<Button
 								variant="danger"
 								className="flex items-center space-x-2"
+								size="sm"
 								onClick={() =>
 									handleCopy(
-										`/view/${sessionId}?accessId=${accessId}`
+										`${window.location.origin}/submit/${sessionId}?accessId=${accessId}`
 									)
 								}
 							>
-								<ClipboardCopy className="w-4 h-4" />
 								<span>Copy View Link</span>
 							</Button>
 							{copied && (
@@ -114,25 +131,29 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 					)}
 
 					{/* Desktop Navigation */}
-					<div className="hidden md:flex items-center space-x-8">
-						<a
-							href="/team"
-							className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
-						>
-							Team
-						</a>
-						<a
-							href="/create"
-							className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
-						>
-							Create Session
-						</a>
-						<a
-							href="/pfatc"
-							className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
-						>
-							PFATC Flights
-						</a>
+					<div className="hidden md:flex items-center space-x-4">
+						{!sessionId && (
+							<div className="space-x-6">
+								<a
+									href="/team"
+									className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
+								>
+									Team
+								</a>
+								<a
+									href="/create"
+									className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
+								>
+									Create Session
+								</a>
+								<a
+									href="/pfatc"
+									className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
+								>
+									PFATC Flights
+								</a>
+							</div>
+						)}
 						<CustomUserButton />
 					</div>
 

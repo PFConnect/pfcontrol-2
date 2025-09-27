@@ -5,7 +5,8 @@ import {
 	Loader2,
 	Gauge,
 	RefreshCw,
-	Plane
+	Plane,
+	Clock
 } from 'lucide-react';
 import { fetchMetar } from '../../utils/fetch/metar';
 import type { MetarData } from '../../types/metar';
@@ -13,26 +14,18 @@ import type { MetarData } from '../../types/metar';
 interface WindDisplayProps {
 	icao: string | null;
 	forceHide?: boolean;
+	size?: 'normal' | 'small';
 }
 
 const WindDisplay: React.FC<WindDisplayProps> = ({
 	icao,
-	forceHide = false
+	forceHide = false,
+	size = 'normal'
 }) => {
 	const [metarData, setMetarData] = useState<MetarData | null>(null);
 	const [isLoading, setIsLoading] = useState(false);
 	const [error, setError] = useState<string | null>(null);
 	const [showAltimeter, setShowAltimeter] = useState(false);
-	const [isMobile, setIsMobile] = useState(window.innerWidth < 768);
-
-	useEffect(() => {
-		const handleResize = () => {
-			setIsMobile(window.innerWidth < 768);
-		};
-
-		window.addEventListener('resize', handleResize);
-		return () => window.removeEventListener('resize', handleResize);
-	}, []);
 
 	const loadMetarData = React.useCallback(async () => {
 		if (!icao) return;
@@ -162,8 +155,12 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 
 	if (!icao) {
 		return (
-			<div className="flex items-center text-sm text-gray-400 gap-2 px-3 py-2 bg-gray-800 rounded border border-gray-700">
-				<Plane className="h-4 w-4" />
+			<div
+				className={`flex items-center text-sm text-gray-400 gap-2 px-3 py-2 bg-gray-800 rounded border border-gray-700 ${
+					size === 'small' ? 'text-xs px-2 py-1' : ''
+				}`}
+			>
+				<Plane className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'} />
 				<span>No airport selected</span>
 			</div>
 		);
@@ -171,8 +168,12 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 
 	if (isLoading) {
 		return (
-			<div className="flex items-center text-sm text-gray-400 gap-2 px-3 py-2 bg-gray-800 rounded border border-gray-700">
-				<Loader2 className="h-4 w-4 animate-spin" />
+			<div
+				className={`flex items-center text-sm text-gray-400 gap-2 px-3 py-2 bg-gray-800 rounded border border-gray-700 ${
+					size === 'small' ? 'text-xs px-2 py-1' : ''
+				}`}
+			>
+				<Loader2 className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'} />
 				<span>Loading METAR data...</span>
 			</div>
 		);
@@ -180,9 +181,15 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 
 	if (error || !metarData) {
 		return (
-			<div className="flex items-center justify-between text-sm px-3 py-2 bg-gray-800 rounded border border-gray-700">
+			<div
+				className={`flex items-center justify-between text-sm px-3 py-2 bg-gray-800 rounded border border-gray-700 ${
+					size === 'small' ? 'text-xs px-2 py-1' : ''
+				}`}
+			>
 				<div className="flex items-center gap-2 text-red-400">
-					<AlertTriangle className="h-4 w-4" />
+					<AlertTriangle
+						className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'}
+					/>
 					<span>{error || 'No data available'}</span>
 				</div>
 				<button
@@ -190,7 +197,9 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 					className="text-blue-400 hover:text-blue-300 transition-colors"
 					title="Retry"
 				>
-					<RefreshCw className="h-4 w-4" />
+					<RefreshCw
+						className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'}
+					/>
 				</button>
 			</div>
 		);
@@ -204,59 +213,58 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 	const windColors = getWindSeverityColor(windSpeed, windGust);
 	const pressureDisplay = formatPressure(metarData.altim);
 
-	if (isMobile) {
+	if (size === 'small') {
 		return (
 			<div
-				className={`flex flex-col rounded border border-gray-700 px-3 py-2 ${windColors.bg} bg-gray-800`}
+				className={`flex flex-col rounded border border-gray-700 px-2 py-1 ${windColors.bg} bg-gray-800`}
 			>
-				<div className="flex items-center justify-between gap-2">
-					<div className="flex items-center gap-2">
+				<div className="flex items-center gap-4">
+					<div className="flex items-center gap-1">
 						<Wind className={`h-4 w-4 ${windColors.icon}`} />
 						<span
-							className={`font-mono text-sm font-semibold ${windColors.text}`}
+							className={`font-mono font-semibold ${windColors.text}`}
 						>
 							{formattedDirection} {windSpeed}
-							{gustInfo}kt
+							{gustInfo} kt
 						</span>
 					</div>
-					<span
-						className={`text-xs font-medium ${getFlightCategoryColor(
-							metarData.fltCat
-						)}`}
-					>
-						{metarData.fltCat}
-					</span>
-				</div>
 
-				<div className="flex items-center justify-between mt-1.5 text-xs">
-					<div className="flex items-center gap-3">
-						<button
-							onClick={togglePressureFormat}
-							className={`font-mono transition-colors ${
+					<div className="h-5 border-l border-gray-700 mx-2" />
+
+					<button
+						onClick={togglePressureFormat}
+						className={`flex items-center gap-1 font-mono transition-colors ${
+							showAltimeter
+								? 'text-blue-400 hover:text-blue-300'
+								: 'text-green-400 hover:text-green-300'
+						}`}
+						title={`Toggle to ${
+							showAltimeter ? 'QNH' : 'altimeter'
+						}`}
+					>
+						<Gauge
+							className={`h-4 w-4 ${
 								showAltimeter
-									? 'text-blue-400 hover:text-blue-300'
-									: 'text-green-400 hover:text-green-300'
+									? 'text-blue-400'
+									: 'text-green-400'
 							}`}
-							title={`Toggle to ${
-								showAltimeter ? 'QNH' : 'altimeter'
-							}`}
-						>
+						/>
+						<span>
 							{pressureDisplay.value}
 							{pressureDisplay.unit}
-						</button>
-					</div>
-					<div className="flex items-center gap-2">
-						<span className="text-gray-400">
-							{formatReportTime(metarData.reportTime)}
 						</span>
-						<button
-							onClick={handleManualRefresh}
-							className="text-blue-400 hover:text-blue-300 transition-colors"
-							title="Refresh"
-						>
-							<RefreshCw className="h-3 w-3" />
-						</button>
-					</div>
+					</button>
+				</div>
+				<div className="flex items-center gap-2 mt-1 text-gray-400 text-sm">
+					<Clock className="h-4 w-4" />
+					<span>{formatReportTime(metarData.reportTime)}</span>
+					<button
+						onClick={handleManualRefresh}
+						className="text-blue-400 hover:text-blue-300 transition-colors ml-2"
+						title="Refresh"
+					>
+						Refresh
+					</button>
 				</div>
 			</div>
 		);

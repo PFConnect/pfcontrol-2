@@ -20,6 +20,11 @@ function getAdminIds() {
     }
 }
 
+function isAdmin(userId) {
+    const adminIds = getAdminIds();
+    return adminIds.includes(userId);
+}
+
 function requireAdmin(req, res, next) {
     const token = req.cookies.token;
     if (!token) return res.status(401).json({ error: "Not authenticated" });
@@ -37,4 +42,4 @@ function requireAdmin(req, res, next) {
     }
 }
 
-export default requireAdmin;
+export { requireAdmin, isAdmin };
