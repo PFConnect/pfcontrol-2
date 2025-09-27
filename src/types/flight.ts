@@ -1,4 +1,4 @@
-export type Position = 'POSITION' | 'DEL' | 'GND' | 'TWR' | 'APP';
+import type { Position } from "./session";
 
 export interface Flight {
     id: string | number;

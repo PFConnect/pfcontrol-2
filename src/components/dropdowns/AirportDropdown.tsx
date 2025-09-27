@@ -7,12 +7,14 @@ interface AirportDropdownProps {
 	onChange: (icao: string) => void;
 	value?: string;
 	disabled?: boolean;
+	size?: 'sm' | 'md' | 'lg';
 }
 
 export default function AirportDropdown({
 	onChange,
 	value,
-	disabled = false
+	disabled = false,
+	size = 'md'
 }: AirportDropdownProps) {
 	const [airports, setAirports] = useState<Airport[]>([]);
 
@@ -42,6 +44,7 @@ export default function AirportDropdown({
 			onChange={onChange}
 			disabled={disabled}
 			getDisplayValue={getDisplayValue}
+			size={size}
 		/>
 	);
 }

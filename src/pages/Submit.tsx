@@ -26,6 +26,7 @@ import { addFlight } from '../utils/fetch/flights';
 import type { Flight } from '../types/flight';
 import AirportDropdown from '../components/dropdowns/AirportDropdown';
 import Dropdown from '../components/common/Dropdown';
+import AircraftDropdown from '../components/dropdowns/AircraftDropdown';
 
 interface SessionData {
 	sessionId: string;
@@ -342,7 +343,7 @@ export default function Submit() {
 											}
 											required
 											placeholder="e.g. BAW123"
-											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+											className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
 										/>
 									</div>
 									<div>
@@ -353,18 +354,11 @@ export default function Submit() {
 												*
 											</span>
 										</label>
-										<input
-											type="text"
-											name="aircraft_type"
+										<AircraftDropdown
 											value={form.aircraft_type}
-											onChange={(e) =>
-												handleChange('aircraft_type')(
-													e.target.value
-												)
-											}
-											required
-											placeholder="e.g. A320"
-											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+											onChange={handleChange(
+												'aircraft_type'
+											)}
 										/>
 									</div>
 									<div>
@@ -399,7 +393,7 @@ export default function Submit() {
 												)
 											}
 											placeholder="e.g. A12"
-											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+											className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
 										/>
 									</div>
 								</div>
@@ -443,7 +437,7 @@ export default function Submit() {
 												)
 											}
 											placeholder="e.g. 350"
-											className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+											className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
 										/>
 									</div>
 								</div>
@@ -461,7 +455,7 @@ export default function Submit() {
 										handleChange('route')(e.target.value)
 									}
 									placeholder="e.g. HAZEL NOVMA LEDGO"
-									className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+									className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
 								/>
 							</div>
 							<div>
@@ -477,7 +471,7 @@ export default function Submit() {
 										handleChange('remark')(e.target.value)
 									}
 									placeholder="Any additional information"
-									className="flex items-center w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+									className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
 								/>
 							</div>
 							<div className="mt-8">

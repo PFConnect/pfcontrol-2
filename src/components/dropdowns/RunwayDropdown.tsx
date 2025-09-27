@@ -7,13 +7,15 @@ interface RunwayDropdownProps {
 	onChange: (runway: string) => void;
 	value?: string;
 	disabled?: boolean;
+	size?: 'sm' | 'md' | 'lg';
 }
 
 export default function RunwayDropdown({
 	airportIcao,
 	onChange,
 	value,
-	disabled = false
+	disabled = false,
+	size = 'md'
 }: RunwayDropdownProps) {
 	const [runways, setRunways] = useState<string[]>([]);
 	const [isLoading, setIsLoading] = useState<boolean>(false);
@@ -65,6 +67,7 @@ export default function RunwayDropdown({
 				disabled || !airportIcao || isLoading || runways.length === 0
 			}
 			getDisplayValue={getDisplayValue}
+			size={size}
 		/>
 	);
 }

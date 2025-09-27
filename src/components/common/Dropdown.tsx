@@ -13,7 +13,15 @@ interface DropdownProps {
 	renderOption?: (option: DropdownOption) => ReactNode;
 	getDisplayValue?: (value: string, options: DropdownOption[]) => string;
 	allowClear?: boolean;
+	className?: string;
+	size?: 'sm' | 'md' | 'lg';
 }
+
+const sizeClasses = {
+	sm: 'px-2 py-2 text-sm',
+	md: 'px-4 py-3 text-base',
+	lg: 'px-6 py-4 text-lg'
+};
 
 export default function Dropdown({
 	options,
@@ -24,7 +32,9 @@ export default function Dropdown({
 	maxHeight = 'max-h-60',
 	renderOption,
 	getDisplayValue,
-	allowClear = false
+	allowClear = false,
+	className = '',
+	size = 'md'
 }: DropdownProps) {
 	const [isOpen, setIsOpen] = useState(false);
 	const dropdownRef = useRef<HTMLDivElement>(null);
@@ -64,8 +74,12 @@ export default function Dropdown({
 			<button
 				onClick={() => !disabled && setIsOpen(!isOpen)}
 				disabled={disabled}
-				className={`flex items-center justify-between w-full p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-left
-					${disabled ? 'opacity-70 cursor-not-allowed' : 'hover:bg-gray-650'}`}
+				className={`flex items-center justify-between w-full bg-gray-800 border-2 border-blue-600 rounded-full text-left
+                    ${
+						disabled
+							? 'opacity-70 cursor-not-allowed'
+							: 'hover:bg-gray-650'
+					} ${sizeClasses[size]} ${className}`}
 			>
 				<span className="truncate ml-2 font-semibold">
 					{displayValue}
