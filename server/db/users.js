@@ -1,5 +1,5 @@
 // db/users.js
-import pool from './connection.js';
+import pool from './connections/connection.js';
 import { encrypt, decrypt } from '../tools/encryption.js';
 
 async function initializeUsersTable() {

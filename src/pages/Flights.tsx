@@ -38,7 +38,11 @@ export default function Flights() {
 		<div className="min-h-screen bg-black text-white">
 			<Navbar sessionId={sessionId} accessId={accessId} />
 			<div className="pt-16">
-				<Toolbar icao={session ? session.airportIcao : ''} />
+				<Toolbar
+					icao={session ? session.airportIcao : ''}
+					sessionId={sessionId}
+					accessId={accessId}
+				/>
 				<div className="-mt-4">
 					{loading ? (
 						<div className="text-center py-12 text-gray-400">

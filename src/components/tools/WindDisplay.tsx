@@ -56,6 +56,12 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 		}
 
 		loadMetarData();
+
+		const interval = setInterval(() => {
+			loadMetarData();
+		}, 5 * 60 * 1000);
+
+		return () => clearInterval(interval);
 	}, [icao, forceHide, loadMetarData]);
 
 	const handleManualRefresh = () => {

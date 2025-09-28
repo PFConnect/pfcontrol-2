@@ -1,6 +1,6 @@
-import pool from './connection.js';
+import pool from './connections/connection.js';
 import { encrypt, decrypt } from '../tools/encryption.js';
-import flightsPool from './flightsConnection.js';
+import flightsPool from './connections/flightsConnection.js';
 
 export async function initializeSessionsTable() {
     try {

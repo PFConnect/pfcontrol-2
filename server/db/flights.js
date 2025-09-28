@@ -1,4 +1,4 @@
-import flightsPool from './flightsConnection.js';
+import flightsPool from './connections/flightsConnection.js';
 
 export async function getFlightsBySession(sessionId) {
     const tableName = `flights_${sessionId}`;

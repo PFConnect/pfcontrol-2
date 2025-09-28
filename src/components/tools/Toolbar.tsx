@@ -6,14 +6,18 @@ import Button from '../common/Button';
 import RunwayDropdown from '../dropdowns/RunwayDropdown';
 import Dropdown from '../common/Dropdown';
 import FrequencyDisplay from './FrequencyDisplay';
+import ChatSidebar from './ChatSidebar';
 
 interface ToolbarProps {
+	sessionId?: string;
+	accessId?: string;
 	icao: string | null;
 }
 
-export default function Toolbar({ icao }: ToolbarProps) {
+export default function Toolbar({ icao, sessionId, accessId }: ToolbarProps) {
 	const [runway, setRunway] = useState('');
 	const [position, setPosition] = useState<Position | null>(null);
+	const [chatOpen, setChatOpen] = useState(false);
 
 	const handleRunwayChange = (selectedRunway: string) => {
 		setRunway(selectedRunway);
@@ -92,10 +96,18 @@ export default function Toolbar({ icao }: ToolbarProps) {
 					className="flex items-center gap-2 px-4 py-2"
 					aria-label="Settings"
 					size="sm"
+					onClick={() => setChatOpen(!chatOpen)}
 				>
 					<MessageCircle className="w-5 h-5" />
 					<span className="hidden sm:inline font-medium">Chat</span>
 				</Button>
+
+				<ChatSidebar
+					sessionId={sessionId ?? ''}
+					accessId={accessId ?? ''}
+					open={chatOpen}
+					onClose={() => setChatOpen(false)}
+				/>
 
 				<Button
 					className="flex items-center gap-2 px-4 py-2"
