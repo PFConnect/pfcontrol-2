@@ -21,8 +21,8 @@ export async function addFlight(sessionId: string, flight: Partial<Flight>): Pro
     return res.json();
 }
 
-export async function updateFlight(flightId: number, updates: Partial<Flight>): Promise<Flight> {
-    const res = await fetch(`${API_BASE_URL}/api/flights/${flightId}`, {
+export async function updateFlight(sessionId: string, flightId: string | number, updates: Partial<Flight>): Promise<Flight> {
+    const res = await fetch(`${API_BASE_URL}/api/flights/${sessionId}/${flightId}`, {
         method: 'PUT',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },

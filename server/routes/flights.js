@@ -31,6 +31,9 @@ router.post('/:sessionId', requireAuth, async (req, res) => {
 router.put('/:sessionId/:flightId', requireAuth, async (req, res) => {
     try {
         const flight = await updateFlight(req.params.sessionId, req.params.flightId, req.body);
+        if (!flight) {
+            return res.status(404).json({ error: 'Flight not found' });
+        }
         res.json(flight);
     } catch (error) {
         res.status(500).json({ error: 'Failed to update flight' });

@@ -1,4 +1,9 @@
 import { getAirportData, getAircraftData } from "../tools/getData.js";
+import { randomUUID } from 'crypto';
+
+export async function generateRandomId() {
+    return randomUUID().replace(/-/g, '').slice(0, 16);
+}
 
 export async function generateSquawk(flight) {
     let squawk = "";

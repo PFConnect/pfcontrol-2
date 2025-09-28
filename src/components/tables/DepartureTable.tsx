@@ -1,12 +1,54 @@
+import { useState } from 'react';
+import { useParams } from 'react-router-dom';
+import { updateFlight, deleteFlight } from '../../utils/fetch/flights';
 import type { Flight } from '../../types/flight';
+import { EyeOff, Eye, Trash2 } from 'lucide-react';
 
 interface DepartureTableProps {
 	flights: Flight[];
 }
 
 export default function DepartureTable({ flights }: DepartureTableProps) {
+	const { sessionId } = useParams<{ sessionId?: string }>();
+	const [showHidden, setShowHidden] = useState(false);
+
+	const handleHideFlight = async (flightId: string | number) => {
+		try {
+			if (!sessionId) return;
+			await updateFlight(sessionId, flightId, { hidden: true });
+		} catch (err) {
+			console.error('Failed to hide flight:', err);
+		}
+	};
+
+	const handleDeleteFlight = async (flightId: string | number) => {
+		try {
+			if (!sessionId) return;
+			await deleteFlight(flightId as number);
+		} catch (err) {
+			console.error('Failed to delete flight:', err);
+		}
+	};
+
+	const visibleFlights = showHidden
+		? flights
+		: flights.filter((flight) => !flight.hidden);
+
 	return (
 		<div className="mt-8 px-4">
+			<div className="mb-2 flex items-center gap-2">
+				<button
+					className="bg-zinc-800 text-blue-200 px-3 py-1 rounded flex items-center gap-1"
+					onClick={() => setShowHidden((v) => !v)}
+				>
+					{showHidden ? (
+						<Eye className="w-4 h-4" />
+					) : (
+						<EyeOff className="w-4 h-4" />
+					)}
+					{showHidden ? 'Hide hidden flights' : 'Show hidden flights'}
+				</button>
+			</div>
 			<table className="min-w-full bg-zinc-900 rounded-lg overflow-hidden">
 				<thead>
 					<tr className="bg-blue-950 text-blue-200">
@@ -31,7 +73,7 @@ export default function DepartureTable({ flights }: DepartureTableProps) {
 					</tr>
 				</thead>
 				<tbody>
-					{flights.length === 0 ? (
+					{visibleFlights.length === 0 ? (
 						<tr>
 							<td
 								colSpan={18}
@@ -41,13 +83,25 @@ export default function DepartureTable({ flights }: DepartureTableProps) {
 							</td>
 						</tr>
 					) : (
-						flights.map((flight) => (
+						visibleFlights.map((flight) => (
 							<tr
 								key={flight.id}
-								className="border-b border-zinc-800"
+								className={`border-b border-zinc-800 ${
+									flight.hidden
+										? 'bg-zinc-800 text-gray-500'
+										: ''
+								}`}
 							>
 								<td className="py-2 px-4">
-									{flight.timestamp || '-'}
+									{flight.timestamp
+										? new Date(
+												flight.timestamp
+										  ).toLocaleTimeString('en-GB', {
+												hour: '2-digit',
+												minute: '2-digit',
+												timeZone: 'UTC'
+										  })
+										: '-'}
 								</td>
 								<td className="py-2 px-4">
 									{flight.callsign || '-'}
@@ -56,17 +110,13 @@ export default function DepartureTable({ flights }: DepartureTableProps) {
 									{flight.stand || '-'}
 								</td>
 								<td className="py-2 px-4">
-									{flight.aircraft_type ||
-										flight.aircraft ||
-										'-'}
+									{flight.aircraft || '-'}
 								</td>
 								<td className="py-2 px-4">
 									{flight.wtc || '-'}
 								</td>
 								<td className="py-2 px-4">
-									{flight.flightType ||
-										flight.flight_type ||
-										'-'}
+									{flight.flight_type || '-'}
 								</td>
 								<td className="py-2 px-4">
 									{flight.arrival || '-'}
@@ -78,10 +128,10 @@ export default function DepartureTable({ flights }: DepartureTableProps) {
 									{flight.sid || '-'}
 								</td>
 								<td className="py-2 px-4">
-									{flight.rfl || flight.cruisingFL || '-'}
+									{flight.cruisingFL || '-'}
 								</td>
 								<td className="py-2 px-4">
-									{flight.cfl || flight.clearedFL || '-'}
+									{flight.clearedFL || '-'}
 								</td>
 								<td className="py-2 px-4">
 									{flight.squawk || '-'}
@@ -109,8 +159,29 @@ export default function DepartureTable({ flights }: DepartureTableProps) {
 										PDC
 									</button>
 								</td>
-								<td className="py-2 px-4"> </td>
-								<td className="py-2 px-4"> </td>
+								<td className="py-2 px-4">
+									<button
+										title="Hide"
+										className="text-gray-400 hover:text-red-500"
+										onClick={() =>
+											handleHideFlight(flight.id)
+										}
+										disabled={flight.hidden}
+									>
+										<EyeOff />
+									</button>
+								</td>
+								<td className="py-2 px-4">
+									<button
+										title="Delete"
+										className="text-gray-400 hover:text-red-500"
+										onClick={() =>
+											handleDeleteFlight(flight.id)
+										}
+									>
+										<Trash2 />
+									</button>
+								</td>
 							</tr>
 						))
 					)}

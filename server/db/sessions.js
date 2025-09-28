@@ -57,24 +57,33 @@ export async function createSession({ sessionId, accessId, activeRunway, airport
     // Create flights table for this session
     await flightsPool.query(`
         CREATE TABLE IF NOT EXISTS flights_${sessionId} (
-            id SERIAL PRIMARY KEY,
+            id VARCHAR(36) PRIMARY KEY,
             session_id VARCHAR(8) NOT NULL,
-            callsign VARCHAR(16) NOT NULL,
-            aircraft_type VARCHAR(8),
+            user_id VARCHAR(36),
+            ip_address VARCHAR(45),
+            callsign VARCHAR(16),
+            aircraft VARCHAR(16),
+            flight_type VARCHAR(16),
             departure VARCHAR(4),
             arrival VARCHAR(4),
+            alternate VARCHAR(4),
             route TEXT,
+            sid VARCHAR(16),
+            star VARCHAR(16),
+            runway VARCHAR(10),
+            clearedfl VARCHAR(8),
+            cruisingfl VARCHAR(8),
             stand VARCHAR(8),
             remark TEXT,
-            flight_type VARCHAR(8),
-            clearedFL VARCHAR(8),
-            cruisingFL VARCHAR(8),
-            status VARCHAR(16),
-            squawk VARCHAR(8),
-            sid VARCHAR(16),
-            wtc VARCHAR(2),
+            timestamp VARCHAR(32),
             created_at TIMESTAMP DEFAULT NOW(),
-            updated_at TIMESTAMP DEFAULT NOW()
+            updated_at TIMESTAMP DEFAULT NOW(),
+            status VARCHAR(16),
+            clearance VARCHAR(16),
+            position JSONB,
+            squawk VARCHAR(8),
+            wtc VARCHAR(4),
+            hidden BOOLEAN DEFAULT false
         )
     `);
 }
@@ -159,6 +168,15 @@ export async function deleteSession(sessionId) {
         'DELETE FROM sessions WHERE session_id = $1 RETURNING session_id',
         [sessionId]
     );
+    // Drop the flights table for this session
+    if (result.rows[0]) {
+        const flightsTable = `flights_${sessionId}`;
+        try {
+            await flightsPool.query(`DROP TABLE IF EXISTS ${flightsTable}`);
+        } catch (err) {
+            console.error(`Error dropping flights table for session ${sessionId}:`, err);
+        }
+    }
     return result.rows[0] || null;
 }
 

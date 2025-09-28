@@ -2,11 +2,11 @@ import type { Position } from "./session";
 
 export interface Flight {
     id: string | number;
-    session_id?: string;
+    session_id: string;
+    userId?: string;
+    IP_address?: string;
     callsign?: string;
     aircraft?: string;
-    aircraft_type?: string;
-    flightType?: string;
     flight_type?: string;
     departure?: string;
     arrival?: string;
@@ -16,9 +16,7 @@ export interface Flight {
     star?: string;
     runway?: string;
     clearedFL?: string;
-    cfl?: string;
     cruisingFL?: string;
-    rfl?: string;
     stand?: string;
     remark?: string;
     timestamp?: string;
@@ -29,10 +27,9 @@ export interface Flight {
     position?: Position;
     squawk?: string;
     wtc?: string;
-    userId?: string;
-    IP_address?: string;
     animationState?: {
         updatedFields: string[];
         updateTimestamp: number;
     };
+    hidden?: boolean;
 }

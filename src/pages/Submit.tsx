@@ -234,7 +234,7 @@ export default function Submit() {
 											Aircraft:
 										</span>
 										<p className="text-white">
-											{submittedFlight.aircraft_type}
+											{submittedFlight.aircraft}
 										</p>
 									</div>
 									<div>

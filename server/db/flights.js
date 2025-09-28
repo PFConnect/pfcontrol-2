@@ -1,5 +1,5 @@
-// db/flights.js
-import { generateSID, generateSquawk, getWakeTurbulence } from '../utils/flightUtils.js';
+
+import { generateSID, generateSquawk, getWakeTurbulence, generateRandomId } from '../utils/flightUtils.js';
 import flightsPool from './connections/flightsConnection.js';
 
 export async function getFlightsBySession(sessionId) {
@@ -17,8 +17,17 @@ export async function addFlight(sessionId, flightData) {
     const placeholders = ['$1'];
     let idx = 2;
 
+    flightData.id = await generateRandomId();
     flightData.squawk = await generateSquawk(flightData);
     flightData.wtc = await getWakeTurbulence(flightData.aircraft_type);
+    if (!flightData.timestamp) {
+        flightData.timestamp = new Date().toISOString();
+    }
+
+    if (flightData.aircraft_type) {
+        flightData.aircraft = flightData.aircraft_type;
+        delete flightData.aircraft_type;
+    }
 
     flightData.icao = flightData.departure;
     if (!flightData.sid) {
