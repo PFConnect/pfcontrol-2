@@ -1,3 +1,4 @@
+// db/sessions.js
 import pool from './connections/connection.js';
 import { encrypt, decrypt } from '../tools/encryption.js';
 import flightsPool from './connections/flightsConnection.js';

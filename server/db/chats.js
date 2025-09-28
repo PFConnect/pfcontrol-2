@@ -1,3 +1,4 @@
+// db/chats.js
 import chatsPool from './connections/chatsConnection.js';
 import { encrypt, decrypt } from '../tools/encryption.js';
 
