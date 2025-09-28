@@ -45,6 +45,65 @@ router.get('/aircrafts', (req, res) => {
     }
 });
 
+// GET: /api/data/frequencies
+router.get('/frequencies', (req, res) => {
+    try {
+        if (!fs.existsSync(airportsPath)) {
+            return res.status(404).json({ error: "Airport data not found" });
+        }
+
+        const freqOrder = ['APP', 'TWR', 'GND', 'DEL'];
+        const freqMapping = {
+            clearanceDelivery: 'DEL',
+            departure: 'DEP',
+            ground: 'GND',
+            tower: 'TWR',
+            approach: 'APP'
+        };
+
+        const data = JSON.parse(fs.readFileSync(airportsPath, "utf8"));
+        const frequencies = data.map(airport => {
+            const allFreqs = airport.allFrequencies || airport.frequencies || {};
+            const displayFreqs = freqOrder
+                .map(type => {
+                    let freq = allFreqs[type];
+                    if (!freq) {
+                        for (const [key, value] of Object.entries(freqMapping)) {
+                            if (value === type && allFreqs[key]) {
+                                freq = allFreqs[key];
+                                break;
+                            }
+                        }
+                    }
+                    return freq && freq.toLowerCase() !== 'n/a' ? { type, freq } : null;
+                })
+                .filter(Boolean);
+
+            const usedTypes = new Set(displayFreqs.map(f => f.type));
+            const remainingFreqs = Object.entries(allFreqs)
+                .filter(([key, value]) =>
+                    !usedTypes.has(key) &&
+                    !Object.keys(freqMapping).includes(key) &&
+                    value.toLowerCase() !== 'n/a'
+                )
+                .slice(0, 4 - displayFreqs.length)
+                .map(([type, freq]) => ({ type: type.toUpperCase(), freq }));
+
+            const allDisplayFreqs = [...displayFreqs, ...remainingFreqs].slice(0, 4);
+
+            return {
+                icao: airport.icao,
+                name: airport.name,
+                frequencies: allDisplayFreqs
+            };
+        });
+        res.json(frequencies);
+    } catch (error) {
+        console.error("Error reading airport frequencies:", error);
+        res.status(500).json({ error: "Internal server error", message: "Error reading airport frequencies" });
+    }
+});
+
 // GET: /api/data/airports/:icao/runways
 router.get('/airports/:icao/runways', (req, res) => {
     try {

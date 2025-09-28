@@ -1,6 +1,6 @@
-// db/sessions.js
 import pool from './connection.js';
 import { encrypt, decrypt } from '../tools/encryption.js';
+import flightsPool from './flightsConnection.js';
 
 export async function initializeSessionsTable() {
     try {
@@ -52,6 +52,27 @@ export async function createSession({ sessionId, accessId, activeRunway, airport
         isPFATC,
         JSON.stringify(encryptedAtis)
     ]);
+
+    // Create flights table for this session
+    await flightsPool.query(`
+        CREATE TABLE IF NOT EXISTS flights_${sessionId} (
+            id SERIAL PRIMARY KEY,
+            session_id VARCHAR(8) NOT NULL,
+            callsign VARCHAR(16) NOT NULL,
+            aircraft_type VARCHAR(8),
+            departure VARCHAR(4),
+            arrival VARCHAR(4),
+            route TEXT,
+            stand VARCHAR(8),
+            remark TEXT,
+            flight_type VARCHAR(8),
+            clearedFL VARCHAR(8),
+            cruisingFL VARCHAR(8),
+            status VARCHAR(16),
+            created_at TIMESTAMP DEFAULT NOW(),
+            updated_at TIMESTAMP DEFAULT NOW()
+        )
+    `);
 }
 
 export async function getSessionById(sessionId) {

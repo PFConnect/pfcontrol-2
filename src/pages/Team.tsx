@@ -73,10 +73,8 @@ export default function Team() {
 		}
 	];
 
-	// Removed unused handleClick function
-
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-black to-slate-900 py-16 px-4">
+		<div className="min-h-screen bg-gradient-to-t from-black to-blue-950 py-16 px-4">
 			<Navbar />
 			<div className="max-w-7xl mx-auto">
 				<div className="text-center mb-16 mt-24">

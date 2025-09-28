@@ -13,6 +13,11 @@ import {
 	X
 } from 'lucide-react';
 import { useAuth } from '../hooks/auth/useAuth';
+import {
+	fetchMySessions,
+	updateSessionName,
+	deleteSession
+} from '../utils/fetch/sessions';
 import type { SessionInfo } from '../types/session';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
@@ -36,10 +41,7 @@ export default function Sessions() {
 			setLoading(false);
 			return;
 		}
-		fetch(`${import.meta.env.VITE_SERVER_URL}/api/sessions/mine`, {
-			credentials: 'include'
-		})
-			.then((res) => (res.ok ? res.json() : Promise.reject(res)))
+		fetchMySessions()
 			.then((data) => setSessions(data))
 			.catch(() => setError('Failed to load sessions.'))
 			.finally(() => setLoading(false));
@@ -58,30 +60,17 @@ export default function Sessions() {
 		}
 		setSavingName(sessionId);
 		try {
-			const response = await fetch(
-				`${import.meta.env.VITE_SERVER_URL}/api/sessions/update-name`,
-				{
-					method: 'POST',
-					credentials: 'include',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({
-						sessionId,
-						name: editNameValue.trim()
-					})
-				}
+			const { customName } = await updateSessionName(
+				sessionId,
+				editNameValue.trim()
 			);
-			if (response.ok) {
-				const { customName } = await response.json();
-				setSessions((prev) =>
-					prev.map((s) =>
-						s.sessionId === sessionId ? { ...s, customName } : s
-					)
-				);
-				setEditingName(null);
-				setEditNameValue('');
-			} else {
-				setError('Failed to update session name.');
-			}
+			setSessions((prev) =>
+				prev.map((s) =>
+					s.sessionId === sessionId ? { ...s, customName } : s
+				)
+			);
+			setEditingName(null);
+			setEditNameValue('');
 		} catch {
 			setError('Failed to update session name.');
 		} finally {
@@ -97,23 +86,11 @@ export default function Sessions() {
 		if (!sessionToDelete) return;
 		setDeleteInProgress(sessionToDelete);
 		try {
-			const response = await fetch(
-				`${import.meta.env.VITE_SERVER_URL}/api/sessions/delete`,
-				{
-					method: 'POST',
-					credentials: 'include',
-					headers: { 'Content-Type': 'application/json' },
-					body: JSON.stringify({ sessionId: sessionToDelete })
-				}
+			await deleteSession(sessionToDelete);
+			setSessions((prev) =>
+				prev.filter((s) => s.sessionId !== sessionToDelete)
 			);
-			if (response.ok) {
-				setSessions((prev) =>
-					prev.filter((s) => s.sessionId !== sessionToDelete)
-				);
-				setSessionToDelete(null);
-			} else {
-				setError('Failed to delete session.');
-			}
+			setSessionToDelete(null);
 		} catch {
 			setError('Failed to delete session.');
 		} finally {

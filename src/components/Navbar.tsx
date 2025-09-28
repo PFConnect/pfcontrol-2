@@ -1,4 +1,4 @@
-import { TowerControl, Menu, X } from 'lucide-react';
+import { TowerControl, Menu, X, Copy } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import CustomUserButton from './buttons/UserButton';
 import Button from './common/Button';
@@ -15,6 +15,9 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 	const [utcTime, setUtcTime] = useState<string>(
 		new Date().toISOString().slice(11, 19)
 	);
+	const [isCompact, setIsCompact] = useState<boolean>(
+		window.innerWidth < 950
+	);
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -23,6 +26,15 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 		window.addEventListener('scroll', handleScroll);
 		handleScroll();
 		return () => window.removeEventListener('scroll', handleScroll);
+	}, []);
+
+	useEffect(() => {
+		const handleResize = () => {
+			setIsCompact(window.innerWidth < 950);
+		};
+		window.addEventListener('resize', handleResize);
+		handleResize();
+		return () => window.removeEventListener('resize', handleResize);
 	}, []);
 
 	useEffect(() => {
@@ -95,7 +107,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 
 					{sessionId && accessId && (
 						<div className="flex-1 flex justify-center items-center space-x-4">
-							<span className="text-white font-mono text-sm px-3 py-1 rounded bg-black/30 border border-white/10">
+							<span className="text-white font-mono text-sm px-3 py-1 rounded bg-black/30 border border-white/10 hidden sm:inline">
 								{utcTime} UTC
 							</span>
 							<Button
@@ -108,7 +120,14 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 									)
 								}
 							>
-								<span>Copy Submit Link</span>
+								{isCompact ? (
+									<Copy
+										className="h-5 w-5"
+										aria-label="Copy Submit Link"
+									/>
+								) : (
+									<span>Copy Submit Link</span>
+								)}
 							</Button>
 							<Button
 								variant="danger"
@@ -120,7 +139,14 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 									)
 								}
 							>
-								<span>Copy View Link</span>
+								{isCompact ? (
+									<Copy
+										className="h-5 w-5"
+										aria-label="Copy View Link"
+									/>
+								) : (
+									<span>Copy View Link</span>
+								)}
 							</Button>
 							{copied && (
 								<span className="ml-2 text-green-400 text-sm">

@@ -1,15 +1,15 @@
-// db/flights.js
 import flightsPool from './flightsConnection.js';
 
 export async function getFlightsBySession(sessionId) {
+    const tableName = `flights_${sessionId}`;
     const result = await flightsPool.query(
-        'SELECT * FROM flights WHERE session_id = $1 ORDER BY created_at ASC',
-        [sessionId]
+        `SELECT * FROM ${tableName} ORDER BY created_at ASC`
     );
     return result.rows;
 }
 
 export async function addFlight(sessionId, flightData) {
+    const tableName = `flights_${sessionId}`;
     const fields = ['session_id'];
     const values = [sessionId];
     const placeholders = ['$1'];
@@ -22,7 +22,7 @@ export async function addFlight(sessionId, flightData) {
     }
 
     const query = `
-        INSERT INTO flights (${fields.join(', ')})
+        INSERT INTO ${tableName} (${fields.join(', ')})
         VALUES (${placeholders.join(', ')})
         RETURNING *
     `;
@@ -30,7 +30,8 @@ export async function addFlight(sessionId, flightData) {
     return result.rows[0];
 }
 
-export async function updateFlight(flightId, updates) {
+export async function updateFlight(sessionId, flightId, updates) {
+    const tableName = `flights_${sessionId}`;
     const fields = [];
     const values = [];
     let idx = 1;
@@ -42,7 +43,7 @@ export async function updateFlight(flightId, updates) {
     values.push(flightId);
 
     const query = `
-        UPDATE flights SET ${fields.join(', ')}, updated_at = NOW()
+        UPDATE ${tableName} SET ${fields.join(', ')}, updated_at = NOW()
         WHERE id = $${idx}
         RETURNING *
     `;
@@ -50,6 +51,7 @@ export async function updateFlight(flightId, updates) {
     return result.rows[0];
 }
 
-export async function deleteFlight(flightId) {
-    await flightsPool.query('DELETE FROM flights WHERE id = $1', [flightId]);
+export async function deleteFlight(sessionId, flightId) {
+    const tableName = `flights_${sessionId}`;
+    await flightsPool.query(`DELETE FROM ${tableName} WHERE id = $1`, [flightId]);
 }

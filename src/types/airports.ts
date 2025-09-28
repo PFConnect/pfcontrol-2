@@ -24,3 +24,13 @@ export interface Airport {
     stars: Star[];
     arrivals: Record<Runway, ArrivalsMap>;
 }
+
+export interface AirportFrequency {
+    icao: string;
+    name: string;
+    APP?: string;
+    TWR?: string;
+    GND?: string;
+    DEL?: string;
+    [key: string]: string | undefined;
+}

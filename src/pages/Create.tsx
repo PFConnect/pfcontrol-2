@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { AlertCircle, Info } from 'lucide-react';
 import { useAuth } from '../hooks/auth/useAuth';
+import { createSession } from '../utils/fetch/sessions';
 import Navbar from '../components/Navbar';
 import AirportDropdown from '../components/dropdowns/AirportDropdown';
 import RunwayDropdown from '../components/dropdowns/RunwayDropdown';
@@ -27,21 +28,12 @@ export default function Create() {
 		setError('');
 
 		try {
-			await fetch(
-				`${import.meta.env.VITE_SERVER_URL}/api/sessions/create`,
-				{
-					method: 'POST',
-					headers: {
-						'Content-Type': 'application/json'
-					},
-					body: JSON.stringify({
-						airportIcao: selectedAirport,
-						activeRunway: selectedRunway,
-						isPFATC: isPFATCNetwork,
-						createdBy: user?.userId
-					})
-				}
-			);
+			await createSession({
+				airportIcao: selectedAirport,
+				activeRunway: selectedRunway,
+				isPFATC: isPFATCNetwork,
+				createdBy: user?.userId || 'unknown'
+			});
 			console.log(user?.userId);
 		} catch {
 			console.error('Error creating session:');

@@ -5,6 +5,7 @@ import WindDisplay from './WindDisplay';
 import Button from '../common/Button';
 import RunwayDropdown from '../dropdowns/RunwayDropdown';
 import Dropdown from '../common/Dropdown';
+import FrequencyDisplay from './FrequencyDisplay';
 
 interface ToolbarProps {
 	icao: string | null;
@@ -23,13 +24,40 @@ export default function Toolbar({ icao }: ToolbarProps) {
 	};
 
 	return (
-		<div className="flex items-center justify-between w-full px-4 py-2">
-			<div className="flex items-center gap-4">
+		<div
+			className="
+                toolbar
+                flex items-center justify-between w-full px-4 py-2
+                gap-2
+                lg:flex-row lg:gap-4 lg:items-center
+                md:flex-col md:items-start md:gap-3
+                sm:flex-col sm:items-start sm:gap-2
+            "
+		>
+			<div
+				className="
+					wind-frequency-group
+					flex items-center gap-4
+					lg:gap-4
+					md:gap-3
+					sm:gap-2
+				"
+			>
 				<WindDisplay icao={icao} size="small" />
+				<FrequencyDisplay airportIcao={icao ?? ''} />
 			</div>
-			<div className="flex items-center gap-4">
+			<div
+				className="
+					flex items-center gap-4
+					lg:gap-4
+					md:gap-3
+					sm:gap-2
+					flex-wrap
+				"
+			>
 				<Dropdown
 					options={[
+						{ value: 'ALL', label: 'All' },
 						{ value: 'DEL', label: 'Delivery' },
 						{ value: 'GND', label: 'Ground' },
 						{ value: 'TWR', label: 'Tower' },
@@ -40,6 +68,7 @@ export default function Toolbar({ icao }: ToolbarProps) {
 					placeholder="Select Position"
 					disabled={!icao}
 					size="sm"
+					className="min-w-[100px]"
 				/>
 
 				<RunwayDropdown

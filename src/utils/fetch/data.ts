@@ -1,4 +1,4 @@
-import type { Airport } from '../../types/airports';
+import type { Airport, AirportFrequency } from '../../types/airports';
 import type { Aircraft } from '../../types/aircraft';
 
 async function fetchData<T>(endpoint: string): Promise<T[]> {
@@ -22,6 +22,10 @@ export function fetchAirports(): Promise<Airport[]> {
 
 export function fetchAircrafts(): Promise<Aircraft[]> {
     return fetchData<Aircraft>('aircrafts');
+}
+
+export function fetchFrequencies(): Promise<AirportFrequency[]> {
+    return fetchData<AirportFrequency>('frequencies');
 }
 
 export function fetchRunways(icao: string): Promise<string[]> {

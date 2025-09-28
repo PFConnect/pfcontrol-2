@@ -35,3 +35,29 @@ button {
     scrollbar-width: thin;
     scrollbar-color: #193cb8 transparent;
 }
+
+@media (max-width: 1350px) {
+  .toolbar {
+    flex-direction: column;
+    gap: 16px;
+  }
+}
+@media (max-width: 1000px) {
+  .toolbar {
+    flex-direction: column;
+    gap: 12px;
+  }
+}
+@media (max-width: 800px) {
+  .toolbar {
+    flex-direction: column;
+    gap: 8px;
+  }
+}
+@media (max-width: 650px) {
+  .toolbar .wind-frequency-group {
+    flex-direction: column !important;
+    gap: 4px;
+    align-items: flex-start;
+  }
+}
