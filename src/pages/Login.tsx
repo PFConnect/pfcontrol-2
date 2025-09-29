@@ -44,8 +44,29 @@ export default function Login() {
 				<h1 className="text-4xl font-extrabold text-blue-400 mb-10 text-center tracking-tight">
 					Sign In
 				</h1>
+
+				<button
+					onClick={handleLogin}
+					disabled={!agreed}
+					className={`w-full py-3 rounded-full font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg
+                    ${
+						agreed
+							? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white'
+							: 'bg-gray-700 text-gray-400'
+					}`}
+					style={{
+						boxShadow: agreed
+							? '0 4px 24px 0 rgba(37, 99, 235, 0.15)'
+							: undefined,
+						cursor: agreed ? 'pointer' : 'not-allowed'
+					}}
+				>
+					<FaDiscord className="w-6 h-6" />
+					Sign In with Discord
+				</button>
+				<hr className="w-full border-zinc-700 mb-6 mt-6" />
 				<div
-					className={`w-full flex items-center mb-8 border-2 border-blue-600 rounded-2xl px-5 py-4 gap-3 transition-all duration-200 shadow-sm
+					className={`w-full flex items-center mb-6 border-2 border-blue-600 rounded-2xl px-5 py-4 gap-3 transition-all duration-200 shadow-sm
                     ${agreed ? 'bg-blue-600/30' : 'bg-blue-600/10'}
                     hover:shadow-blue-700/20 focus-within:shadow-blue-700/30`}
 				>
@@ -83,27 +104,7 @@ export default function Login() {
 						className="flex-1"
 					/>
 				</div>
-				<hr className="w-full border-zinc-700 mb-8" />
-				<button
-					onClick={handleLogin}
-					disabled={!agreed}
-					className={`w-full py-3 rounded-full font-bold text-lg transition-all duration-200 flex items-center justify-center gap-2 shadow-lg
-                    ${
-						agreed
-							? 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white'
-							: 'bg-gray-700 text-gray-400'
-					}`}
-					style={{
-						boxShadow: agreed
-							? '0 4px 24px 0 rgba(37, 99, 235, 0.15)'
-							: undefined,
-						cursor: agreed ? 'pointer' : 'not-allowed'
-					}}
-				>
-					<FaDiscord className="w-6 h-6" />
-					Sign In with Discord
-				</button>
-				<p className="mt-8 text-xs text-gray-500 text-center max-w-xs">
+				<p className="text-xs text-gray-500 text-center max-w-xs">
 					PFConnect Studios is an independent service and is not in
 					any way affiliated with Project Flight.
 				</p>
