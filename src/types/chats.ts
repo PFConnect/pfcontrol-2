@@ -1,3 +1,4 @@
+// src/types/chats.ts
 export interface ChatMessage {
 	id: number;
 	userId: string;

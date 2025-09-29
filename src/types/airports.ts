@@ -1,3 +1,4 @@
+// src/types/airports.ts
 export interface AirportFrequencies {
     APP?: string;
     TWR?: string;

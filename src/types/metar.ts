@@ -1,3 +1,4 @@
+// src/types/metar.ts
 export interface MetarCloud {
     cover: string;
     base: number;

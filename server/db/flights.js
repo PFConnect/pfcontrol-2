@@ -1,4 +1,4 @@
-
+// db/flights.js
 import { generateSID, generateSquawk, getWakeTurbulence, generateRandomId } from '../utils/flightUtils.js';
 import flightsPool from './connections/flightsConnection.js';
 

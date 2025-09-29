@@ -1,3 +1,4 @@
+// src/types/flight.ts
 import type { Position } from "./session";
 
 export interface Flight {

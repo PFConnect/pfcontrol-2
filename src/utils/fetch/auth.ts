@@ -1,3 +1,4 @@
+// src/utils/fetch/auth.ts
 export interface User {
     userId: string;
     username: string;

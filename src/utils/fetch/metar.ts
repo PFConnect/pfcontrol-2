@@ -1,3 +1,4 @@
+// src/utils/fetch/metar.ts
 import type { MetarResponse, MetarData } from '../../types/metar';
 
 export async function fetchMetar(icao: string): Promise<MetarData | null> {

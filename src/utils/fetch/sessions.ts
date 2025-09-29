@@ -1,3 +1,4 @@
+// src/utils/fetch/sessions.ts
 import type { SessionInfo } from "../../types/session";
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;

@@ -1,3 +1,4 @@
+// src/utils/fetch/data.ts
 import type { Airport, AirportFrequency } from '../../types/airports';
 import type { Aircraft } from '../../types/aircraft';
 

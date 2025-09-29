@@ -1,3 +1,4 @@
+// src/types/session.ts
 export type Position = 'POSITION' | 'DEL' | 'GND' | 'TWR' | 'APP';
 
 export interface SessionInfo {
