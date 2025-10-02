@@ -1,4 +1,3 @@
-// routes/chats.js
 import express from 'express';
 import { addChatMessage, getChatMessages, deleteChatMessage } from '../db/chats.js';
 import requireAuth from '../middleware/isAuthenticated.js';
