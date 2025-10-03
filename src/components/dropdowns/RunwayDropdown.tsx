@@ -1,6 +1,5 @@
-// src/components/dropdowns/RunwayDropdown.tsx
-import { useEffect, useState } from 'react';
-import { fetchRunways } from '../../utils/fetch/data';
+import { useEffect, useMemo } from 'react';
+import { useData } from '../../hooks/data/useData';
 import Dropdown from '../common/Dropdown';
 
 interface RunwayDropdownProps {
@@ -20,35 +19,32 @@ export default function RunwayDropdown({
 	size = 'md',
 	placeholder = 'Select Runway'
 }: RunwayDropdownProps) {
-	const [runways, setRunways] = useState<string[]>([]);
-	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const { airportRunways, fetchAirportData, fetchedAirports } = useData();
 
 	useEffect(() => {
-		async function loadRunways() {
-			if (!airportIcao) {
-				setRunways([]);
-				return;
-			}
-
-			setIsLoading(true);
-			try {
-				const data = await fetchRunways(airportIcao);
-				setRunways(data || []);
-			} catch (error) {
-				console.error('Error fetching runways:', error);
-				setRunways([]);
-			} finally {
-				setIsLoading(false);
-			}
+		if (airportIcao && !fetchedAirports.has(airportIcao)) {
+			fetchAirportData(airportIcao);
 		}
+	}, [airportIcao, fetchedAirports, fetchAirportData]);
 
-		loadRunways();
-	}, [airportIcao]);
+	const runways = useMemo(() => {
+		return airportRunways[airportIcao] || [];
+	}, [airportRunways, airportIcao]);
 
-	const dropdownOptions = runways.map((runway) => ({
-		value: runway,
-		label: runway
-	}));
+	const isLoading = useMemo(() => {
+		return Boolean(
+			airportIcao &&
+				fetchedAirports.has(airportIcao) &&
+				!airportRunways[airportIcao]
+		);
+	}, [airportIcao, fetchedAirports, airportRunways]);
+
+	const dropdownOptions = useMemo(() => {
+		return runways.map((runway) => ({
+			value: runway,
+			label: runway
+		}));
+	}, [runways]);
 
 	const getDisplayValue = (selectedValue: string) => {
 		if (!selectedValue) {
@@ -66,9 +62,7 @@ export default function RunwayDropdown({
 			placeholder={placeholder}
 			value={value}
 			onChange={onChange}
-			disabled={
-				disabled || !airportIcao || isLoading || runways.length === 0
-			}
+			disabled={disabled || !airportIcao || isLoading}
 			getDisplayValue={getDisplayValue}
 			size={size}
 		/>

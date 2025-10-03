@@ -11,7 +11,7 @@ interface DropdownProps {
 	disabled?: boolean;
 	maxHeight?: string;
 	renderOption?: (option: DropdownOption) => ReactNode;
-	getDisplayValue?: (value: string, options: DropdownOption[]) => string;
+	getDisplayValue?: (value: string) => string;
 	allowClear?: boolean;
 	className?: string;
 	size?: 'xs' | 'sm' | 'md' | 'lg';
@@ -43,7 +43,7 @@ export default function Dropdown({
 	const selectedOption = options.find((option) => option.value === value);
 
 	const displayValue = getDisplayValue
-		? getDisplayValue(value || '', options)
+		? getDisplayValue(value || '') // Changed: removed options parameter
 		: selectedOption?.label || placeholder;
 
 	const handleOptionClick = (optionValue: string) => {

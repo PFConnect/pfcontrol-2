@@ -63,9 +63,11 @@ export default function Submit() {
 	const [flightsSocket, setFlightsSocket] = useState<ReturnType<
 		typeof createFlightsSocket
 	> | null>(null);
+	const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
 	useEffect(() => {
-		if (!sessionId) return;
+		if (!sessionId || initialLoadComplete) return;
+
 		setLoading(true);
 		fetch(`${import.meta.env.VITE_SERVER_URL}/api/sessions/${sessionId}`)
 			.then((res) => (res.ok ? res.json() : Promise.reject(res)))
@@ -75,13 +77,14 @@ export default function Submit() {
 					...f,
 					departure: data.airportIcao || ''
 				}));
+				setInitialLoadComplete(true);
 			})
 			.catch(() => setError('Session not found'))
 			.finally(() => setLoading(false));
-	}, [sessionId]);
+	}, [sessionId, initialLoadComplete]);
 
 	useEffect(() => {
-		if (!sessionId || !accessId) return;
+		if (!sessionId || !accessId || !initialLoadComplete) return;
 
 		const socket = createFlightsSocket(
 			sessionId,
@@ -105,7 +108,7 @@ export default function Submit() {
 		return () => {
 			socket.socket.disconnect();
 		};
-	}, [sessionId, accessId]);
+	}, [sessionId, accessId, initialLoadComplete]);
 
 	const handleChange = (name: string) => (value: string) => {
 		setForm((f) => ({ ...f, [name]: value }));
@@ -127,7 +130,7 @@ export default function Submit() {
 			flightsSocket.addFlight({
 				...form,
 				flight_type: form.flight_type,
-				clearedFL: form.cruisingFL,
+				cruisingFL: form.cruisingFL,
 				status: 'PENDING'
 			});
 		} else {
@@ -135,7 +138,7 @@ export default function Submit() {
 				const flight = await addFlight(sessionId!, {
 					...form,
 					flight_type: form.flight_type,
-					clearedFL: form.cruisingFL,
+					cruisingFL: form.cruisingFL,
 					status: 'PENDING'
 				});
 				setSubmittedFlight(flight);

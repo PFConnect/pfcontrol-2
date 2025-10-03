@@ -1,55 +1,59 @@
-import { useEffect, useState } from 'react';
+import { useMemo } from 'react';
+import { useData } from '../../hooks/data/useData';
 import Dropdown from '../common/Dropdown';
-import type { Aircraft } from '../../types/aircraft';
 
 interface AircraftDropdownProps {
 	value?: string;
-	onChange: (aircraftType: string) => void;
+	onChange: (value: string) => void;
 	disabled?: boolean;
-	size?: 'sm' | 'md' | 'lg';
+	size?: 'xs' | 'sm' | 'md' | 'lg';
+	showFullName?: boolean;
 }
 
 export default function AircraftDropdown({
 	value,
 	onChange,
 	disabled = false,
-	size = 'md'
+	size = 'md',
+	showFullName = true
 }: AircraftDropdownProps) {
-	const [aircraftList, setAircraftList] = useState<
-		{ type: string; name: string }[]
-	>([]);
+	const { aircrafts, loading } = useData();
 
-	useEffect(() => {
-		async function loadAircraft() {
-			const res = await fetch('/server/data/aircraftData.json');
-			const data = await res.json();
-			const list = Object.entries(data).map(([type, info]) => ({
-				type,
-				name: (info as Aircraft).name
-			}));
-			setAircraftList(list);
+	const dropdownOptions = useMemo(() => {
+		if (!Array.isArray(aircrafts)) {
+			return [];
 		}
-		loadAircraft();
-	}, []);
 
-	const dropdownOptions = aircraftList.map((ac) => ({
-		value: ac.type,
-		label: `${ac.type} - ${ac.name}`
-	}));
+		return aircrafts.map((aircraft) => ({
+			value: aircraft.type,
+			label: showFullName
+				? `${aircraft.type} - ${aircraft.name}`
+				: aircraft.type
+		}));
+	}, [aircrafts, showFullName]);
 
 	const getDisplayValue = (selectedValue: string) => {
-		if (!selectedValue) return 'Select Aircraft';
-		const found = aircraftList.find((ac) => ac.type === selectedValue);
-		return found ? `${found.type} - ${found.name}` : selectedValue;
+		if (!selectedValue) return loading ? 'Loading...' : 'Select Aircraft';
+
+		if (!Array.isArray(aircrafts)) {
+			return selectedValue;
+		}
+
+		const found = aircrafts.find((ac) => ac.type === selectedValue);
+		return found
+			? showFullName
+				? `${found.type} - ${found.name}`
+				: found.type
+			: selectedValue;
 	};
 
 	return (
 		<Dropdown
 			options={dropdownOptions}
-			placeholder="Select Aircraft"
+			placeholder={loading ? 'Loading...' : 'Select Aircraft'}
 			value={value}
 			onChange={onChange}
-			disabled={disabled}
+			disabled={disabled || loading}
 			getDisplayValue={getDisplayValue}
 			size={size}
 		/>

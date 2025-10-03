@@ -22,11 +22,19 @@ interface ToolbarProps {
 	sessionId?: string;
 	accessId?: string;
 	icao: string | null;
+	activeRunway?: string;
+	onRunwayChange?: (runway: string) => void;
 }
 
-export default function Toolbar({ icao, sessionId, accessId }: ToolbarProps) {
-	const [runway, setRunway] = useState('');
-	const [position, setPosition] = useState<Position | null>(null);
+export default function Toolbar({
+	icao,
+	sessionId,
+	accessId,
+	activeRunway,
+	onRunwayChange
+}: ToolbarProps) {
+	const [runway, setRunway] = useState(activeRunway || '');
+	const [position, setPosition] = useState<Position | null>('ALL');
 	const [chatOpen, setChatOpen] = useState(false);
 	const [activeUsers, setActiveUsers] = useState<SessionUser[]>([]);
 	const [connectionStatus, setConnectionStatus] = useState<
@@ -38,6 +46,9 @@ export default function Toolbar({ icao, sessionId, accessId }: ToolbarProps) {
 
 	const handleRunwayChange = (selectedRunway: string) => {
 		setRunway(selectedRunway);
+		if (onRunwayChange) {
+			onRunwayChange(selectedRunway);
+		}
 	};
 
 	const handlePositionChange = (selectedPosition: string) => {
@@ -73,6 +84,12 @@ export default function Toolbar({ icao, sessionId, accessId }: ToolbarProps) {
 			}
 		};
 	}, [sessionId, accessId, user]);
+
+	useEffect(() => {
+		if (activeRunway !== undefined) {
+			setRunway(activeRunway);
+		}
+	}, [activeRunway]);
 
 	const getStatusColor = () => {
 		switch (connectionStatus) {

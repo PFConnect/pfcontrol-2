@@ -1,4 +1,3 @@
-// src/components/common/Button.tsx
 interface ButtonProps {
 	children: React.ReactNode;
 	onClick?: () => void;
@@ -25,7 +24,7 @@ export default function Button({
 	type = 'button'
 }: ButtonProps) {
 	const baseStyles =
-		'inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed';
+		'inline-flex items-center justify-center font-medium rounded-full transition-all duration-200 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed';
 
 	const variants = {
 		primary:

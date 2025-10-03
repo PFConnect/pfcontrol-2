@@ -3,8 +3,6 @@ import type { Position } from "./session";
 export interface Flight {
     id: string | number;
     session_id: string;
-    userId?: string;
-    IP_address?: string;
     callsign?: string;
     aircraft?: string;
     flight_type?: string;
@@ -32,4 +30,9 @@ export interface Flight {
         updateTimestamp: number;
     };
     hidden?: boolean;
+}
+
+export interface AdminFlight extends Flight {
+    userId?: string;
+    IP_address?: string;
 }

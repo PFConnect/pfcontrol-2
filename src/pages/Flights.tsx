@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { fetchFlights } from '../utils/fetch/flights';
-import { fetchSession } from '../utils/fetch/sessions';
+import { fetchSession, updateSession } from '../utils/fetch/sessions';
 import type { Flight } from '../types/flight';
 import Navbar from '../components/Navbar';
 import Toolbar from '../components/tools/Toolbar';
@@ -23,23 +23,42 @@ export default function Flights() {
 	const [session, setSession] = useState<SessionData | null>(null);
 	const [flights, setFlights] = useState<Flight[]>([]);
 	const [loading, setLoading] = useState(true);
+	const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 	const [flightsSocket, setFlightsSocket] = useState<ReturnType<
 		typeof createFlightsSocket
 	> | null>(null);
+	const [lastSessionId, setLastSessionId] = useState<string | null>(null);
 
 	useEffect(() => {
-		if (!sessionId) return;
+		if (!sessionId || sessionId === lastSessionId || initialLoadComplete)
+			return;
+
 		setLoading(true);
-		fetchSession(sessionId)
-			.then((data) => setSession(data))
-			.catch((error) => console.error('Error fetching session:', error));
-		fetchFlights(sessionId)
-			.then((data) => setFlights(data))
-			.finally(() => setLoading(false));
-	}, [sessionId]);
+		setLastSessionId(sessionId);
+
+		Promise.all([
+			fetchSession(sessionId).catch((error) => {
+				console.error('Error fetching session:', error);
+				return null;
+			}),
+			fetchFlights(sessionId).catch((error) => {
+				console.error('Error fetching flights:', error);
+				return [];
+			})
+		])
+			.then(([sessionData, flightsData]) => {
+				if (sessionData) setSession(sessionData);
+				setFlights(flightsData);
+				setInitialLoadComplete(true);
+			})
+			.finally(() => {
+				setLoading(false);
+			});
+	}, [sessionId, lastSessionId, initialLoadComplete]);
 
 	useEffect(() => {
-		if (!sessionId || !accessId) return;
+		if (!sessionId || !accessId || !initialLoadComplete) return;
+
 		const socket = createFlightsSocket(
 			sessionId,
 			accessId,
@@ -64,11 +83,14 @@ export default function Flights() {
 				console.error('Flight websocket error:', error);
 			}
 		);
+		socket.socket.on('sessionUpdated', (updates) => {
+			setSession((prev) => (prev ? { ...prev, ...updates } : null));
+		});
 		setFlightsSocket(socket);
 		return () => {
 			socket.socket.disconnect();
 		};
-	}, [sessionId, accessId]);
+	}, [sessionId, accessId, initialLoadComplete]);
 
 	const handleFlightUpdate = (
 		flightId: string | number,
@@ -95,6 +117,21 @@ export default function Flights() {
 		}
 	};
 
+	const handleRunwayChange = async (selectedRunway: string) => {
+		if (!sessionId) return;
+		try {
+			await updateSession(sessionId, { activeRunway: selectedRunway });
+			setSession((prev) =>
+				prev ? { ...prev, activeRunway: selectedRunway } : null
+			);
+			if (flightsSocket) {
+				flightsSocket.updateSession({ activeRunway: selectedRunway });
+			}
+		} catch (error) {
+			console.error('Failed to update runway:', error);
+		}
+	};
+
 	return (
 		<div className="min-h-screen bg-black text-white">
 			<Navbar sessionId={sessionId} accessId={accessId} />
@@ -103,6 +140,8 @@ export default function Flights() {
 					icao={session ? session.airportIcao : ''}
 					sessionId={sessionId}
 					accessId={accessId}
+					activeRunway={session?.activeRunway}
+					onRunwayChange={handleRunwayChange}
 				/>
 				<div className="-mt-4">
 					{loading ? (

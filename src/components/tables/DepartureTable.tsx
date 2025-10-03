@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import type { Flight } from '../../types/flight';
+import { useMediaQuery } from 'react-responsive';
 import { EyeOff, Eye, Trash2, FileSpreadsheet } from 'lucide-react';
+import type { Flight } from '../../types/flight';
 import Checkbox from '../common/Checkbox';
 import TextInput from '../common/TextInput';
 import AirportDropdown from '../dropdowns/AirportDropdown';
@@ -8,6 +9,9 @@ import RunwayDropdown from '../dropdowns/RunwayDropdown';
 import AircraftDropdown from '../dropdowns/AircraftDropdown';
 import SidDropdown from '../dropdowns/SidDropdown';
 import AltitudeDropdown from '../dropdowns/AltitudeDropdown';
+import StatusDropdown from '../dropdowns/StatusDropdown';
+import Button from '../common/Button';
+import DepartureTableMobile from './mobile/DepartureTableMobile';
 
 interface DepartureTableProps {
 	flights: Flight[];
@@ -28,6 +32,7 @@ export default function DepartureTable({
 	onFlightChange
 }: DepartureTableProps) {
 	const [showHidden, setShowHidden] = useState(false);
+	const isMobile = useMediaQuery({ maxWidth: 1000 });
 
 	const handleHideFlight = async (flightId: string | number) => {
 		if (onFlightChange) {
@@ -141,17 +146,44 @@ export default function DepartureTable({
 		}
 	};
 
+	const handleStatusChange = (flightId: string | number, status: string) => {
+		if (onFlightChange) {
+			onFlightChange(flightId, { status });
+		}
+	};
+
 	const visibleFlights = showHidden
 		? flights
 		: flights.filter((flight) => !flight.hidden);
 
+	if (visibleFlights.length === 0) {
+		return (
+			<div className="mt-8 px-4 py-6 text-center text-gray-400">
+				No departures found.
+			</div>
+		);
+	}
+
+	if (isMobile) {
+		return (
+			<DepartureTableMobile
+				flights={flights}
+				onFlightDelete={onFlightDelete}
+				onFlightChange={onFlightChange}
+			/>
+		);
+	}
+
+	// Desktop table view
 	return (
 		<div className="mt-8 px-4">
 			{flights.some((flight) => flight.hidden) && (
 				<div className="mb-2 flex items-center gap-2">
-					<button
-						className="bg-zinc-800 text-blue-200 px-3 py-1 rounded flex items-center gap-1"
+					<Button
+						className="px-3 py-1 rounded flex items-center gap-1"
 						onClick={() => setShowHidden((v) => !v)}
+						variant="outline"
+						size="sm"
 					>
 						{showHidden ? (
 							<Eye className="w-4 h-4" />
@@ -161,44 +193,53 @@ export default function DepartureTable({
 						{showHidden
 							? 'Hide hidden flights'
 							: 'Show hidden flights'}
-					</button>
+					</Button>
 				</div>
 			)}
-			<table className="min-w-full bg-zinc-900 rounded-lg">
-				<thead>
-					<tr className="bg-blue-950 text-blue-200">
-						<th className="py-2.5 px-4 text-left">TIME</th>
-						<th className="py-2.5 px-4 text-left">CALLSIGN</th>
-						<th className="py-2.5 px-4 text-left">STAND</th>
-						<th className="py-2.5 px-4 text-left">ATYP</th>
-						<th className="py-2.5 px-4 text-left">W</th>
-						<th className="py-2.5 px-4 text-left">V</th>
-						<th className="py-2.5 px-4 text-left">ADES</th>
-						<th className="py-2.5 px-4 text-left">RWY</th>
-						<th className="py-2.5 px-4 text-left">SID</th>
-						<th className="py-2.5 px-4 text-left">RFL</th>
-						<th className="py-2.5 px-4 text-left">CFL</th>
-						<th className="py-2.5 px-4 text-left">ASSR</th>
-						<th className="py-2.5 px-4 text-left">C</th>
-						<th className="py-2.5 px-4 text-left">STS</th>
-						<th className="py-2.5 px-4 text-left">RMK</th>
-						<th className="py-2.5 px-4 text-left">PDC</th>
-						<th className="py-2.5 px-4 text-left">HIDE</th>
-						<th className="py-2.5 px-4 text-left">DEL</th>
-					</tr>
-				</thead>
-				<tbody>
-					{visibleFlights.length === 0 ? (
-						<tr>
-							<td
-								colSpan={18}
-								className="py-6 px-4 text-center text-gray-400"
-							>
-								No departures found.
-							</td>
+			<div className="table-view">
+				<table className="min-w-full bg-zinc-900 rounded-lg">
+					<thead>
+						<tr className="bg-blue-950 text-blue-200">
+							<th className="py-2.5 px-4 text-left column-time">
+								TIME
+							</th>
+							<th className="py-2.5 px-4 text-left w">
+								CALLSIGN
+							</th>
+							<th className="py-2.5 px-4 text-left w-24 column-stand">
+								STAND
+							</th>
+							<th className="py-2.5 px-4 text-left">ATYP</th>
+							<th className="py-2.5 px-4 text-left column-w">
+								W
+							</th>
+							<th className="py-2.5 px-4 text-left">V</th>
+							<th className="py-2.5 px-4 text-left">ADES</th>
+							<th className="py-2.5 px-4 text-left column-rwy">
+								RWY
+							</th>
+							<th className="py-2.5 px-4 text-left">SID</th>
+							<th className="py-2.5 px-4 text-left column-rfl">
+								RFL
+							</th>
+							<th className="py-2.5 px-4 text-left">CFL</th>
+							<th className="py-2.5 px-4 text-left w-28">ASSR</th>
+							<th className="py-2.5 px-4 text-left">C</th>
+							<th className="py-2.5 px-4 text-left">STS</th>
+							<th className="py-2.5 px-4 text-left w-64 column-rmk">
+								RMK
+							</th>
+							<th className="py-2.5 px-4 text-left column-pdc">
+								PDC
+							</th>
+							<th className="py-2.5 px-4 text-left column-hide">
+								HIDE
+							</th>
+							<th className="py-2.5 px-4 text-left">DEL</th>
 						</tr>
-					) : (
-						visibleFlights.map((flight) => (
+					</thead>
+					<tbody>
+						{visibleFlights.map((flight) => (
 							<tr
 								key={flight.id}
 								className={`border-b border-zinc-800 ${
@@ -207,7 +248,7 @@ export default function DepartureTable({
 										: ''
 								}`}
 							>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-time">
 									{flight.timestamp
 										? new Date(
 												flight.timestamp
@@ -236,7 +277,7 @@ export default function DepartureTable({
 										}}
 									/>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-stand">
 									<TextInput
 										value={flight.stand || ''}
 										onChange={(value) =>
@@ -264,7 +305,7 @@ export default function DepartureTable({
 										showFullName={false}
 									/>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-w">
 									{flight.wtc || '-'}
 								</td>
 								<td className="py-2 px-4">
@@ -280,7 +321,7 @@ export default function DepartureTable({
 										showFullName={false}
 									/>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-rwy">
 									<RunwayDropdown
 										airportIcao={flight.departure || ''}
 										value={flight.runway}
@@ -305,7 +346,7 @@ export default function DepartureTable({
 										placeholder="-"
 									/>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-rfl">
 									<AltitudeDropdown
 										value={flight.cruisingFL}
 										onChange={(alt) =>
@@ -362,9 +403,19 @@ export default function DepartureTable({
 									/>
 								</td>
 								<td className="py-2 px-4">
-									{flight.status || '-'}
+									<StatusDropdown
+										value={flight.status}
+										onChange={(status) =>
+											handleStatusChange(
+												flight.id,
+												status
+											)
+										}
+										size="xs"
+										placeholder="-"
+									/>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-rmk">
 									<TextInput
 										value={flight.remark || ''}
 										onChange={(value) =>
@@ -379,7 +430,7 @@ export default function DepartureTable({
 										}}
 									/>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-pdc">
 									<button
 										className="text-gray-400 hover:text-blue-500 px-2 py-1 rounded"
 										onClick={() => {
@@ -389,7 +440,7 @@ export default function DepartureTable({
 										<FileSpreadsheet />
 									</button>
 								</td>
-								<td className="py-2 px-4">
+								<td className="py-2 px-4 column-hide">
 									<button
 										title={
 											flight.hidden ? 'Unhide' : 'Hide'
@@ -416,10 +467,10 @@ export default function DepartureTable({
 									</button>
 								</td>
 							</tr>
-						))
-					)}
-				</tbody>
-			</table>
+						))}
+					</tbody>
+				</table>
+			</div>
 		</div>
 	);
 }

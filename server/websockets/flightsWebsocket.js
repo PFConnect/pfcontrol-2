@@ -1,6 +1,7 @@
 import { Server as SocketServer } from 'socket.io';
 import { addFlight, updateFlight, deleteFlight } from '../db/flights.js';
 import { validateSessionAccess } from '../middleware/sessionAccess.js';
+import { updateSession } from '../db/sessions.js';
 
 let io;
 const updateTimers = new Map();
@@ -28,7 +29,13 @@ export function setupFlightsWebsocket(httpServer) {
 
         socket.on('addFlight', async (flightData) => {
             try {
-                const flight = await addFlight(sessionId, flightData);
+                const enhancedFlightData = {
+                    ...flightData,
+                    user_id: socket.handshake.auth?.userId,
+                    ip_address: socket.handshake.address
+                };
+
+                const flight = await addFlight(sessionId, enhancedFlightData);
                 io.to(sessionId).emit('flightAdded', flight);
             } catch (error) {
                 console.error('Error adding flight via websocket:', error);
@@ -77,6 +84,22 @@ export function setupFlightsWebsocket(httpServer) {
             } catch (error) {
                 console.error('Error deleting flight via websocket:', error);
                 socket.emit('flightError', { action: 'delete', flightId, error: 'Failed to delete flight' });
+            }
+        });
+
+        socket.on('updateSession', async (updates) => {
+            try {
+                const updatedSession = await updateSession(sessionId, updates);
+                if (updatedSession) {
+                    io.to(sessionId).emit('sessionUpdated', {
+                        activeRunway: updatedSession.active_runway,
+                    });
+                } else {
+                    socket.emit('sessionError', { error: 'Session not found or update failed' });
+                }
+            } catch (error) {
+                console.error('Error updating session via websocket:', error);
+                socket.emit('sessionError', { error: 'Failed to update session' });
             }
         });
     });

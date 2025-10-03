@@ -1,10 +1,10 @@
-import { useEffect, useState } from 'react';
-import { fetchSids } from '../../utils/fetch/data';
+import { useEffect, useMemo } from 'react';
+import { useData } from '../../hooks/data/useData';
 import Dropdown from '../common/Dropdown';
 
 interface SidDropdownProps {
 	airportIcao: string;
-	onChange: (sid: string) => void;
+	onChange: (value: string) => void;
 	value?: string;
 	disabled?: boolean;
 	size?: 'xs' | 'sm' | 'md' | 'lg';
@@ -19,35 +19,32 @@ export default function SidDropdown({
 	size = 'md',
 	placeholder = 'Select SID'
 }: SidDropdownProps) {
-	const [sids, setSids] = useState<string[]>([]);
-	const [isLoading, setIsLoading] = useState<boolean>(false);
+	const { airportSids, fetchAirportData, fetchedAirports } = useData();
 
 	useEffect(() => {
-		async function loadSids() {
-			if (!airportIcao) {
-				setSids([]);
-				return;
-			}
-
-			setIsLoading(true);
-			try {
-				const data = await fetchSids(airportIcao);
-				setSids(data || []);
-			} catch (error) {
-				console.error('Error fetching SIDs:', error);
-				setSids([]);
-			} finally {
-				setIsLoading(false);
-			}
+		if (airportIcao && !fetchedAirports.has(airportIcao)) {
+			fetchAirportData(airportIcao);
 		}
+	}, [airportIcao, fetchedAirports, fetchAirportData]);
 
-		loadSids();
-	}, [airportIcao]);
+	const sids = useMemo(() => {
+		return airportSids[airportIcao] || [];
+	}, [airportSids, airportIcao]);
 
-	const dropdownOptions = sids.map((sid) => ({
-		value: sid,
-		label: sid
-	}));
+	const isLoading = useMemo(() => {
+		return Boolean(
+			airportIcao &&
+				fetchedAirports.has(airportIcao) &&
+				!airportSids[airportIcao]
+		);
+	}, [airportIcao, fetchedAirports, airportSids]);
+
+	const dropdownOptions = useMemo(() => {
+		return sids.map((sid) => ({
+			value: sid,
+			label: sid
+		}));
+	}, [sids]);
 
 	const getDisplayValue = (selectedValue: string) => {
 		if (!selectedValue) {
@@ -65,9 +62,7 @@ export default function SidDropdown({
 			placeholder={placeholder}
 			value={value}
 			onChange={onChange}
-			disabled={
-				disabled || !airportIcao || isLoading || sids.length === 0
-			}
+			disabled={disabled || !airportIcao || isLoading}
 			getDisplayValue={getDisplayValue}
 			size={size}
 		/>

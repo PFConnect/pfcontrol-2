@@ -29,13 +29,47 @@ button {
 ::-webkit-scrollbar-thumb:hover {
     background: #000000;
 }
-
 /* Firefox */
 * {
     scrollbar-width: thin;
     scrollbar-color: #193cb8 transparent;
 }
 
+/* Departure Table */
+@media (max-width: 1750px) {
+  .column-rwy, .column-w {
+    display: none;
+  }
+}
+@media (max-width: 1500px) {
+  .column-pdc, .column-hide, .column-time {
+    display: none;
+  }
+}
+@media (max-width: 1300px) {
+  .column-stand, .column-rfl, .column-rmk {
+    display: none;
+  }
+}
+
+@media (max-width: 1000px) {
+  .table-view {
+    display: none;
+  }
+  .card-view {
+    display: block;
+  }
+}
+@media (min-width: 1001px) {
+  .table-view {
+    display: block;
+  }
+  .card-view {
+    display: none;
+  }
+}
+
+/* Toolbar */
 @media (max-width: 1350px) {
   .toolbar {
     flex-direction: column;

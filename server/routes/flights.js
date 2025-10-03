@@ -19,9 +19,13 @@ router.get('/:sessionId', requireAuth, async (req, res) => {
 // POST: /api/flights/:sessionId - add a flight to a session (for submit page and external access)
 router.post('/:sessionId', requireAuth, async (req, res) => {
     try {
-        const flight = await addFlight(req.params.sessionId, req.body);
+        const flightData = {
+            ...req.body,
+            user_id: req.user?.userId,
+            ip_address: req.ip || req.connection.remoteAddress || req.socket.remoteAddress
+        };
 
-        // Broadcast to websocket users
+        const flight = await addFlight(req.params.sessionId, flightData);
         broadcastFlightEvent(req.params.sessionId, 'flightAdded', flight);
 
         res.status(201).json(flight);

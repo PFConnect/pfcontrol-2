@@ -1,4 +1,5 @@
 export interface Aircraft {
+    type: string;
     name: string;
-    wtc: 'L' | 'M' | 'H' | 'J';
+    wtc?: string;
 }

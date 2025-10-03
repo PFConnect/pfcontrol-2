@@ -1,48 +1,61 @@
-import { useEffect, useState } from 'react';
-import { fetchAirports } from '../../utils/fetch/data';
-import type { Airport } from '../../types/airports';
+import { useMemo } from 'react';
+import { useData } from '../../hooks/data/useData';
 import Dropdown from '../common/Dropdown';
 
 interface AirportDropdownProps {
-	onChange: (icao: string) => void;
+	onChange: (value: string) => void;
 	value?: string;
 	disabled?: boolean;
-	size?: 'sm' | 'md' | 'lg';
+	size?: 'xs' | 'sm' | 'md' | 'lg';
+	showFullName?: boolean;
 }
 
 export default function AirportDropdown({
 	onChange,
 	value,
 	disabled = false,
-	size = 'md'
+	size = 'md',
+	showFullName = true
 }: AirportDropdownProps) {
-	const [airports, setAirports] = useState<Airport[]>([]);
+	const { airports, loading } = useData();
 
-	useEffect(() => {
-		async function loadAirports() {
-			const data = await fetchAirports();
-			setAirports(data);
+	const dropdownOptions = useMemo(() => {
+		if (!Array.isArray(airports)) {
+			return [];
 		}
-		loadAirports();
-	}, []);
 
-	const dropdownOptions = airports.map((airport) => ({
-		value: airport.icao,
-		label: `${airport.icao} - ${airport.name}`
-	}));
+		return airports.map((airport) => ({
+			value: airport.icao,
+			label: showFullName
+				? `${airport.icao} - ${airport.name}`
+				: airport.icao
+		}));
+	}, [airports, showFullName]);
 
 	const getDisplayValue = (selectedValue: string) => {
-		if (!selectedValue) return 'Select Airport';
-		return selectedValue;
+		if (!selectedValue) return loading ? 'Loading...' : 'Select Airport';
+
+		if (!Array.isArray(airports)) {
+			return selectedValue;
+		}
+
+		const found = airports.find(
+			(airport) => airport.icao === selectedValue
+		);
+		return found
+			? showFullName
+				? `${found.icao} - ${found.name}`
+				: found.icao
+			: selectedValue;
 	};
 
 	return (
 		<Dropdown
 			options={dropdownOptions}
-			placeholder="Select Airport"
+			placeholder={loading ? 'Loading...' : 'Select Airport'}
 			value={value}
 			onChange={onChange}
-			disabled={disabled}
+			disabled={disabled || loading}
 			getDisplayValue={getDisplayValue}
 			size={size}
 		/>

@@ -4,11 +4,14 @@ import './index.css';
 import App from './App.tsx';
 
 import { AuthProvider } from './hooks/auth/AuthProvider.tsx';
+import { DataProvider } from './hooks/data/DataProvider.tsx';
 
 createRoot(document.getElementById('root')!).render(
 	<StrictMode>
 		<AuthProvider>
-			<App />
+			<DataProvider>
+				<App />
+			</DataProvider>
 		</AuthProvider>
 	</StrictMode>
 );

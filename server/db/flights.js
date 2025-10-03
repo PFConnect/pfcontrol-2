@@ -1,12 +1,24 @@
 import { generateSID, generateSquawk, getWakeTurbulence, generateRandomId } from '../utils/flightUtils.js';
+import { getSessionById } from './sessions.js';
 import flightsPool from './connections/flightsConnection.js';
+
+function sanitizeFlightForClient(flight) {
+    const { user_id, ip_address, ...sanitizedFlight } = flight;
+    return {
+        ...sanitizedFlight,
+        cruisingFL: flight.cruisingfl,
+        clearedFL: flight.clearedfl,
+    };
+}
 
 export async function getFlightsBySession(sessionId) {
     const tableName = `flights_${sessionId}`;
     const result = await flightsPool.query(
         `SELECT * FROM ${tableName} ORDER BY created_at ASC`
     );
-    return result.rows;
+
+    const flights = result.rows.map(flight => sanitizeFlightForClient(flight));
+    return flights;
 }
 
 export async function addFlight(sessionId, flightData) {
@@ -29,9 +41,30 @@ export async function addFlight(sessionId, flightData) {
     }
 
     flightData.icao = flightData.departure;
+
+    if (!flightData.runway) {
+        try {
+            const session = await getSessionById(sessionId);
+            if (session && session.active_runway) {
+                flightData.runway = session.active_runway;
+            }
+        } catch (error) {
+            console.error('Error fetching session for runway assignment:', error);
+        }
+    }
+
     if (!flightData.sid) {
         const sidResult = await generateSID(flightData);
         flightData.sid = sidResult.sid;
+    }
+
+    if (flightData.cruisingFL) {
+        flightData.cruisingfl = flightData.cruisingFL;
+        delete flightData.cruisingFL;
+    }
+    if (flightData.clearedFL) {
+        flightData.clearedfl = flightData.clearedFL;
+        delete flightData.clearedFL;
     }
 
     const { icao, ...flightDataForDb } = flightData;
@@ -48,7 +81,9 @@ export async function addFlight(sessionId, flightData) {
         RETURNING *
     `;
     const result = await flightsPool.query(query, values);
-    return result.rows[0];
+
+    const flight = result.rows[0];
+    return sanitizeFlightForClient(flight);
 }
 
 export async function updateFlight(sessionId, flightId, updates) {
@@ -57,7 +92,17 @@ export async function updateFlight(sessionId, flightId, updates) {
     const values = [];
     let idx = 1;
 
-    for (const [key, value] of Object.entries(updates)) {
+    const dbUpdates = { ...updates };
+    if (dbUpdates.cruisingFL) {
+        dbUpdates.cruisingfl = dbUpdates.cruisingFL;
+        delete dbUpdates.cruisingFL;
+    }
+    if (dbUpdates.clearedFL) {
+        dbUpdates.clearedfl = dbUpdates.clearedFL;
+        delete dbUpdates.clearedFL;
+    }
+
+    for (const [key, value] of Object.entries(dbUpdates)) {
         let processedValue = value;
         if (key === 'clearance' && typeof value === 'string') {
             processedValue = value.toLowerCase() === 'true';
@@ -74,7 +119,9 @@ export async function updateFlight(sessionId, flightId, updates) {
         RETURNING *
     `;
     const result = await flightsPool.query(query, values);
-    return result.rows[0];
+
+    const flight = result.rows[0];
+    return sanitizeFlightForClient(flight);
 }
 
 export async function deleteFlight(sessionId, flightId) {

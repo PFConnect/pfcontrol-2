@@ -38,6 +38,10 @@ export function createFlightsSocket(
         // Delete a flight via websocket
         deleteFlight: (flightId: string | number) => {
             socket.emit('deleteFlight', flightId);
+        },
+        // Update session metadata via websocket
+        updateSession: (updates: Partial<{ activeRunway: string }>) => {
+            socket.emit('updateSession', updates);
         }
     };
 }
