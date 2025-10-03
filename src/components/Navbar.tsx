@@ -110,7 +110,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 
 					{sessionId && accessId && (
 						<div className="flex-1 flex justify-center items-center space-x-3">
-							<span className="text-white/80 font-mono text-sm px-3 py-1.5 rounded-lg bg-white/5 hidden sm:inline backdrop-blur-sm">
+							<span className="text-white font-mono text-sm px-3 py-1.5 rounded-lg hidden sm:inline">
 								{utcTime} UTC
 							</span>
 							<div className="relative">
