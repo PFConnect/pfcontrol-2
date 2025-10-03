@@ -1,12 +1,19 @@
 import { useEffect, useState, useMemo } from 'react';
-import { X, Loader, Info, RefreshCw } from 'lucide-react';
+import { X, Loader, Info, RefreshCw, Copy } from 'lucide-react';
 import { useData } from '../../hooks/data/useData';
 import { fetchMetar } from '../../utils/fetch/metar';
 import { generateATIS } from '../../utils/fetch/atis';
+import type { Socket } from 'socket.io-client';
 import { fetchSession } from '../../utils/fetch/sessions';
 import Checkbox from '../common/Checkbox';
 import TextInput from '../common/TextInput';
 import Button from '../common/Button';
+
+interface ATISData {
+	letter: string;
+	text: string;
+	timestamp?: number;
+}
 
 interface ATISProps {
 	icao: string;
@@ -14,6 +21,8 @@ interface ATISProps {
 	activeRunway?: string;
 	open: boolean;
 	onClose: () => void;
+	socket?: Socket | undefined;
+	onAtisUpdate?: (atis: ATISData) => void;
 }
 
 export default function ATIS({
@@ -21,7 +30,9 @@ export default function ATIS({
 	sessionId,
 	activeRunway,
 	open,
-	onClose
+	onClose,
+	socket,
+	onAtisUpdate
 }: ATISProps) {
 	const { airportRunways, fetchAirportData, fetchedAirports } = useData();
 	const [ident, setIdent] = useState<string>('A');
@@ -37,6 +48,8 @@ export default function ATIS({
 	const [isLoadingPreviousATIS, setIsLoadingPreviousATIS] =
 		useState<boolean>(false);
 	const [error, setError] = useState<string | null>(null);
+	const [copied, setCopied] = useState<boolean>(false);
+	const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
 
 	const identOptions = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
 	const approachOptions = ['ILS', 'VISUAL', 'RNAV'];
@@ -44,6 +57,26 @@ export default function ATIS({
 		() => airportRunways[icao] || [],
 		[airportRunways, icao]
 	);
+
+	useEffect(() => {
+		if (!socket) return;
+
+		const handleAtisUpdate = (data: { atis: ATISData }) => {
+			if (data.atis) {
+				setAtisText(data.atis.text);
+				setIdent(data.atis.letter);
+				if (onAtisUpdate) {
+					onAtisUpdate(data.atis);
+				}
+			}
+		};
+
+		socket.on('atisUpdate', handleAtisUpdate);
+
+		return () => {
+			socket.off('atisUpdate', handleAtisUpdate);
+		};
+	}, [socket, onAtisUpdate]);
 
 	useEffect(() => {
 		const loadPreviousATIS = async () => {
@@ -174,19 +207,8 @@ export default function ATIS({
 							setSelectedApproaches(extractedApproaches);
 						}
 
-						if (atisData.ident || atisData.letter) {
-							const currentLetter = (
-								atisData.ident ||
-								atisData.letter ||
-								''
-							).toUpperCase();
-							const currentIndex =
-								identOptions.indexOf(currentLetter);
-							const nextIndex =
-								(currentIndex + 1) % identOptions.length;
-							const nextIdent = identOptions[nextIndex];
-							setIdent(nextIdent);
-						}
+						setAtisText(atisData.text);
+						setIdent(atisData.letter || 'A');
 					}
 				}
 			} catch (error) {
@@ -279,21 +301,23 @@ export default function ATIS({
 			const formatApproaches = () => {
 				if (selectedApproaches.length === 0) return '';
 
-				const primaryRunway =
+				const approachRunways =
 					landingRunways.length > 0
-						? landingRunways[0]
-						: departingRunways.length > 0
-						? departingRunways[0]
-						: '';
+						? landingRunways
+						: departingRunways;
+				const runwaysText =
+					approachRunways.length === 1
+						? `RUNWAY ${approachRunways[0]}`
+						: `RUNWAYS ${approachRunways.join(',')}`;
 
 				if (selectedApproaches.length === 1) {
-					return `EXPECT ${selectedApproaches[0]} APPROACH RUNWAY ${primaryRunway}`;
+					return `EXPECT ${selectedApproaches[0]} APPROACH ${runwaysText}`;
 				}
 
 				if (selectedApproaches.length === 2) {
 					return `EXPECT SIMULTANEOUS ${selectedApproaches.join(
 						' AND '
-					)} APPROACH RUNWAY ${primaryRunway}`;
+					)} APPROACH ${runwaysText}`;
 				}
 
 				const lastApproach =
@@ -301,7 +325,7 @@ export default function ATIS({
 				const otherApproaches = selectedApproaches.slice(0, -1);
 				return `EXPECT SIMULTANEOUS ${otherApproaches.join(
 					', '
-				)} AND ${lastApproach} APPROACH RUNWAY ${primaryRunway}`;
+				)} AND ${lastApproach} APPROACH ${runwaysText}`;
 			};
 
 			const approachText = formatApproaches();
@@ -324,6 +348,32 @@ export default function ATIS({
 
 			const data = await generateATIS(requestData);
 			setAtisText(data.atisText);
+
+			if (socket) {
+				socket.emit('atisGenerated', {
+					atis: {
+						letter: data.ident,
+						text: data.atisText,
+						timestamp: data.timestamp
+					},
+					icao,
+					landingRunways,
+					departingRunways,
+					selectedApproaches,
+					remarks
+				});
+			}
+
+			if (onAtisUpdate) {
+				onAtisUpdate({
+					letter: data.ident,
+					text: data.atisText,
+					timestamp:
+						typeof data.timestamp === 'string'
+							? Number(data.timestamp)
+							: data.timestamp
+				});
+			}
 		} catch (error) {
 			console.error('Error generating ATIS:', error);
 			setError(
@@ -337,8 +387,8 @@ export default function ATIS({
 	};
 
 	const refreshWeather = async () => {
-		if (!icao) return;
-
+		setIsRefreshing(true);
+		const start = Date.now();
 		try {
 			const data = await fetchMetar(icao);
 			if (data && data.rawOb) {
@@ -351,6 +401,23 @@ export default function ATIS({
 			}
 		} catch {
 			setMetar('METAR unavailable');
+		} finally {
+			const elapsed = Date.now() - start;
+			const minDelay = 500;
+			setTimeout(
+				() => setIsRefreshing(false),
+				Math.max(0, minDelay - elapsed)
+			);
+		}
+	};
+
+	const copyToClipboard = async () => {
+		try {
+			await navigator.clipboard.writeText(atisText);
+			setCopied(true);
+			setTimeout(() => setCopied(false), 2000);
+		} catch (error) {
+			console.error('Failed to copy:', error);
 		}
 	};
 
@@ -388,6 +455,47 @@ export default function ATIS({
 				{error && !isLoading && !isLoadingPreviousATIS && (
 					<div className="text-red-400 text-sm p-3 bg-red-900/20 rounded-lg border border-red-700">
 						{error}
+					</div>
+				)}
+
+				{atisText && (
+					<div className="space-y-3">
+						<div className="flex justify-between items-center">
+							<h3 className="text-lg font-semibold text-blue-300">
+								Generated ATIS
+							</h3>
+							<Button
+								onClick={copyToClipboard}
+								size="sm"
+								variant="outline"
+								className={`flex items-center gap-1 relative overflow-hidden transition-all duration-300 ${
+									copied
+										? 'bg-emerald-600 hover:bg-emerald-600 border-emerald-600'
+										: ''
+								}`}
+							>
+								<div
+									className={`flex items-center space-x-2 transition-transform duration-300 ${
+										copied ? 'scale-105' : ''
+									}`}
+								>
+									<Copy
+										className={`h-4 w-4 transition-transform duration-300 ${
+											copied ? 'rotate-12' : ''
+										}`}
+									/>
+									<span className="font-medium">
+										{copied ? 'Copied!' : 'Copy'}
+									</span>
+								</div>
+								{copied && (
+									<div className="absolute inset-0 bg-emerald-400/20 animate-pulse rounded-lg"></div>
+								)}
+							</Button>
+						</div>
+						<div className="bg-black p-4 rounded-lg border border-zinc-700 font-mono text-sm text-green-400 whitespace-pre-wrap">
+							{atisText}
+						</div>
 					</div>
 				)}
 
@@ -494,9 +602,14 @@ export default function ATIS({
 							onClick={refreshWeather}
 							size="sm"
 							variant="outline"
+							disabled={isRefreshing}
 							className="flex items-center gap-1"
 						>
-							<RefreshCw className="h-4 w-4" />
+							<RefreshCw
+								className={`h-4 w-4 ${
+									isRefreshing ? 'animate-spin' : ''
+								}`}
+							/>
 							Refresh
 						</Button>
 					</div>
@@ -521,24 +634,10 @@ export default function ATIS({
 						className="w-full bg-zinc-800 border border-zinc-700 rounded-lg p-3"
 					/>
 				</div>
-
-				{atisText && (
-					<div className="space-y-3">
-						<h3 className="text-lg font-semibold text-blue-300">
-							Generated ATIS
-						</h3>
-						<div className="bg-black p-4 rounded-lg border border-zinc-700 font-mono text-sm text-green-400 whitespace-pre-wrap">
-							{atisText}
-						</div>
-					</div>
-				)}
 			</div>
 
 			<div className="p-5 border-t border-blue-800 bg-zinc-900 rounded-bl-3xl">
-				<div className="flex justify-end gap-3">
-					<Button onClick={onClose} variant="outline" size="sm">
-						Close
-					</Button>
+				<div className="flex justify-start gap-3">
 					<Button
 						onClick={handleGenerateATIS}
 						disabled={
@@ -555,6 +654,9 @@ export default function ATIS({
 							<Loader className="animate-spin h-4 w-4" />
 						)}
 						Generate ATIS
+					</Button>
+					<Button onClick={onClose} variant="outline" size="sm">
+						Close
 					</Button>
 				</div>
 			</div>

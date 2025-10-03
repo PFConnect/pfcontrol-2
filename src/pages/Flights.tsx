@@ -7,6 +7,7 @@ import Navbar from '../components/Navbar';
 import Toolbar from '../components/tools/Toolbar';
 import DepartureTable from '../components/tables/DepartureTable';
 import { createFlightsSocket } from '../sockets/flightsSocket';
+import { useAuth } from '../hooks/auth/useAuth';
 
 interface SessionData {
 	sessionId: string;
@@ -28,6 +29,7 @@ export default function Flights() {
 		typeof createFlightsSocket
 	> | null>(null);
 	const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+	const { user } = useAuth();
 
 	useEffect(() => {
 		if (!sessionId || sessionId === lastSessionId || initialLoadComplete)
@@ -132,14 +134,19 @@ export default function Flights() {
 		}
 	};
 
+	const backgroundImage =
+		user?.settings?.backgroundImage?.useCustomBackground &&
+		user.settings.backgroundImage.selectedImage
+			? `url(${user.settings.backgroundImage.selectedImage})`
+			: 'url("/assets/app/backgrounds/mdpc_01.png")';
+
 	return (
 		<div className="min-h-screen text-white relative">
 			<div
 				aria-hidden
 				className="absolute inset-0 z-0"
 				style={{
-					backgroundImage:
-						'url("/assets/app/backgrounds/mdpc_01.png")',
+					backgroundImage,
 					backgroundSize: 'cover',
 					backgroundPosition: 'center',
 					backgroundRepeat: 'no-repeat',

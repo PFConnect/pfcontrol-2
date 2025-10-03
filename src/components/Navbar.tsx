@@ -219,12 +219,6 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 						{!sessionId && (
 							<div className="space-x-6">
 								<a
-									href="/team"
-									className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
-								>
-									Team
-								</a>
-								<a
 									href="/create"
 									className="text-white hover:text-blue-400 transition-colors duration-300 font-medium"
 								>
@@ -276,13 +270,6 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
                         `}
 					>
 						<div className="py-2">
-							<a
-								href="/team"
-								className="block px-6 py-3 text-gray-300 hover:text-white hover:bg-blue-600/20 transition-all duration-200 font-medium"
-								onClick={() => setIsMenuOpen(false)}
-							>
-								Team
-							</a>
 							<a
 								href="/create"
 								className="block px-6 py-3 text-gray-300 hover:text-white hover:bg-blue-600/20 transition-all duration-200 font-medium"

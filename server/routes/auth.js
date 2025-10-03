@@ -103,6 +103,9 @@ router.get('/discord/callback', authLimiter, async (req, res) => {
 router.get('/me', requireAuth, async (req, res) => {
     try {
         const user = await getUserById(req.user.userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
 
         res.json({
             userId: req.user.userId,
@@ -110,9 +113,9 @@ router.get('/me', requireAuth, async (req, res) => {
             discriminator: req.user.discriminator,
             avatar: req.user.avatar ? `https://cdn.discordapp.com/avatars/${req.user.userId}/${req.user.avatar}.png` : null,
             isAdmin: req.user.isAdmin,
-            settings: user?.settings || {},
-            lastLogin: user?.lastLogin,
-            totalSessionsCreated: user?.totalSessionsCreated || 0
+            settings: user.settings || {},
+            lastLogin: user.lastLogin,
+            totalSessionsCreated: user.totalSessionsCreated || 0
         });
     } catch (error) {
         console.error('Error fetching user data:', error);

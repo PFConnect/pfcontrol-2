@@ -15,6 +15,9 @@ export function createSessionUsersSocket(
     onReconnect?: () => void,
     onMention?: (mention: ChatMention) => void
 ) {
+    interface CustomSocket extends ReturnType<typeof io> {
+        emitAtisGenerated?: (data: unknown) => void;
+    }
     const socket = io(SOCKET_URL, {
         withCredentials: true,
         path: '/sockets/session-users',
@@ -23,7 +26,7 @@ export function createSessionUsersSocket(
             accessId,
             user: JSON.stringify(user)
         }
-    });
+    }) as CustomSocket;
 
     if (onConnect) {
         socket.on('connect', onConnect);
@@ -43,6 +46,10 @@ export function createSessionUsersSocket(
     if (onMention) {
         socket.on('chatMention', onMention);
     }
+
+    socket.emitAtisGenerated = (data: unknown) => {
+        socket.emit('atisGenerated', data);
+    };
 
     return socket;
 }

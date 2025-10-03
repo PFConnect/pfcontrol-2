@@ -22,7 +22,6 @@ router.post('/generate', requireAuth, async (req, res) => {
             return res.status(400).json({ error: 'Session ID and ICAO are required' });
         }
 
-        // Prepare request body for external API
         const requestBody = {
             ident,
             icao,
@@ -35,7 +34,6 @@ router.post('/generate', requireAuth, async (req, res) => {
             metar: metar || undefined,
         };
 
-        // Call external ATIS generator API
         const response = await fetch(`https://atisgenerator.com/api/v1/airports/${icao}/atis`, {
             method: 'POST',
             headers: {
@@ -59,20 +57,17 @@ router.post('/generate', requireAuth, async (req, res) => {
             throw new Error('No ATIS data in response');
         }
 
-        // Prepare ATIS data for storage
         const atisData = {
             letter: ident,
             text: generatedAtis,
             timestamp: new Date().toISOString(),
         };
 
-        // Update the session's ATIS field in the database
         const updatedSession = await updateSession(sessionId, { atis: atisData });
         if (!updatedSession) {
             throw new Error('Failed to update session with ATIS data');
         }
 
-        // Return the generated ATIS
         res.json({
             atisText: generatedAtis,
             ident,

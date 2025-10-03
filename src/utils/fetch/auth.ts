@@ -1,27 +1,14 @@
-export interface User {
-    userId: string;
-    username: string;
-    discriminator: string;
-    avatar: string | null;
-    isAdmin: boolean;
-}
+import type { User } from '../../types/user';
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
-export async function getCurrentUser(): Promise<User | null> {
-    try {
-        const response = await fetch(`${API_BASE_URL}/api/auth/me`, {
-            credentials: 'include',
-        });
-
-        if (response.ok) {
-            return await response.json();
-        }
-        return null;
-    } catch (error) {
-        console.error('Error fetching current user:', error);
-        return null;
-    }
+export async function getCurrentUser(): Promise<User> {
+    const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
+    const res = await fetch(`${API_BASE_URL}/api/auth/me`, {
+        credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch user');
+    return await res.json();
 }
 
 export async function logout(): Promise<boolean> {

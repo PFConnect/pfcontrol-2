@@ -4,8 +4,8 @@ import Home from './pages/Home';
 import Create from './pages/Create';
 import Sessions from './pages/Sessions';
 import Submit from './pages/Submit';
-import Team from './pages/Team';
 import Flights from './pages/Flights';
+import Settings from './pages/Settings';
 
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
@@ -42,9 +42,15 @@ export default function App() {
 						</ProtectedRoute>
 					}
 				/>
-
+				<Route
+					path="/settings"
+					element={
+						<ProtectedRoute>
+							<Settings />
+						</ProtectedRoute>
+					}
+				/>
 				<Route path="/login" element={<Login />} />
-				<Route path="/team" element={<Team />} />
 
 				<Route path="*" element={<NotFound />} />
 			</Routes>
