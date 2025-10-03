@@ -423,8 +423,8 @@ export default function ATIS({
 
 	return (
 		<div
-			className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white shadow-2xl transition-transform duration-300 ease-in-out ${
-				open ? 'translate-x-0' : 'translate-x-full'
+			className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white transition-transform duration-300 ${
+				open ? 'translate-x-0 shadow-2xl' : 'translate-x-full'
 			} rounded-l-3xl border-l-2 border-blue-800 flex flex-col`}
 			style={{ zIndex: 100 }}
 		>

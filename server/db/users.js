@@ -75,9 +75,9 @@ export async function createOrUpdateUser(userData) {
                 cfl: true
             },
             sounds: {
-                startupSound: true,
-                chatNotificationSound: true,
-                newStripSound: true
+                startupSound: { enabled: true, volume: 100 },
+                chatNotificationSound: { enabled: true, volume: 100 },
+                newStripSound: { enabled: true, volume: 100 }
             },
             backgroundImage: {
                 selectedImage: null,
@@ -224,7 +224,23 @@ export async function getUserById(id) {
 
 export async function updateUserSettings(id, settings) {
     try {
-        const encryptedSettings = encrypt(settings);
+        const existingUser = await getUserById(id);
+        if (!existingUser) {
+            throw new Error('User not found');
+        }
+
+        const mergedSettings = {
+            ...existingUser.settings,
+            ...settings,
+            ...(settings.backgroundImage && {
+                backgroundImage: {
+                    ...existingUser.settings?.backgroundImage,
+                    ...settings.backgroundImage
+                }
+            })
+        };
+
+        const encryptedSettings = encrypt(mergedSettings);
 
         await pool.query(`
             UPDATE users SET

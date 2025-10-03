@@ -1,6 +1,12 @@
 import type { Airport, AirportFrequency } from '../../types/airports';
 import type { Aircraft } from '../../types/aircraft';
 
+interface AvailableImage {
+    filename: string;
+    path: string;
+    extension: string;
+}
+
 async function fetchData<T>(endpoint: string): Promise<T[]> {
     try {
         const response = await fetch(
@@ -34,4 +40,8 @@ export function fetchRunways(icao: string): Promise<string[]> {
 
 export function fetchSids(icao: string): Promise<string[]> {
     return fetchData<string>(`airports/${icao}/sids`);
+}
+
+export function fetchBackgrounds(): Promise<AvailableImage[]> {
+    return fetchData<AvailableImage>('backgrounds');
 }

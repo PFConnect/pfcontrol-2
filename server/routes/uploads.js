@@ -135,4 +135,18 @@ router.delete('/delete-background', requireAuth, async (req, res) => {
     }
 });
 
+// GET: /api/uploads/background-url/:filename - Get full URL for a background image
+router.get('/background-url/:filename', requireAuth, async (req, res) => {
+    try {
+        const { filename } = req.params;
+
+        const backgroundUrl = `/assets/app/backgrounds/${filename}`;
+
+        res.json({ url: backgroundUrl });
+    } catch (error) {
+        console.error('Error getting background URL:', error);
+        res.status(500).json({ error: 'Failed to get background URL' });
+    }
+});
+
 export default router;

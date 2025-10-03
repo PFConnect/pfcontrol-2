@@ -10,7 +10,7 @@ import {
 import { io } from 'socket.io-client';
 import { createSessionUsersSocket } from '../../sockets/sessionUsersSocket';
 import { useAuth } from '../../hooks/auth/useAuth';
-import { playSound, SOUNDS } from '../../utils/playSound';
+import { playSoundWithSettings } from '../../utils/playSound';
 import type { Position, SessionUser } from '../../types/session';
 import type { ChatMention } from '../../types/chats';
 import WindDisplay from './WindDisplay';
@@ -69,10 +69,15 @@ export default function Toolbar({
 
 	const handleMentionReceived = (mention: ChatMention) => {
 		setUnreadMentions((prev) => [...prev, mention]);
-
-		playSound(SOUNDS.CHAT_NOTIFICATION, 0.7).catch((error) => {
-			console.warn('Failed to play chat notification sound:', error);
-		});
+		if (user) {
+			playSoundWithSettings(
+				'chatNotificationSound',
+				user.settings,
+				0.7
+			).catch((error) => {
+				console.warn('Failed to play chat notification sound:', error);
+			});
+		}
 	};
 
 	type AtisData = {

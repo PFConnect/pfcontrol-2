@@ -2,18 +2,28 @@ import { useEffect, useState } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { fetchFlights } from '../utils/fetch/flights';
 import { fetchSession, updateSession } from '../utils/fetch/sessions';
+import { fetchBackgrounds } from '../utils/fetch/data';
+import { createFlightsSocket } from '../sockets/flightsSocket';
+import { useAuth } from '../hooks/auth/useAuth';
+import { playSoundWithSettings } from '../utils/playSound';
 import type { Flight } from '../types/flight';
 import Navbar from '../components/Navbar';
 import Toolbar from '../components/tools/Toolbar';
 import DepartureTable from '../components/tables/DepartureTable';
-import { createFlightsSocket } from '../sockets/flightsSocket';
-import { useAuth } from '../hooks/auth/useAuth';
+
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
 interface SessionData {
 	sessionId: string;
 	airportIcao: string;
 	activeRunway?: string;
 	atis?: unknown;
+}
+
+interface AvailableImage {
+	filename: string;
+	path: string;
+	extension: string;
 }
 
 export default function Flights() {
@@ -29,7 +39,23 @@ export default function Flights() {
 		typeof createFlightsSocket
 	> | null>(null);
 	const [lastSessionId, setLastSessionId] = useState<string | null>(null);
+	const [availableImages, setAvailableImages] = useState<AvailableImage[]>(
+		[]
+	);
+	const [startupSoundPlayed, setStartupSoundPlayed] = useState(false);
 	const { user } = useAuth();
+
+	useEffect(() => {
+		const loadImages = async () => {
+			try {
+				const data = await fetchBackgrounds();
+				setAvailableImages(data);
+			} catch (error) {
+				console.error('Error loading available images:', error);
+			}
+		};
+		loadImages();
+	}, []);
 
 	useEffect(() => {
 		if (!sessionId || sessionId === lastSessionId || initialLoadComplete)
@@ -52,11 +78,30 @@ export default function Flights() {
 				if (sessionData) setSession(sessionData);
 				setFlights(flightsData);
 				setInitialLoadComplete(true);
+				if (!startupSoundPlayed && user) {
+					playSoundWithSettings(
+						'startupSound',
+						user.settings,
+						0.7
+					).catch((error) => {
+						console.warn(
+							'Failed to play session startup sound:',
+							error
+						);
+					});
+					setStartupSoundPlayed(true);
+				}
 			})
 			.finally(() => {
 				setLoading(false);
 			});
-	}, [sessionId, lastSessionId, initialLoadComplete]);
+	}, [
+		sessionId,
+		lastSessionId,
+		initialLoadComplete,
+		startupSoundPlayed,
+		user
+	]);
 
 	useEffect(() => {
 		if (!sessionId || !accessId || !initialLoadComplete) return;
@@ -70,9 +115,20 @@ export default function Flights() {
 					prev.map((f) => (f.id === flight.id ? flight : f))
 				);
 			},
-			// onFlightAdded
+			// onFlightAdded - NEW STRIP SOUND
 			(flight: Flight) => {
 				setFlights((prev) => [...prev, flight]);
+
+				// Play new strip sound when a flight is added
+				if (user) {
+					playSoundWithSettings(
+						'newStripSound',
+						user.settings,
+						0.7
+					).catch((error) => {
+						console.warn('Failed to play new strip sound:', error);
+					});
+				}
 			},
 			// onFlightDeleted
 			({ flightId }) => {
@@ -92,7 +148,7 @@ export default function Flights() {
 		return () => {
 			socket.socket.disconnect();
 		};
-	}, [sessionId, accessId, initialLoadComplete]);
+	}, [sessionId, accessId, initialLoadComplete, user]);
 
 	const handleFlightUpdate = (
 		flightId: string | number,
@@ -134,11 +190,26 @@ export default function Flights() {
 		}
 	};
 
-	const backgroundImage =
-		user?.settings?.backgroundImage?.useCustomBackground &&
-		user.settings.backgroundImage.selectedImage
-			? `url(${user.settings.backgroundImage.selectedImage})`
-			: 'url("/assets/app/backgrounds/mdpc_01.png")';
+	// Updated background logic to respect selected image and handle random/favorites
+	const selectedImage = user?.settings?.backgroundImage?.selectedImage;
+	let backgroundImage = 'url("/assets/app/backgrounds/mdpc_01.png")'; // Default fallback
+	if (selectedImage === 'random') {
+		if (availableImages.length > 0) {
+			const randomIndex = Math.floor(
+				Math.random() * availableImages.length
+			);
+			backgroundImage = `url(${API_BASE_URL}${availableImages[randomIndex].path})`;
+		}
+	} else if (selectedImage === 'favorites') {
+		const favorites = user?.settings?.backgroundImage?.favorites || [];
+		if (favorites.length > 0) {
+			const randomFav =
+				favorites[Math.floor(Math.random() * favorites.length)];
+			backgroundImage = `url(${API_BASE_URL}/assets/app/backgrounds/${randomFav})`;
+		}
+	} else if (selectedImage) {
+		backgroundImage = `url(${API_BASE_URL}/assets/app/backgrounds/${selectedImage})`;
+	}
 
 	return (
 		<div className="min-h-screen text-white relative">

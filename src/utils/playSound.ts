@@ -1,3 +1,5 @@
+import type { Settings } from "../types/settings";
+
 export function playSound(filepath: string, volume: number = 0.7): Promise<void> {
     return new Promise((resolve, reject) => {
         try {
@@ -29,6 +31,29 @@ export function playSound(filepath: string, volume: number = 0.7): Promise<void>
     });
 }
 
+export function playSoundWithSettings(
+    soundType: 'startupSound' | 'chatNotificationSound' | 'newStripSound',
+    userSettings: Settings,
+    fallbackVolume: number = 0.7
+): Promise<void> {
+    const soundSettings = userSettings?.sounds?.[soundType];
+    
+    if (!soundSettings?.enabled) {
+        return Promise.resolve();
+    }
+    
+    const volume = (soundSettings.volume || 100) / 100;
+    const adjustedVolume = Math.max(0, Math.min(1, volume * fallbackVolume));
+    
+    const soundMap = {
+        startupSound: SOUNDS.SESSION_STARTUP,
+        chatNotificationSound: SOUNDS.CHAT_NOTIFICATION,
+        newStripSound: SOUNDS.NEW_STRIP
+    };
+    
+    return playSound(soundMap[soundType], adjustedVolume);
+}
+
 export function preloadSound(filepath: string): HTMLAudioElement {
     const audio = new Audio(filepath);
     audio.preload = 'auto';
@@ -41,4 +66,6 @@ export function playSounds(sounds: Array<{ filepath: string; volume?: number }>)
 
 export const SOUNDS = {
     CHAT_NOTIFICATION: '/assets/app/sounds/chatNotification.wav',
+    SESSION_STARTUP: '/assets/app/sounds/startup.mp3',
+    NEW_STRIP: '/assets/app/sounds/newStrip.mp3'
 } as const;

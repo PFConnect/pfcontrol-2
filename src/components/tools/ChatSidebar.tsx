@@ -185,9 +185,9 @@ export default function ChatSidebar({
 
 	return (
 		<div
-			className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white shadow-2xl transition-transform duration-300 ${
-				open ? 'translate-x-0' : 'translate-x-full'
-			} rounded-l-3xl border-l-2 border-blue-800 flex flex-col shadow-2xl`}
+			className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white transition-transform duration-300 ${
+				open ? 'translate-x-0 shadow-2xl' : 'translate-x-full'
+			} rounded-l-3xl border-l-2 border-blue-800 flex flex-col`}
 			style={{ zIndex: 100 }}
 		>
 			<div className="flex justify-between items-center p-5 border-b border-blue-800 rounded-tl-3xl">
@@ -213,23 +213,20 @@ export default function ChatSidebar({
 			<div className="px-5 py-2 border-b border-blue-800 bg-zinc-900">
 				<div className="flex flex-wrap gap-1">
 					{sessionUsers.map((sessionUser) => (
-						<div
+						<img
 							key={sessionUser.id}
-							className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+							src={
+								sessionUser.avatar ||
+								'/assets/app/default/avatar.webp'
+							}
+							alt={sessionUser.username}
+							className={`w-8 h-8 rounded-full border-2 ${
 								isUserInActiveChat(sessionUser.id)
-									? 'bg-green-600/20 text-green-400 border border-green-500/30'
-									: 'bg-gray-600/20 text-gray-400 border border-gray-500/30'
+									? 'border-green-500'
+									: 'border-gray-500'
 							}`}
-						>
-							<div
-								className={`w-1.5 h-1.5 rounded-full ${
-									isUserInActiveChat(sessionUser.id)
-										? 'bg-green-400'
-										: 'bg-gray-400'
-								}`}
-							></div>
-							{sessionUser.username}
-						</div>
+							title={sessionUser.username}
+						/>
 					))}
 				</div>
 			</div>

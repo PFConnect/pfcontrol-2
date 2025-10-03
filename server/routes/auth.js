@@ -1,7 +1,7 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import axios from 'axios';
-import { createOrUpdateUser, getUserById } from '../db/users.js';
+import { createOrUpdateUser, getUserById, updateUserSettings } from '../db/users.js';
 import { authLimiter } from '../middleware/security.js';
 import { detectVPN } from '../tools/detectVPN.js';
 import { isAdmin } from '../middleware/isAdmin.js';
@@ -120,6 +120,36 @@ router.get('/me', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error fetching user data:', error);
         res.status(500).json({ error: 'Failed to fetch user data' });
+    }
+});
+
+// PUT: /api/auth/me - update current user settings
+router.put('/me', requireAuth, async (req, res) => {
+    try {
+        const { settings } = req.body;
+        if (!settings || typeof settings !== 'object') {
+            return res.status(400).json({ error: 'Invalid settings payload' });
+        }
+
+        const updatedUser = await updateUserSettings(req.user.userId, settings);
+
+        if (!updatedUser) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        res.json({
+            userId: req.user.userId,
+            username: req.user.username,
+            discriminator: req.user.discriminator,
+            avatar: req.user.avatar ? `https://cdn.discordapp.com/avatars/${req.user.userId}/${req.user.avatar}.png` : null,
+            isAdmin: req.user.isAdmin,
+            settings: updatedUser.settings,
+            lastLogin: updatedUser.lastLogin,
+            totalSessionsCreated: updatedUser.totalSessionsCreated || 0
+        });
+    } catch (error) {
+        console.error('Error updating user settings:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
     }
 });
 
