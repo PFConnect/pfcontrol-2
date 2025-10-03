@@ -1,7 +1,8 @@
 import { Server as SocketServer } from 'socket.io';
 import { addFlight, updateFlight, deleteFlight } from '../db/flights.js';
 import { validateSessionAccess } from '../middleware/sessionAccess.js';
-import { updateSession } from '../db/sessions.js';
+import { updateSession, getAllSessions } from '../db/sessions.js';
+import { getArrivalsIO } from './arrivalsWebsocket.js';
 
 let io;
 const updateTimers = new Map();
@@ -27,22 +28,6 @@ export function setupFlightsWebsocket(httpServer) {
 
         socket.join(sessionId);
 
-        socket.on('addFlight', async (flightData) => {
-            try {
-                const enhancedFlightData = {
-                    ...flightData,
-                    user_id: socket.handshake.auth?.userId,
-                    ip_address: socket.handshake.address
-                };
-
-                const flight = await addFlight(sessionId, enhancedFlightData);
-                io.to(sessionId).emit('flightAdded', flight);
-            } catch (error) {
-                console.error('Error adding flight via websocket:', error);
-                socket.emit('flightError', { action: 'add', error: 'Failed to add flight' });
-            }
-        });
-
         socket.on('updateFlight', async ({ flightId, updates }) => {
             try {
                 if (updates.callsign && updates.callsign.length > 16) {
@@ -64,6 +49,8 @@ export function setupFlightsWebsocket(httpServer) {
                 const updatedFlight = await updateFlight(sessionId, flightId, updates);
                 if (updatedFlight) {
                     io.to(sessionId).emit('flightUpdated', updatedFlight);
+
+                    await broadcastToArrivalSessions(updatedFlight);
                 } else {
                     socket.emit('flightError', { action: 'update', flightId, error: 'Flight not found' });
                 }
@@ -84,6 +71,25 @@ export function setupFlightsWebsocket(httpServer) {
             } catch (error) {
                 console.error('Error updating flight via websocket:', error);
                 socket.emit('flightError', { action: 'update', flightId, error: 'Failed to update flight' });
+            }
+        });
+
+        socket.on('addFlight', async (flightData) => {
+            try {
+                const enhancedFlightData = {
+                    ...flightData,
+                    user_id: socket.handshake.auth?.userId,
+                    ip_address: socket.handshake.address
+                };
+
+                const flight = await addFlight(sessionId, enhancedFlightData);
+
+                io.to(sessionId).emit('flightAdded', flight);
+
+                await broadcastToArrivalSessions(flight);
+            } catch (error) {
+                console.error('Error adding flight via websocket:', error);
+                socket.emit('flightError', { action: 'add', error: 'Failed to add flight' });
             }
         });
 
@@ -115,6 +121,27 @@ export function setupFlightsWebsocket(httpServer) {
     });
 
     return io;
+}
+
+async function broadcastToArrivalSessions(flight) {
+    try {
+        if (!flight.arrival) return;
+
+        const allSessions = await getAllSessions();
+        const arrivalSessions = allSessions.filter(session =>
+            session.is_pfatc &&
+            session.airport_icao === flight.arrival?.toUpperCase()
+        );
+
+        const arrivalsIO = getArrivalsIO();
+        if (arrivalsIO) {
+            for (const session of arrivalSessions) {
+                arrivalsIO.to(session.session_id).emit('arrivalUpdated', flight);
+            }
+        }
+    } catch (error) {
+        console.error('Error broadcasting to arrival sessions:', error);
+    }
 }
 
 export function getFlightsIO() {

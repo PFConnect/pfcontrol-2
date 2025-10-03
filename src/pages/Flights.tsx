@@ -1,15 +1,17 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
 import { fetchFlights } from '../utils/fetch/flights';
 import { fetchSession, updateSession } from '../utils/fetch/sessions';
 import { fetchBackgrounds } from '../utils/fetch/data';
 import { createFlightsSocket } from '../sockets/flightsSocket';
+import { createArrivalsSocket } from '../sockets/arrivalsSocket';
 import { useAuth } from '../hooks/auth/useAuth';
 import { playSoundWithSettings } from '../utils/playSound';
 import type { Flight } from '../types/flight';
 import Navbar from '../components/Navbar';
 import Toolbar from '../components/tools/Toolbar';
 import DepartureTable from '../components/tables/DepartureTable';
+import ArrivalsTable from '../components/tables/ArrivalsTable';
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -18,6 +20,7 @@ interface SessionData {
 	airportIcao: string;
 	activeRunway?: string;
 	atis?: unknown;
+	isPFATC: boolean;
 }
 
 interface AvailableImage {
@@ -38,12 +41,19 @@ export default function Flights() {
 	const [flightsSocket, setFlightsSocket] = useState<ReturnType<
 		typeof createFlightsSocket
 	> | null>(null);
+	const [arrivalsSocket, setArrivalsSocket] = useState<ReturnType<
+		typeof createArrivalsSocket
+	> | null>(null);
 	const [lastSessionId, setLastSessionId] = useState<string | null>(null);
 	const [availableImages, setAvailableImages] = useState<AvailableImage[]>(
 		[]
 	);
 	const [startupSoundPlayed, setStartupSoundPlayed] = useState(false);
 	const { user } = useAuth();
+	const [currentView, setCurrentView] = useState<'departures' | 'arrivals'>(
+		'departures'
+	);
+	const [externalArrivals, setExternalArrivals] = useState<Flight[]>([]);
 
 	useEffect(() => {
 		const loadImages = async () => {
@@ -150,11 +160,51 @@ export default function Flights() {
 		};
 	}, [sessionId, accessId, initialLoadComplete, user]);
 
+	useEffect(() => {
+		if (
+			!sessionId ||
+			!accessId ||
+			!initialLoadComplete ||
+			!session?.isPFATC
+		)
+			return;
+
+		const socket = createArrivalsSocket(
+			sessionId,
+			accessId,
+			// onArrivalUpdated
+			(flight: Flight) => {
+				setExternalArrivals((prev) =>
+					prev.map((f) => (f.id === flight.id ? flight : f))
+				);
+			},
+			// onArrivalError
+			(error) => {
+				console.error('Arrival websocket error:', error);
+			},
+			// onInitialExternalArrivals
+			(flights: Flight[]) => {
+				console.log('Received initial external arrivals:', flights);
+				setExternalArrivals(flights);
+			}
+		);
+		setArrivalsSocket(socket);
+		return () => {
+			socket.socket.disconnect();
+		};
+	}, [sessionId, accessId, initialLoadComplete, session?.isPFATC]);
+
 	const handleFlightUpdate = (
 		flightId: string | number,
 		updates: Partial<Flight>
 	) => {
-		if (flightsSocket) {
+		const isExternalArrival = externalArrivals.some(
+			(f) => f.id === flightId
+		);
+
+		if (isExternalArrival && arrivalsSocket) {
+			arrivalsSocket.updateArrival(flightId, updates);
+		} else if (flightsSocket) {
 			flightsSocket.updateFlight(flightId, updates);
 		} else {
 			setFlights((prev) =>
@@ -190,9 +240,39 @@ export default function Flights() {
 		}
 	};
 
-	// Updated background logic to respect selected image and handle random/favorites
+	const handleViewChange = (view: 'departures' | 'arrivals') => {
+		setCurrentView(view);
+	};
+
+	const filteredFlights = useMemo(() => {
+		if (currentView === 'arrivals') {
+			const ownArrivals = flights.filter(
+				(flight) =>
+					flight.arrival?.toUpperCase() ===
+					session?.airportIcao?.toUpperCase()
+			);
+
+			if (session?.isPFATC) {
+				return [...ownArrivals, ...externalArrivals];
+			}
+			return ownArrivals;
+		} else {
+			return flights.filter(
+				(flight) =>
+					flight.departure?.toUpperCase() ===
+					session?.airportIcao?.toUpperCase()
+			);
+		}
+	}, [
+		flights,
+		externalArrivals,
+		currentView,
+		session?.airportIcao,
+		session?.isPFATC
+	]);
+
 	const selectedImage = user?.settings?.backgroundImage?.selectedImage;
-	let backgroundImage = 'url("/assets/app/backgrounds/mdpc_01.png")'; // Default fallback
+	let backgroundImage = 'url("/assets/app/backgrounds/mdpc_01.png")';
 	if (selectedImage === 'random') {
 		if (availableImages.length > 0) {
 			const randomIndex = Math.floor(
@@ -235,19 +315,30 @@ export default function Flights() {
 						accessId={accessId}
 						activeRunway={session?.activeRunway}
 						onRunwayChange={handleRunwayChange}
+						isPFATC={session?.isPFATC}
+						currentView={currentView}
+						onViewChange={handleViewChange}
 					/>
 					<div className="-mt-4">
 						{loading ? (
 							<div className="text-center py-12 text-gray-400">
-								Loading departures...
+								Loading {currentView}...
 							</div>
 						) : (
-							<DepartureTable
-								flights={flights}
-								onFlightUpdate={handleFlightUpdate}
-								onFlightDelete={handleFlightDelete}
-								onFlightChange={flightsSocket?.updateFlight}
-							/>
+							<>
+								{currentView === 'departures' ? (
+									<DepartureTable
+										flights={filteredFlights}
+										onFlightDelete={handleFlightDelete}
+										onFlightChange={handleFlightUpdate}
+									/>
+								) : (
+									<ArrivalsTable
+										flights={filteredFlights}
+										onFlightChange={handleFlightUpdate}
+									/>
+								)}
+							</>
 						)}
 					</div>
 				</div>

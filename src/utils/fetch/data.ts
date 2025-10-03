@@ -42,6 +42,10 @@ export function fetchSids(icao: string): Promise<string[]> {
     return fetchData<string>(`airports/${icao}/sids`);
 }
 
+export function fetchStars(icao: string): Promise<string[]> {
+    return fetchData<string>(`airports/${icao}/stars`);
+}
+
 export function fetchBackgrounds(): Promise<AvailableImage[]> {
     return fetchData<AvailableImage>('backgrounds');
 }

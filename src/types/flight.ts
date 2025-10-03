@@ -16,6 +16,7 @@ export interface Flight {
     clearedFL?: string;
     cruisingFL?: string;
     stand?: string;
+    gate?: string;
     remark?: string;
     timestamp?: string;
     created_at?: string;

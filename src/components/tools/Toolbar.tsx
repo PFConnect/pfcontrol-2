@@ -5,7 +5,9 @@ import {
 	Settings,
 	Wifi,
 	WifiOff,
-	RefreshCw
+	RefreshCw,
+	PlaneLanding,
+	PlaneTakeoff
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createSessionUsersSocket } from '../../sockets/sessionUsersSocket';
@@ -27,6 +29,9 @@ interface ToolbarProps {
 	icao: string | null;
 	activeRunway?: string;
 	onRunwayChange?: (runway: string) => void;
+	isPFATC?: boolean;
+	currentView?: 'departures' | 'arrivals';
+	onViewChange?: (view: 'departures' | 'arrivals') => void;
 }
 
 export default function Toolbar({
@@ -34,7 +39,10 @@ export default function Toolbar({
 	sessionId,
 	accessId,
 	activeRunway,
-	onRunwayChange
+	onRunwayChange,
+	isPFATC = false,
+	currentView = 'departures',
+	onViewChange
 }: ToolbarProps) {
 	const [runway, setRunway] = useState(activeRunway || '');
 	const [position, setPosition] = useState<Position | null>('ALL');
@@ -60,6 +68,12 @@ export default function Toolbar({
 
 	const handlePositionChange = (selectedPosition: string) => {
 		setPosition(selectedPosition as Position);
+	};
+
+	const handleViewChange = (view: 'departures' | 'arrivals') => {
+		if (onViewChange) {
+			onViewChange(view);
+		}
 	};
 
 	const getAvatarUrl = (userId: string, avatar: string | null) => {
@@ -274,6 +288,35 @@ export default function Toolbar({
                     flex-wrap
                 "
 			>
+				{isPFATC && (
+					<div className="flex items-center gap-2">
+						<Button
+							className={`p-1 rounded ${
+								currentView === 'departures'
+									? 'bg-blue-600 text-white'
+									: 'bg-transparent text-gray-400 hover:text-white'
+							}`}
+							onClick={() => handleViewChange('departures')}
+							size="sm"
+							aria-label="Departures"
+						>
+							<PlaneTakeoff className="w-4 h-4" />
+						</Button>
+						<Button
+							className={`p-1 rounded ${
+								currentView === 'arrivals'
+									? 'bg-blue-600 text-white'
+									: 'bg-transparent text-gray-400 hover:text-white'
+							}`}
+							onClick={() => handleViewChange('arrivals')}
+							size="sm"
+							aria-label="Arrivals"
+						>
+							<PlaneLanding className="w-4 h-4" />
+						</Button>
+					</div>
+				)}
+
 				<Dropdown
 					options={[
 						{ value: 'ALL', label: 'All' },

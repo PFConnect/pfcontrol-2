@@ -11,6 +11,7 @@ import { setupChatWebsocket } from './websockets/chatWebsocket.js';
 import { setupSessionUsersWebsocket } from './websockets/sessionUsersWebsocket.js';
 import { setupFlightsWebsocket } from './websockets/flightsWebsocket.js';
 import { setupOverviewWebsocket } from './websockets/overviewWebsocket.js';
+import { setupArrivalsWebsocket } from './websockets/arrivalsWebsocket.js';
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 const cors_origin = process.env.NODE_ENV === 'production' ? ['https://control.pfconnect.online'] : ['http://localhost:5000', 'http://localhost:5173', 'https://control.pfconnect.online'];
@@ -52,6 +53,7 @@ const sessionUsersIO = setupSessionUsersWebsocket(server);
 setupChatWebsocket(server, sessionUsersIO);
 setupFlightsWebsocket(server);
 setupOverviewWebsocket(server, sessionUsersIO);
+setupArrivalsWebsocket(server);
 
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);

@@ -81,6 +81,12 @@ function validateFlightFields(updates) {
 
 export async function addFlight(sessionId, flightData) {
     const tableName = `flights_${sessionId}`;
+    try {
+        await flightsPool.query(`ALTER TABLE ${tableName} ADD COLUMN IF NOT EXISTS gate VARCHAR(8);`);
+    } catch (error) {
+        // Column might already exist, continue
+    }
+
     const fields = ['session_id'];
     const values = [sessionId];
     const placeholders = ['$1'];

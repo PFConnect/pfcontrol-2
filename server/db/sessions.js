@@ -73,6 +73,7 @@ export async function createSession({ sessionId, accessId, activeRunway, airport
             clearedfl VARCHAR(8),
             cruisingfl VARCHAR(8),
             stand VARCHAR(8),
+            gate VARCHAR(8),
             remark TEXT,
             timestamp VARCHAR(32),
             created_at TIMESTAMP DEFAULT NOW(),
