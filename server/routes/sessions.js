@@ -3,11 +3,9 @@ import {
     initializeSessionsTable,
     createSession,
     getSessionById,
-    getSessionsByUser,
     updateSession,
     deleteSession,
     getAllSessions,
-    encrypt,
     decrypt,
     updateSessionName,
     getSessionsByUserDetailed
@@ -17,17 +15,6 @@ import requireAuth from '../middleware/isAuthenticated.js';
 
 const router = express.Router();
 initializeSessionsTable();
-
-function isAdmin(userId) {
-    try {
-        const adminsPath = path.join(__dirname, '..', 'data', 'admins.json');
-        const adminIds = JSON.parse(fs.readFileSync(adminsPath, 'utf8'));
-        return adminIds.includes(userId);
-    } catch (error) {
-        console.error('Error reading admin IDs:', error);
-        return false;
-    }
-}
 
 // POST: /api/sessions/create - Create new session
 router.post('/create', requireAuth, async (req, res) => {

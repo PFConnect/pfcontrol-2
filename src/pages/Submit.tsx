@@ -231,6 +231,9 @@ export default function Submit() {
 			</div>
 
 			<div className="container mx-auto max-w-3xl px-4 pb-8 pt-8">
+				<div className="mb-8">
+					<WindDisplay icao={session.airportIcao} />
+				</div>
 				{/* Success Message */}
 				{success && submittedFlight && (
 					<div className="bg-green-900/30 border border-green-700 rounded-xl mb-8 overflow-hidden">
@@ -353,10 +356,6 @@ export default function Submit() {
 					</div>
 				)}
 
-				<div className="mb-8">
-					<WindDisplay icao={session.airportIcao} />
-				</div>
-
 				{/* Form */}
 				{!success && (
 					<div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 shadow-xl overflow-hidden">
@@ -387,7 +386,7 @@ export default function Submit() {
 												)
 											}
 											required
-											placeholder="e.g. BAW123"
+											placeholder="e.g. DLH123"
 											className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
 										/>
 									</div>

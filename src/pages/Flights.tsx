@@ -133,29 +133,45 @@ export default function Flights() {
 	};
 
 	return (
-		<div className="min-h-screen bg-black text-white">
-			<Navbar sessionId={sessionId} accessId={accessId} />
-			<div className="pt-16">
-				<Toolbar
-					icao={session ? session.airportIcao : ''}
-					sessionId={sessionId}
-					accessId={accessId}
-					activeRunway={session?.activeRunway}
-					onRunwayChange={handleRunwayChange}
-				/>
-				<div className="-mt-4">
-					{loading ? (
-						<div className="text-center py-12 text-gray-400">
-							Loading departures...
-						</div>
-					) : (
-						<DepartureTable
-							flights={flights}
-							onFlightUpdate={handleFlightUpdate}
-							onFlightDelete={handleFlightDelete}
-							onFlightChange={flightsSocket?.updateFlight}
-						/>
-					)}
+		<div className="min-h-screen text-white relative">
+			<div
+				aria-hidden
+				className="absolute inset-0 z-0"
+				style={{
+					backgroundImage:
+						'url("/assets/app/backgrounds/mdpc_01.png")',
+					backgroundSize: 'cover',
+					backgroundPosition: 'center',
+					backgroundRepeat: 'no-repeat',
+					backgroundAttachment: 'fixed',
+					opacity: 0.5,
+					pointerEvents: 'none'
+				}}
+			/>
+			<div className="relative z-10">
+				<Navbar sessionId={sessionId} accessId={accessId} />
+				<div className="pt-16">
+					<Toolbar
+						icao={session ? session.airportIcao : ''}
+						sessionId={sessionId}
+						accessId={accessId}
+						activeRunway={session?.activeRunway}
+						onRunwayChange={handleRunwayChange}
+					/>
+					<div className="-mt-4">
+						{loading ? (
+							<div className="text-center py-12 text-gray-400">
+								Loading departures...
+							</div>
+						) : (
+							<DepartureTable
+								flights={flights}
+								onFlightUpdate={handleFlightUpdate}
+								onFlightDelete={handleFlightDelete}
+								onFlightChange={flightsSocket?.updateFlight}
+							/>
+						)}
+					</div>
 				</div>
 			</div>
 		</div>

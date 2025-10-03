@@ -78,28 +78,24 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 		if (effectiveWind >= 35) {
 			return {
 				icon: 'text-red-500',
-				text: 'text-red-400',
-				bg: 'bg-red-300/10'
+				text: 'text-red-400'
 			};
 		}
 		if (effectiveWind >= 20) {
 			return {
 				icon: 'text-yellow-400',
-				text: 'text-yellow-300',
-				bg: 'bg-yellow-300/10'
+				text: 'text-yellow-300'
 			};
 		}
 		if (effectiveWind >= 10) {
 			return {
 				icon: 'text-blue-400',
-				text: 'text-blue-300',
-				bg: 'bg-blue-300/10'
+				text: 'text-blue-300'
 			};
 		}
 		return {
 			icon: 'text-green-400',
-			text: 'text-green-300',
-			bg: 'bg-green-300/10'
+			text: 'text-green-300'
 		};
 	};
 
@@ -221,9 +217,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 
 	if (size === 'small') {
 		return (
-			<div
-				className={`flex flex-col rounded border border-gray-700 px-2 py-1 ${windColors.bg} bg-gray-800`}
-			>
+			<div className="flex flex-col rounded border border-gray-700 px-2 py-1 bg-gray-800">
 				<div className="flex items-center gap-4">
 					<div className="flex items-center gap-1">
 						<Wind className={`h-4 w-4 ${windColors.icon}`} />
@@ -277,9 +271,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 	}
 
 	return (
-		<div
-			className={`flex flex-col rounded border border-gray-700 px-4 py-2.5 ${windColors.bg} bg-gray-800`}
-		>
+		<div className="flex flex-col rounded border border-gray-700 px-4 py-2.5 bg-gray-900">
 			<div className="flex items-center justify-between">
 				<div className="flex items-center gap-4">
 					<div className="flex items-center gap-2">
