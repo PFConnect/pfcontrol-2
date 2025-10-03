@@ -200,7 +200,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 				</div>
 				<button
 					onClick={handleManualRefresh}
-					className="text-blue-400 hover:text-blue-300 transition-colors"
+					className="text-blue-400 hover:text-blue-300 transition-colors ml-2"
 					title="Retry"
 				>
 					<RefreshCw

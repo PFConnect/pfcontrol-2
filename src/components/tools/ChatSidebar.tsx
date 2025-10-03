@@ -33,7 +33,6 @@ export default function ChatSidebar({
 	const [mentionSuggestions, setMentionSuggestions] = useState<SessionUser[]>(
 		[]
 	);
-	const [cursorPosition, setCursorPosition] = useState(0);
 	const socketRef = useRef<ReturnType<typeof createChatSocket> | null>(null);
 	const messagesEndRef = useRef<HTMLDivElement>(null);
 	const pendingDeleteRef = useRef<ChatMessage | null>(null);
@@ -120,7 +119,6 @@ export default function ChatSidebar({
 			);
 			setMentionSuggestions(suggestions);
 			setShowMentionSuggestions(true);
-			setCursorPosition(cursorPos);
 		} else {
 			setShowMentionSuggestions(false);
 		}
