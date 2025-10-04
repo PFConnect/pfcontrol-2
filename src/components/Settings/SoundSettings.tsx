@@ -266,10 +266,10 @@ export default function SoundSettings({
 											}`}
 										>
 											<div className="flex items-center space-x-4">
-												<span className="text-xs text-zinc-500 w-12">
+												<span className="text-xs text-zinc-500 w-16 text-center">
 													10%
 												</span>
-												<div className="flex-1 relative">
+												<div className="flex-1 relative flex items-center">
 													<input
 														type="range"
 														min="10"
@@ -290,12 +290,12 @@ export default function SoundSettings({
 														className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer volume-slider"
 													/>
 													<div
-														className={`absolute top-1/2 left-0 h-2 -translate-y-1/2 ${
+														className={`absolute top-0 left-0 h-2 rounded-lg pointer-events-none ${
 															soundSetting.volume <=
 															100
 																? 'bg-gradient-to-r from-green-500 to-yellow-500'
 																: 'bg-gradient-to-r from-yellow-500 to-red-500'
-														} rounded-lg pointer-events-none`}
+														}`}
 														style={{
 															width: `${Math.min(
 																((soundSetting.volume -
@@ -307,7 +307,7 @@ export default function SoundSettings({
 														}}
 													></div>
 												</div>
-												<span className="text-xs text-zinc-500 w-12">
+												<span className="text-xs text-zinc-500 w-16 text-center">
 													200%
 												</span>
 												<span
@@ -357,6 +357,35 @@ export default function SoundSettings({
                 .volume-slider {
                     background: transparent;
                     position: relative;
+                    z-index: 5;
+                }
+                .opacity-slider::-webkit-slider-thumb {
+                    appearance: none;
+                    height: 18px;
+                    width: 18px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    cursor: pointer;
+                    border: 2px solid #a855f7;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    position: relative;
+                    z-index: 10;
+                }
+                .opacity-slider::-moz-range-thumb {
+                    height: 18px;
+                    width: 18px;
+                    border-radius: 50%;
+                    background: #ffffff;
+                    cursor: pointer;
+                    border: 2px solid #a855f7;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    position: relative;
+                    z-index: 10;
+                }
+                .opacity-slider {
+                    background: transparent;
+                    position: relative;
+                    z-index: 5;
                 }
             `}</style>
 		</div>

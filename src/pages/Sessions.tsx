@@ -115,7 +115,7 @@ export default function Sessions() {
 
 	if (isLoading || loading) {
 		return (
-			<div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
+			<div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
 				<Navbar />
 				<Loader />
 			</div>
@@ -124,7 +124,7 @@ export default function Sessions() {
 
 	if (!user) {
 		return (
-			<div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white flex items-center justify-center">
+			<div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
 				<Navbar />
 				<div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 text-center">
 					<AlertTriangle className="h-8 w-8 text-yellow-500 mb-4" />
@@ -146,24 +146,36 @@ export default function Sessions() {
 	}
 
 	return (
-		<div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
+		<div className="min-h-screen bg-zinc-950 text-white">
 			<Navbar />
-			<div className="max-w-7xl mx-auto px-4 py-8 pt-24">
-				<div className="flex justify-between items-center mb-8">
-					<h2
-						className="text-4xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent text-left"
-						style={{ lineHeight: 1.4 }}
-					>
-						{' '}
-						My Sessions
-					</h2>
-					<Button
-						onClick={() => (window.location.href = '/create')}
-						size="md"
-					>
-						Create New Session
-					</Button>
+			{/* Header */}
+			<div className="bg-gradient-to-b from-zinc-800 to-zinc-900 border-b border-zinc-700/50">
+				<div className="max-w-7xl mx-auto px-6 py-12 pt-28">
+					<div className="flex items-center justify-between mb-4">
+						<div className="flex items-center">
+							<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
+								<Workflow className="h-8 w-8 text-blue-400" />
+							</div>
+							<div>
+								<h1
+									className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 font-extrabold mb-2"
+									style={{ lineHeight: 1.4 }}
+								>
+									My Sessions
+								</h1>
+							</div>
+						</div>
+						<Button
+							onClick={() => (window.location.href = '/create')}
+							size="md"
+						>
+							Create New Session
+						</Button>
+					</div>
 				</div>
+			</div>
+			{/* Content */}
+			<div className="max-w-7xl mx-auto px-6 py-8">
 				{error ? (
 					<div className="bg-red-900/30 border border-red-700 rounded-md p-4 text-center">
 						{error}

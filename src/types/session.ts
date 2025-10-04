@@ -25,3 +25,12 @@ export interface SessionUser {
 	joinedAt: number;
 	position: Position;
 }
+
+export interface ChatMention {
+    id: string;
+    userId: string;
+    username: string;
+    message: string;
+    timestamp: number;
+    sessionId: string;
+}

@@ -190,4 +190,41 @@ router.get('/airports/:icao/stars', (req, res) => {
     }
 });
 
+// GET: /api/data/statistics - get application statistics
+router.get('/statistics', async (req, res) => {
+    try {
+        const pool = (await import('../db/connections/connection.js')).default;
+        const flightsPool = (await import('../db/connections/flightsConnection.js')).default;
+        const { getAllSessions } = await import('../db/sessions.js');
+
+        const sessionsResult = await pool.query('SELECT COUNT(*) FROM sessions');
+        const sessionsCreated = parseInt(sessionsResult.rows[0].count, 10);
+
+        const usersResult = await pool.query('SELECT COUNT(*) FROM users');
+        const registeredUsers = parseInt(usersResult.rows[0].count, 10);
+
+        const sessions = await getAllSessions();
+        let flightsLogged = 0;
+        for (const session of sessions) {
+            try {
+                const flightResult = await flightsPool.query(`SELECT COUNT(*) FROM flights_${session.session_id}`);
+                flightsLogged += parseInt(flightResult.rows[0].count, 10);
+            } catch (error) {
+                console.warn(`Could not count flights for session ${session.session_id}:`, error.message);
+            }
+        }
+
+        res.set('Cache-Control', 'public, max-age=3600');
+
+        res.json({
+            sessionsCreated,
+            registeredUsers,
+            flightsLogged
+        });
+    } catch (error) {
+        console.error('Error fetching statistics:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch statistics' });
+    }
+});
+
 export default router;

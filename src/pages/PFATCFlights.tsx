@@ -194,7 +194,7 @@ export default function PFATCFlights() {
 
 	if (loading) {
 		return (
-			<div className="min-h-screen bg-zinc-900 text-white">
+			<div className="min-h-screen bg-zinc-950 text-white">
 				<Navbar />
 				<div className="pt-16 flex items-center justify-center min-h-[50vh]">
 					<div className="text-center">
@@ -206,23 +206,28 @@ export default function PFATCFlights() {
 	}
 
 	return (
-		<div className="min-h-screen bg-zinc-900 text-white">
+		<div className="min-h-screen bg-zinc-950 text-white">
 			<Navbar />
-
-			<div className="pt-16 bg-gradient-to-b from-black via-blue-900/10 to-blue-600/20 border-b border-gray-800">
-				<div className="container mx-auto px-4 py-8">
-					<div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-						<div>
-							<h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent leading-tight mb-4">
-								<span className="text-transparent bg-gradient-to-r from-white to-blue-600 bg-clip-text">
-									PFATC
-								</span>{' '}
-								Network Overview
-							</h1>
-							<p className="text-gray-400 mt-2">
-								Live view of all PFATC flights and active
-								airports
-							</p>
+			{/* Header */}
+			<div className="bg-gradient-to-b from-zinc-800 to-zinc-900 border-b border-zinc-700/50">
+				<div className="max-w-7xl mx-auto px-6 py-12 pt-28">
+					<div className="flex items-center justify-between mb-4">
+						<div className="flex items-center">
+							<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
+								<Plane className="h-8 w-8 text-blue-400" />
+							</div>
+							<div>
+								<h1
+									className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 font-extrabold mb-2"
+									style={{ lineHeight: 1.4 }}
+								>
+									PFATC Network Overview
+								</h1>
+								<p className="text-gray-400">
+									Live view of all PFATC flights and active
+									airports
+								</p>
+							</div>
 						</div>
 						<div className="flex items-center gap-6 text-sm">
 							<div className="flex items-center gap-2">
@@ -254,8 +259,8 @@ export default function PFATCFlights() {
 					</div>
 				</div>
 			</div>
-
-			<div className="container mx-auto px-4 py-6">
+			{/* Content */}
+			<div className="max-w-7xl mx-auto px-6 py-8">
 				<div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 p-6 mb-6 relative z-20">
 					<div className="flex flex-col lg:flex-row gap-4">
 						<div className="flex-1">

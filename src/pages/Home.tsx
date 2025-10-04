@@ -1,8 +1,30 @@
 import { ArrowRight, Plane, Shield, TowerControl, Users } from 'lucide-react';
+import { useState, useEffect } from 'react';
 import Button from '../components/common/Button';
 import Navbar from '../components/Navbar';
+import { fetchStatistics } from '../utils/fetch/data';
 
 export default function Home() {
+	const [stats, setStats] = useState({
+		sessionsCreated: 0,
+		registeredUsers: 0,
+		flightsLogged: 0
+	});
+
+	useEffect(() => {
+		fetchStatistics().then((data) => {
+			if (Array.isArray(data)) {
+				setStats({
+					sessionsCreated: Number(data[0]) || 0,
+					registeredUsers: Number(data[1]) || 0,
+					flightsLogged: Number(data[2]) || 0
+				});
+			} else {
+				setStats(data);
+			}
+		});
+	}, []);
+
 	return (
 		<div>
 			<Navbar />
@@ -42,13 +64,18 @@ export default function Home() {
 						</div>
 					</div>
 
-					{/* Hero image - hidden on mobile and small screens */}
-					<div className="flex-1 justify-center items-center mt-8 md:mt-0 md:ml-52 ml-0 w-full hidden md:flex">
-						<img
-							src="/assets/app/hero-rotated.png"
-							alt="Description of image"
-							className="w-4/5 max-w-[260px] sm:max-w-xs md:max-w-md h-auto rounded-lg shadow-lg"
-						/>
+					<div className="flex-1 justify-center items-center mt-12 md:mt-0 md:ml-32 ml-0 w-full hidden md:flex">
+						<div className="w-full md:w-[500px] lg:w-[600px] mt-12 md:mt-0">
+							<div className="relative pb-[56.25%] h-0 overflow-hidden shadow-2xl rounded-xl border-2 border-blue-600">
+								<iframe
+									className="absolute top-0 left-0 w-full h-full rounded-lg"
+									src="https://www.youtube.com/embed/N5eaO49CuuI?rel=0"
+									title="PFControl 3.0 Stable Release Trailer"
+									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+									allowFullScreen
+								></iframe>
+							</div>
+						</div>
 					</div>
 				</div>
 			</section>
@@ -132,7 +159,7 @@ export default function Home() {
 							Sessions Created
 						</h3>
 						<div className="text-4xl font-bold text-white mb-3">
-							2.518
+							{stats.sessionsCreated.toLocaleString('de-DE')}
 						</div>
 						<p className="text-gray-400">Last 30 days</p>
 					</div>
@@ -145,7 +172,7 @@ export default function Home() {
 							Registered Users
 						</h3>
 						<div className="text-4xl font-bold text-white mb-3">
-							4.611
+							{stats.registeredUsers.toLocaleString('de-DE')}
 						</div>
 						<p className="text-gray-400">All time</p>
 					</div>
@@ -158,7 +185,7 @@ export default function Home() {
 							Flights Logged
 						</h3>
 						<div className="text-4xl font-bold text-white mb-3">
-							7.346
+							{stats.flightsLogged.toLocaleString('de-DE')}
 						</div>
 						<p className="text-gray-400">Last 30 days</p>
 					</div>
@@ -319,14 +346,17 @@ export default function Home() {
 							</div>
 						</div>
 
-						{/* CTA image - hidden on mobile */}
 						<div className="w-full md:w-1/2 mt-10 md:mt-0 justify-center hidden md:flex">
-							<div className="relative">
-								<img
-									src="/assets/app/hero-rotated.png"
-									alt="Application Preview"
-									className="max-w-[260px] sm:max-w-xs md:max-w-full h-48 xs:h-64 sm:h-[30rem] transform hover:scale-105 transition-transform duration-500"
-								/>
+							<div className="w-full md:w-[520px] lg:w-[620px]">
+								<div className="relative pb-[56.25%] h-0 overflow-hidden shadow-2xl rounded-xl border-2 border-blue-600">
+									<iframe
+										className="absolute top-0 left-0 w-full h-full rounded-lg"
+										src="https://www.youtube.com/embed/N5eaO49CuuI?rel=0"
+										title="PFControl 3.0 Stable Release Trailer"
+										allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+										allowFullScreen
+									></iframe>
+								</div>
 							</div>
 						</div>
 					</div>

@@ -469,8 +469,8 @@ export default function BackgroundImageSettings({
 										Drag and drop an image here, or click to
 										browse
 									</p>
-									<p className="text-xs text-zinc-500 mt-2">
-										Supports: JPG, PNG, GIF (Max 10MB)
+									<p className="text-sm text-red-400 mt-2">
+										Pictures you upload are public
 									</p>
 								</div>
 							</div>

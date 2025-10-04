@@ -1,8 +1,23 @@
-import io from 'socket.io-client';
+import { io, Socket } from 'socket.io-client';
 import type { SessionUser } from '../types/session';
-import type { ChatMention } from '../types/chats';
+import type { ChatMention } from '../types/session';
 
 const SOCKET_URL = import.meta.env.VITE_SERVER_URL;
+
+export interface FieldEditingState {
+    userId: string;
+    username: string;
+    avatar: string | null;
+    flightId: string | number;
+    fieldName: string;
+    timestamp: number;
+}
+
+interface CustomSocket extends Socket {
+    emitAtisGenerated?: (data: unknown) => void;
+    emitFieldEditingStart?: (flightId: string | number, fieldName: string) => void;
+    emitFieldEditingStop?: (flightId: string | number, fieldName: string) => void;
+}
 
 export function createSessionUsersSocket(
     sessionId: string,
@@ -13,11 +28,9 @@ export function createSessionUsersSocket(
     onDisconnect?: () => void,
     onReconnecting?: () => void,
     onReconnect?: () => void,
-    onMention?: (mention: ChatMention) => void
+    onMention?: (mention: ChatMention) => void,
+    onFieldEditingUpdate?: (editingStates: FieldEditingState[]) => void
 ) {
-    interface CustomSocket extends ReturnType<typeof io> {
-        emitAtisGenerated?: (data: unknown) => void;
-    }
     const socket = io(SOCKET_URL, {
         withCredentials: true,
         path: '/sockets/session-users',
@@ -32,13 +45,13 @@ export function createSessionUsersSocket(
         socket.on('connect', onConnect);
     }
     if (onDisconnect) {
-        socket.on('disconnect', () => onDisconnect());
+        socket.on('disconnect', onDisconnect);
     }
     if (onReconnecting) {
-        socket.on('reconnecting', () => onReconnecting());
+        socket.on('reconnecting', onReconnecting);
     }
     if (onReconnect) {
-        socket.on('reconnect', () => onReconnect());
+        socket.on('reconnect', onReconnect);
     }
     
     socket.on('sessionUsersUpdate', onUsersUpdate);
@@ -47,8 +60,20 @@ export function createSessionUsersSocket(
         socket.on('chatMention', onMention);
     }
 
+    if (onFieldEditingUpdate) {
+        socket.on('fieldEditingUpdate', onFieldEditingUpdate);
+    }
+
     socket.emitAtisGenerated = (data: unknown) => {
         socket.emit('atisGenerated', data);
+    };
+
+    socket.emitFieldEditingStart = (flightId: string | number, fieldName: string) => {
+        socket.emit('fieldEditingStart', { flightId, fieldName });
+    };
+
+    socket.emitFieldEditingStop = (flightId: string | number, fieldName: string) => {
+        socket.emit('fieldEditingStop', { flightId, fieldName });
     };
 
     return socket;

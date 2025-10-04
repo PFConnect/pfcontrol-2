@@ -6,6 +6,7 @@ import type { ChatMessage, ChatMention } from '../../types/chats';
 import type { SessionUser } from '../../types/session';
 import { Send, Trash, X } from 'lucide-react';
 import Button from '../common/Button';
+import Loader from '../common/Loader';
 
 interface ChatSidebarProps {
 	sessionId: string;
@@ -26,6 +27,7 @@ export default function ChatSidebar({
 }: ChatSidebarProps) {
 	const { user } = useAuth();
 	const [messages, setMessages] = useState<ChatMessage[]>([]);
+	const [loading, setLoading] = useState(true);
 	const [input, setInput] = useState('');
 	const [hoveredMessage, setHoveredMessage] = useState<number | null>(null);
 	const [activeChatUsers, setActiveChatUsers] = useState<string[]>([]);
@@ -41,9 +43,16 @@ export default function ChatSidebar({
 	useEffect(() => {
 		if (!sessionId || !accessId || !open || !user) return;
 
+		setLoading(true);
 		fetchChatMessages(sessionId)
-			.then(setMessages)
-			.catch(() => setMessages([]));
+			.then((fetchedMessages) => {
+				setMessages(fetchedMessages);
+				setLoading(false);
+			})
+			.catch(() => {
+				setMessages([]);
+				setLoading(false);
+			});
 
 		socketRef.current = createChatSocket(
 			sessionId,
@@ -231,101 +240,126 @@ export default function ChatSidebar({
 				</div>
 			</div>
 
-			<div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
-				{messages.map((msg) => {
-					const isOwn = String(msg.userId) === String(user?.userId);
-					const isMentioned = msg.mentions?.includes(
-						user?.userId || ''
-					);
+			<div
+				className={`flex-1 ${
+					messages.length > 0 ? 'overflow-y-auto' : ''
+				} px-5 py-4 space-y-4`}
+			>
+				{loading ? (
+					<div className="flex justify-center items-center h-full">
+						<Loader />
+					</div>
+				) : messages.length === 0 ? (
+					<div className="flex justify-center items-center h-full text-gray-400">
+						No messages yet.
+					</div>
+				) : (
+					messages.map((msg) => {
+						const isOwn =
+							String(msg.userId) === String(user?.userId);
+						const isMentioned = msg.mentions?.includes(
+							user?.userId || ''
+						);
 
-					return (
-						<div
-							key={msg.id}
-							className={`flex items-start gap-3 relative ${
-								isOwn ? 'justify-end' : ''
-							} ${
-								isMentioned
-									? 'bg-blue-900/20 rounded-lg p-2 -m-2'
-									: ''
-							}`}
-							onMouseEnter={() => setHoveredMessage(msg.id)}
-							onMouseLeave={() => setHoveredMessage(null)}
-						>
-							{!isOwn && (
-								<img
-									src={msg.avatar || '/default-avatar.png'}
-									alt={msg.username}
-									className="w-9 h-9 rounded-full border-2 border-blue-700 shadow"
-								/>
-							)}
+						return (
 							<div
-								className={`${
-									isOwn ? 'text-right' : ''
-								} relative group`}
+								key={msg.id}
+								className={`flex items-start gap-3 relative ${
+									isOwn ? 'justify-end' : ''
+								} ${
+									isMentioned
+										? 'bg-blue-900/20 rounded-lg p-2 -m-2'
+										: ''
+								}`}
+								onMouseEnter={() => setHoveredMessage(msg.id)}
+								onMouseLeave={() => setHoveredMessage(null)}
 							>
-								<div className="text-xs text-gray-400 mb-1">
-									<span className="font-semibold text-blue-300">
-										{msg.username}
-									</span>
-									{' • '}
-									{new Date(msg.sent_at).toLocaleTimeString(
-										[],
-										{
+								{!isOwn && (
+									<img
+										src={
+											msg.avatar ||
+											'/assets/app/default/avatar.webp'
+										}
+										alt={msg.username}
+										className="w-9 h-9 rounded-full border-2 border-blue-700 shadow"
+									/>
+								)}
+								<div
+									className={`${
+										isOwn ? 'text-right' : ''
+									} relative group`}
+								>
+									<div className="text-xs text-gray-400 mb-1">
+										<span className="font-semibold text-blue-300">
+											{msg.username}
+										</span>
+										{' • '}
+										{new Date(
+											msg.sent_at
+										).toLocaleTimeString([], {
 											hour: '2-digit',
 											minute: '2-digit'
-										}
-									)}
-								</div>
-								<div
-									className={`rounded-l-2xl rounded-tr-2xl px-3 py-2 text-sm shadow relative ${
-										isOwn
-											? 'bg-blue-800 text-white ml-auto max-w-xs'
-											: 'bg-zinc-800 text-white'
-									}`}
-									style={
-										isOwn
-											? {
-													borderTopRightRadius:
-														'1rem',
-													borderBottomRightRadius:
-														'0rem'
-											  }
-											: {
-													borderTopLeftRadius: '1rem',
-													borderBottomRightRadius:
-														'1rem',
-													borderBottomLeftRadius:
-														'0rem'
-											  }
-									}
-								>
+										})}
+									</div>
 									<div
-										dangerouslySetInnerHTML={{
-											__html: renderMessage(msg.message)
-										}}
-									/>
+										className={`rounded-l-2xl rounded-tr-2xl px-3 py-2 text-sm shadow relative ${
+											isOwn
+												? 'bg-blue-800 text-white ml-auto max-w-xs'
+												: 'bg-zinc-800 text-white'
+										}`}
+										style={
+											isOwn
+												? {
+														borderTopRightRadius:
+															'1rem',
+														borderBottomRightRadius:
+															'0rem'
+												  }
+												: {
+														borderTopLeftRadius:
+															'1rem',
+														borderBottomRightRadius:
+															'1rem',
+														borderBottomLeftRadius:
+															'0rem'
+												  }
+										}
+									>
+										<div
+											dangerouslySetInnerHTML={{
+												__html: renderMessage(
+													msg.message
+												)
+											}}
+										/>
 
-									{isOwn && hoveredMessage === msg.id && (
-										<button
-											className="absolute -top-2 -right-2 bg-zinc-700 hover:bg-red-600 text-gray-300 hover:text-white rounded-full p-1.5 shadow-lg transition-colors duration-200"
-											onClick={() => handleDelete(msg.id)}
-											title="Delete message"
-										>
-											<Trash className="h-3 w-3" />
-										</button>
-									)}
+										{isOwn && hoveredMessage === msg.id && (
+											<button
+												className="absolute -top-2 -right-2 bg-zinc-700 hover:bg-red-600 text-gray-300 hover:text-white rounded-full p-1.5 shadow-lg transition-colors duration-200"
+												onClick={() =>
+													handleDelete(msg.id)
+												}
+												title="Delete message"
+											>
+												<Trash className="h-3 w-3" />
+											</button>
+										)}
+									</div>
 								</div>
+								{isOwn && (
+									<img
+										src={
+											msg.avatar ||
+											'/assets/app/default/avatar.webp'
+										}
+										alt={msg.username}
+										className="w-9 h-9 rounded-full border-2 border-blue-700 shadow"
+									/>
+								)}
 							</div>
-							{isOwn && (
-								<img
-									src={msg.avatar || '/default-avatar.png'}
-									alt={msg.username}
-									className="w-9 h-9 rounded-full border-2 border-blue-700 shadow"
-								/>
-							)}
-						</div>
-					);
-				})}
+						);
+					})
+				)}
 				<div ref={messagesEndRef} />
 			</div>
 
@@ -347,7 +381,7 @@ export default function ChatSidebar({
 										<img
 											src={
 												suggestedUser.avatar ||
-												'/default-avatar.png'
+												'/assets/app/default/avatar.webp'
 											}
 											alt={suggestedUser.username}
 											className="w-6 h-6 rounded-full"

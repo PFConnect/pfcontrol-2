@@ -13,7 +13,11 @@ import { io } from 'socket.io-client';
 import { createSessionUsersSocket } from '../../sockets/sessionUsersSocket';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { playSoundWithSettings } from '../../utils/playSound';
-import type { Position, SessionUser } from '../../types/session';
+import type {
+	Position,
+	SessionUser,
+	ChatMention as SessionChatMention
+} from '../../types/session';
 import type { ChatMention } from '../../types/chats';
 import WindDisplay from './WindDisplay';
 import Button from '../common/Button';
@@ -72,7 +76,7 @@ export default function Toolbar({
 	};
 
 	const handlePositionChange = (selectedPosition: string) => {
-		onPositionChange(selectedPosition as Position); // Updated to call prop
+		onPositionChange(selectedPosition as Position);
 	};
 
 	const handleViewChange = (view: 'departures' | 'arrivals') => {
@@ -86,7 +90,29 @@ export default function Toolbar({
 		return avatar;
 	};
 
-	const handleMentionReceived = (mention: ChatMention) => {
+	const handleMentionReceived = (mention: SessionChatMention) => {
+		const chatMention: ChatMention = {
+			messageId: Number(mention.id),
+			mentionedUserId: mention.userId,
+			mentionerUsername: mention.username,
+			message: mention.message,
+			sessionId: mention.sessionId,
+			timestamp: mention.timestamp.toString()
+		};
+		setUnreadMentions((prev) => [...prev, chatMention]);
+		if (user) {
+			playSoundWithSettings(
+				'chatNotificationSound',
+				user.settings,
+				0.7
+			).catch((error) => {
+				console.warn('Failed to play chat notification sound:', error);
+			});
+		}
+	};
+
+	// Wrapper function for ChatSidebar that expects ChatMention from chats.ts
+	const handleChatSidebarMention = (mention: ChatMention) => {
 		setUnreadMentions((prev) => [...prev, mention]);
 		if (user) {
 			playSoundWithSettings(
@@ -348,7 +374,7 @@ export default function Toolbar({
 				<Button
 					className={`flex items-center gap-2 px-4 py-2 transition-all duration-300 ${
 						atisFlash
-							? 'bg-yellow-600 border-yellow-600 animate-pulse'
+							? 'bg-yellow-600 border-yellow-600 text-white animate-pulse'
 							: ''
 					}`}
 					aria-label="ATIS"
@@ -383,7 +409,7 @@ export default function Toolbar({
 					open={chatOpen}
 					onClose={handleChatClose}
 					sessionUsers={activeUsers}
-					onMentionReceived={handleMentionReceived}
+					onMentionReceived={handleChatSidebarMention}
 				/>
 
 				<Button

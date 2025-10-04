@@ -49,3 +49,7 @@ export function fetchStars(icao: string): Promise<string[]> {
 export function fetchBackgrounds(): Promise<AvailableImage[]> {
     return fetchData<AvailableImage>('backgrounds');
 }
+
+export function fetchStatistics(): Promise<string[]> {
+    return fetchData<string>('statistics');
+}

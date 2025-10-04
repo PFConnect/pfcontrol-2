@@ -209,15 +209,6 @@ export default function Settings() {
 							</h1>
 						</div>
 					</div>
-
-					{hasChanges && (
-						<div className="flex items-center px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
-							<AlertTriangle className="h-5 w-5 text-amber-400 mr-3" />
-							<span className="text-amber-200 text-sm">
-								You have unsaved changes
-							</span>
-						</div>
-					)}
 				</div>
 			</div>
 

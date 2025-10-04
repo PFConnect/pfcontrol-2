@@ -14,6 +14,7 @@ import StatusDropdown from '../dropdowns/StatusDropdown';
 import Button from '../common/Button';
 import DepartureTableMobile from './mobile/DepartureTableMobile';
 import PDCModal from '../tools/PDCModal';
+import type { FieldEditingState } from '../../sockets/sessionUsersSocket';
 
 interface DepartureTableProps {
 	flights: Flight[];
@@ -24,6 +25,12 @@ interface DepartureTableProps {
 	onFlightDelete: (flightId: string | number) => void;
 	backgroundStyle?: React.CSSProperties;
 	departureColumns?: DepartureTableColumnSettings;
+	fieldEditingStates?: FieldEditingState[];
+	onFieldEditingStart?: (
+		flightId: string | number,
+		fieldName: string
+	) => void;
+	onFieldEditingStop?: (flightId: string | number, fieldName: string) => void;
 }
 
 export default function DepartureTable({
@@ -50,7 +57,10 @@ export default function DepartureTable({
 		pdc: true,
 		hide: true,
 		delete: true
-	}
+	},
+	fieldEditingStates = [],
+	onFieldEditingStart,
+	onFieldEditingStop
 }: DepartureTableProps) {
 	const [showHidden, setShowHidden] = useState(false);
 	const [pdcModalOpen, setPdcModalOpen] = useState(false);
@@ -188,6 +198,28 @@ export default function DepartureTable({
 	const handlePDCClose = () => {
 		setPdcModalOpen(false);
 		setSelectedFlight(null);
+	};
+
+	const getFieldEditingState = (
+		flightId: string | number,
+		fieldName: string
+	) => {
+		return fieldEditingStates.find(
+			(state) =>
+				state.flightId === flightId && state.fieldName === fieldName
+		);
+	};
+
+	const handleFieldFocus = (flightId: string | number, fieldName: string) => {
+		if (onFieldEditingStart) {
+			onFieldEditingStart(flightId, fieldName);
+		}
+	};
+
+	const handleFieldBlur = (flightId: string | number, fieldName: string) => {
+		if (onFieldEditingStop) {
+			onFieldEditingStop(flightId, fieldName);
+		}
 	};
 
 	if (isMobile) {
@@ -329,309 +361,411 @@ export default function DepartureTable({
 							</tr>
 						</thead>
 						<tbody>
-							{visibleFlights.map((flight) => (
-								<tr
-									key={flight.id}
-									className={`flight-row ${
-										flight.hidden
-											? 'opacity-60 text-gray-400'
-											: ''
-									}`}
-									style={backgroundStyle}
-								>
-									{/* Time column is always visible */}
-									<td className="py-2 px-4 column-time">
-										{flight.timestamp
-											? new Date(
-													flight.timestamp
-											  ).toLocaleTimeString('en-GB', {
-													hour: '2-digit',
-													minute: '2-digit',
-													timeZone: 'UTC'
-											  })
-											: '-'}
-									</td>
-									{departureColumns.callsign !== false && (
-										<td className="py-2 px-4">
-											<TextInput
-												value={flight.callsign || ''}
-												onChange={(value) =>
-													handleCallsignChange(
-														flight.id,
-														value
-													)
-												}
-												className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-												placeholder="-"
-												maxLength={16}
-												onKeyDown={(e) => {
-													if (e.key === 'Enter') {
-														e.currentTarget.blur();
+							{visibleFlights.map((flight) => {
+								const callsignEditingState =
+									getFieldEditingState(flight.id, 'callsign');
+								const standEditingState = getFieldEditingState(
+									flight.id,
+									'stand'
+								);
+								const squawkEditingState = getFieldEditingState(
+									flight.id,
+									'squawk'
+								);
+								const remarkEditingState = getFieldEditingState(
+									flight.id,
+									'remark'
+								);
+
+								return (
+									<tr
+										key={flight.id}
+										className={`flight-row ${
+											flight.hidden
+												? 'opacity-60 text-gray-400'
+												: ''
+										}`}
+										style={backgroundStyle}
+									>
+										{/* Time column is always visible */}
+										<td className="py-2 px-4 column-time">
+											{flight.timestamp
+												? new Date(
+														flight.timestamp
+												  ).toLocaleTimeString(
+														'en-GB',
+														{
+															hour: '2-digit',
+															minute: '2-digit',
+															timeZone: 'UTC'
+														}
+												  )
+												: '-'}
+										</td>
+										{departureColumns.callsign !==
+											false && (
+											<td className="py-2 px-4">
+												<TextInput
+													value={
+														flight.callsign || ''
 													}
-												}}
-											/>
-										</td>
-									)}
-									{departureColumns.stand !== false && (
-										<td className="py-2 px-4 column-stand">
-											<TextInput
-												value={flight.stand || ''}
-												onChange={(value) =>
-													handleStandChange(
-														flight.id,
-														value
-													)
-												}
-												className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-												placeholder="-"
-												maxLength={8}
-												onKeyDown={(e) => {
-													if (e.key === 'Enter') {
-														e.currentTarget.blur();
+													onChange={(value) =>
+														handleCallsignChange(
+															flight.id,
+															value
+														)
 													}
-												}}
-											/>
-										</td>
-									)}
-									{departureColumns.aircraft !== false && (
-										<td className="py-2 px-4">
-											<AircraftDropdown
-												value={flight.aircraft}
-												onChange={(type) =>
-													handleAircraftChange(
-														flight.id,
-														type
-													)
-												}
-												size="xs"
-												showFullName={false}
-											/>
-										</td>
-									)}
-									{departureColumns.wakeTurbulence !==
-										false && (
-										<td className="py-2 px-4 column-w">
-											{flight.wtc || '-'}
-										</td>
-									)}
-									{departureColumns.flightType !== false && (
-										<td className="py-2 px-4">
-											{flight.flight_type || '-'}
-										</td>
-									)}
-									{departureColumns.arrival !== false && (
-										<td className="py-2 px-4">
-											<AirportDropdown
-												value={flight.arrival}
-												onChange={(icao) =>
-													handleArrivalChange(
-														flight.id,
-														icao
-													)
-												}
-												size="xs"
-												showFullName={false}
-											/>
-										</td>
-									)}
-									{departureColumns.runway !== false && (
-										<td className="py-2 px-4 column-rwy">
-											<RunwayDropdown
-												airportIcao={
-													flight.departure || ''
-												}
-												value={flight.runway}
-												onChange={(runway) =>
-													handleRunwayChange(
-														flight.id,
-														runway
-													)
-												}
-												size="xs"
-												placeholder="-"
-											/>
-										</td>
-									)}
-									{departureColumns.sid !== false && (
-										<td className="py-2 px-4">
-											<SidDropdown
-												airportIcao={
-													flight.departure || ''
-												}
-												value={flight.sid}
-												onChange={(sid) =>
-													handleSidChange(
-														flight.id,
-														sid
-													)
-												}
-												size="xs"
-												placeholder="-"
-											/>
-										</td>
-									)}
-									{departureColumns.rfl !== false && (
-										<td className="py-2 px-4 column-rfl">
-											<AltitudeDropdown
-												value={flight.cruisingFL}
-												onChange={(alt) =>
-													handleCruisingFLChange(
-														flight.id,
-														alt
-													)
-												}
-												size="xs"
-												placeholder="-"
-											/>
-										</td>
-									)}
-									{departureColumns.cfl !== false && (
-										<td className="py-2 px-4">
-											<AltitudeDropdown
-												value={flight.clearedFL}
-												onChange={(alt) =>
-													handleClearedFLChange(
-														flight.id,
-														alt
-													)
-												}
-												size="xs"
-												placeholder="-"
-											/>
-										</td>
-									)}
-									{departureColumns.squawk !== false && (
-										<td className="py-2 px-4">
-											<TextInput
-												value={flight.squawk || ''}
-												onChange={(value) =>
-													handleSquawkChange(
-														flight.id,
-														value
-													)
-												}
-												className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-												placeholder="-"
-												maxLength={4}
-												pattern="[0-9]*"
-												onKeyDown={(e) => {
-													if (e.key === 'Enter') {
-														e.currentTarget.blur();
+													className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
+													placeholder="-"
+													maxLength={16}
+													onKeyDown={(e) => {
+														if (e.key === 'Enter') {
+															e.currentTarget.blur();
+														}
+													}}
+													editingAvatar={
+														callsignEditingState?.avatar ||
+														null
 													}
-												}}
-											/>
-										</td>
-									)}
-									{departureColumns.clearance !== false && (
-										<td className="py-2 px-4">
-											<Checkbox
-												checked={isClearanceChecked(
-													flight.clearance
-												)}
-												onChange={(checked) =>
-													handleToggleClearance(
-														flight.id,
-														checked
-													)
-												}
-												label=""
-												checkedClass="bg-green-600 border-green-600"
-											/>
-										</td>
-									)}
-									{departureColumns.status !== false && (
-										<td className="py-2 px-4">
-											<StatusDropdown
-												value={flight.status}
-												onChange={(status) =>
-													handleStatusChange(
-														flight.id,
-														status
-													)
-												}
-												size="xs"
-												placeholder="-"
-											/>
-										</td>
-									)}
-									{departureColumns.remark !== false && (
-										<td className="py-2 px-4 column-rmk">
-											<TextInput
-												value={flight.remark || ''}
-												onChange={(value) =>
-													handleRemarkChange(
-														flight.id,
-														value
-													)
-												}
-												className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-												placeholder="-"
-												maxLength={50}
-												onKeyDown={(e) => {
-													if (e.key === 'Enter') {
-														e.currentTarget.blur();
+													editingUsername={
+														callsignEditingState?.username
 													}
-												}}
-											/>
-										</td>
-									)}
-									{departureColumns.pdc !== false && (
-										<td className="py-2 px-4 column-pdc">
-											<button
-												className="text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors"
-												onClick={() =>
-													handlePDCOpen(flight)
-												}
-												title="Generate PDC"
-											>
-												<FileSpreadsheet />
-											</button>
-										</td>
-									)}
-									{departureColumns.hide !== false && (
-										<td className="py-2 px-4 column-hide">
-											<button
-												title={
-													flight.hidden
-														? 'Unhide'
-														: 'Hide'
-												}
-												className="text-gray-400 hover:text-blue-500"
-												onClick={() =>
-													flight.hidden
-														? handleUnhideFlight(
-																flight.id
-														  )
-														: handleHideFlight(
-																flight.id
-														  )
-												}
-											>
-												{flight.hidden ? (
-													<Eye />
-												) : (
-													<EyeOff />
-												)}
-											</button>
-										</td>
-									)}
-									{departureColumns.delete !== false && (
-										<td className="py-2 px-4">
-											<button
-												title="Delete"
-												className="text-gray-400 hover:text-red-500"
-												onClick={() =>
-													handleDeleteFlight(
-														flight.id
-													)
-												}
-											>
-												<Trash2 />
-											</button>
-										</td>
-									)}
-								</tr>
-							))}
+													onFocus={() =>
+														handleFieldFocus(
+															flight.id,
+															'callsign'
+														)
+													}
+													onBlur={() =>
+														handleFieldBlur(
+															flight.id,
+															'callsign'
+														)
+													}
+												/>
+											</td>
+										)}
+										{departureColumns.stand !== false && (
+											<td className="py-2 px-4 column-stand">
+												<TextInput
+													value={flight.stand || ''}
+													onChange={(value) =>
+														handleStandChange(
+															flight.id,
+															value
+														)
+													}
+													className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
+													placeholder="-"
+													maxLength={8}
+													onKeyDown={(e) => {
+														if (e.key === 'Enter') {
+															e.currentTarget.blur();
+														}
+													}}
+													editingAvatar={
+														standEditingState?.avatar ||
+														null
+													}
+													editingUsername={
+														standEditingState?.username
+													}
+													onFocus={() =>
+														handleFieldFocus(
+															flight.id,
+															'stand'
+														)
+													}
+													onBlur={() =>
+														handleFieldBlur(
+															flight.id,
+															'stand'
+														)
+													}
+												/>
+											</td>
+										)}
+										{departureColumns.aircraft !==
+											false && (
+											<td className="py-2 px-4">
+												<AircraftDropdown
+													value={flight.aircraft}
+													onChange={(type) =>
+														handleAircraftChange(
+															flight.id,
+															type
+														)
+													}
+													size="xs"
+													showFullName={false}
+												/>
+											</td>
+										)}
+										{departureColumns.wakeTurbulence !==
+											false && (
+											<td className="py-2 px-4 column-w">
+												{flight.wtc || '-'}
+											</td>
+										)}
+										{departureColumns.flightType !==
+											false && (
+											<td className="py-2 px-4">
+												{flight.flight_type || '-'}
+											</td>
+										)}
+										{departureColumns.arrival !== false && (
+											<td className="py-2 px-4">
+												<AirportDropdown
+													value={flight.arrival}
+													onChange={(icao) =>
+														handleArrivalChange(
+															flight.id,
+															icao
+														)
+													}
+													size="xs"
+													showFullName={false}
+												/>
+											</td>
+										)}
+										{departureColumns.runway !== false && (
+											<td className="py-2 px-4 column-rwy">
+												<RunwayDropdown
+													airportIcao={
+														flight.departure || ''
+													}
+													value={flight.runway}
+													onChange={(runway) =>
+														handleRunwayChange(
+															flight.id,
+															runway
+														)
+													}
+													size="xs"
+													placeholder="-"
+												/>
+											</td>
+										)}
+										{departureColumns.sid !== false && (
+											<td className="py-2 px-4">
+												<SidDropdown
+													airportIcao={
+														flight.departure || ''
+													}
+													value={flight.sid}
+													onChange={(sid) =>
+														handleSidChange(
+															flight.id,
+															sid
+														)
+													}
+													size="xs"
+													placeholder="-"
+												/>
+											</td>
+										)}
+										{departureColumns.rfl !== false && (
+											<td className="py-2 px-4 column-rfl">
+												<AltitudeDropdown
+													value={flight.cruisingFL}
+													onChange={(alt) =>
+														handleCruisingFLChange(
+															flight.id,
+															alt
+														)
+													}
+													size="xs"
+													placeholder="-"
+												/>
+											</td>
+										)}
+										{departureColumns.cfl !== false && (
+											<td className="py-2 px-4">
+												<AltitudeDropdown
+													value={flight.clearedFL}
+													onChange={(alt) =>
+														handleClearedFLChange(
+															flight.id,
+															alt
+														)
+													}
+													size="xs"
+													placeholder="-"
+												/>
+											</td>
+										)}
+										{departureColumns.squawk !== false && (
+											<td className="py-2 px-4">
+												<TextInput
+													value={flight.squawk || ''}
+													onChange={(value) =>
+														handleSquawkChange(
+															flight.id,
+															value
+														)
+													}
+													className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
+													placeholder="-"
+													maxLength={4}
+													pattern="[0-9]*"
+													onKeyDown={(e) => {
+														if (e.key === 'Enter') {
+															e.currentTarget.blur();
+														}
+													}}
+													editingAvatar={
+														squawkEditingState?.avatar ||
+														null
+													}
+													editingUsername={
+														squawkEditingState?.username
+													}
+													onFocus={() =>
+														handleFieldFocus(
+															flight.id,
+															'squawk'
+														)
+													}
+													onBlur={() =>
+														handleFieldBlur(
+															flight.id,
+															'squawk'
+														)
+													}
+												/>
+											</td>
+										)}
+										{departureColumns.clearance !==
+											false && (
+											<td className="py-2 px-4">
+												<Checkbox
+													checked={isClearanceChecked(
+														flight.clearance
+													)}
+													onChange={(checked) =>
+														handleToggleClearance(
+															flight.id,
+															checked
+														)
+													}
+													label=""
+													checkedClass="bg-green-600 border-green-600"
+												/>
+											</td>
+										)}
+										{departureColumns.status !== false && (
+											<td className="py-2 px-4">
+												<StatusDropdown
+													value={flight.status}
+													onChange={(status) =>
+														handleStatusChange(
+															flight.id,
+															status
+														)
+													}
+													size="xs"
+													placeholder="-"
+												/>
+											</td>
+										)}
+										{departureColumns.remark !== false && (
+											<td className="py-2 px-4 column-rmk">
+												<TextInput
+													value={flight.remark || ''}
+													onChange={(value) =>
+														handleRemarkChange(
+															flight.id,
+															value
+														)
+													}
+													className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
+													placeholder="-"
+													maxLength={50}
+													onKeyDown={(e) => {
+														if (e.key === 'Enter') {
+															e.currentTarget.blur();
+														}
+													}}
+													editingAvatar={
+														remarkEditingState?.avatar ||
+														null
+													}
+													editingUsername={
+														remarkEditingState?.username
+													}
+													onFocus={() =>
+														handleFieldFocus(
+															flight.id,
+															'remark'
+														)
+													}
+													onBlur={() =>
+														handleFieldBlur(
+															flight.id,
+															'remark'
+														)
+													}
+												/>
+											</td>
+										)}
+										{departureColumns.pdc !== false && (
+											<td className="py-2 px-4 column-pdc">
+												<button
+													className="text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors"
+													onClick={() =>
+														handlePDCOpen(flight)
+													}
+													title="Generate PDC"
+												>
+													<FileSpreadsheet />
+												</button>
+											</td>
+										)}
+										{departureColumns.hide !== false && (
+											<td className="py-2 px-4 column-hide">
+												<button
+													title={
+														flight.hidden
+															? 'Unhide'
+															: 'Hide'
+													}
+													className="text-gray-400 hover:text-blue-500"
+													onClick={() =>
+														flight.hidden
+															? handleUnhideFlight(
+																	flight.id
+															  )
+															: handleHideFlight(
+																	flight.id
+															  )
+													}
+												>
+													{flight.hidden ? (
+														<Eye />
+													) : (
+														<EyeOff />
+													)}
+												</button>
+											</td>
+										)}
+										{departureColumns.delete !== false && (
+											<td className="py-2 px-4">
+												<button
+													title="Delete"
+													className="text-gray-400 hover:text-red-500"
+													onClick={() =>
+														handleDeleteFlight(
+															flight.id
+														)
+													}
+												>
+													<Trash2 />
+												</button>
+											</td>
+										)}
+									</tr>
+								);
+							})}
 						</tbody>
 					</table>
 				</div>

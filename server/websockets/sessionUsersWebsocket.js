@@ -5,6 +5,7 @@ import { getSessionById, updateSession } from '../db/sessions.js';
 const activeUsers = new Map();
 const sessionATISConfigs = new Map();
 const atisTimers = new Map();
+const fieldEditingStates = new Map();
 
 export function setupSessionUsersWebsocket(httpServer) {
     const io = new SocketServer(httpServer, {
@@ -30,6 +31,66 @@ export function setupSessionUsersWebsocket(httpServer) {
 
         atisTimers.set(sessionId, timer);
     };
+
+    const broadcastFieldEditingStates = (sessionId) => {
+        const sessionEditingStates = fieldEditingStates.get(sessionId);
+        if (sessionEditingStates) {
+            const editingArray = Array.from(sessionEditingStates.values());
+            io.to(sessionId).emit('fieldEditingUpdate', editingArray);
+        }
+    };
+
+    const addFieldEditingState = (sessionId, user, flightId, fieldName) => {
+        if (!fieldEditingStates.has(sessionId)) {
+            fieldEditingStates.set(sessionId, new Map());
+        }
+
+        const sessionStates = fieldEditingStates.get(sessionId);
+        const fieldKey = `${flightId}-${fieldName}`;
+
+        sessionStates.set(fieldKey, {
+            userId: user.userId,
+            username: user.username,
+            avatar: user.avatar,
+            flightId,
+            fieldName,
+            timestamp: Date.now()
+        });
+
+        broadcastFieldEditingStates(sessionId);
+    };
+
+    const removeFieldEditingState = (sessionId, userId, flightId, fieldName) => {
+        const sessionStates = fieldEditingStates.get(sessionId);
+        if (sessionStates) {
+            const fieldKey = `${flightId}-${fieldName}`;
+            const existingState = sessionStates.get(fieldKey);
+
+            if (existingState && existingState.userId === userId) {
+                sessionStates.delete(fieldKey);
+                broadcastFieldEditingStates(sessionId);
+            }
+        }
+    };
+
+    const cleanupInterval = setInterval(() => {
+        const now = Date.now();
+        const maxAge = 30 * 1000;
+
+        for (const [sessionId, sessionStates] of fieldEditingStates.entries()) {
+            for (const [fieldKey, state] of sessionStates.entries()) {
+                if (now - state.timestamp > maxAge) {
+                    sessionStates.delete(fieldKey);
+                }
+            }
+
+            if (sessionStates.size === 0) {
+                fieldEditingStates.delete(sessionId);
+            } else {
+                broadcastFieldEditingStates(sessionId);
+            }
+        }
+    }, 5000);
 
     io.on('connection', async (socket) => {
         const sessionId = socket.handshake.query.sessionId;
@@ -98,6 +159,14 @@ export function setupSessionUsersWebsocket(httpServer) {
             }
         });
 
+        socket.on('fieldEditingStart', ({ flightId, fieldName }) => {
+            addFieldEditingState(sessionId, user, flightId, fieldName);
+        });
+
+        socket.on('fieldEditingStop', ({ flightId, fieldName }) => {
+            removeFieldEditingState(sessionId, user.userId, flightId, fieldName);
+        });
+
         socket.on('disconnect', () => {
             const users = activeUsers.get(sessionId);
             if (users) {
@@ -115,6 +184,16 @@ export function setupSessionUsersWebsocket(httpServer) {
                 } else {
                     io.to(sessionId).emit('sessionUsersUpdate', users);
                 }
+            }
+
+            const sessionStates = fieldEditingStates.get(sessionId);
+            if (sessionStates) {
+                for (const [fieldKey, state] of sessionStates.entries()) {
+                    if (state.userId === user.userId) {
+                        sessionStates.delete(fieldKey);
+                    }
+                }
+                broadcastFieldEditingStates(sessionId);
             }
         });
     });
