@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EyeOff, Eye, Trash2, FileSpreadsheet } from 'lucide-react';
+import { EyeOff, Eye, Trash2, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import type { Flight } from '../../../types/flight';
 import type { DepartureTableColumnSettings } from '../../../types/settings';
 import Checkbox from '../../common/Checkbox';
@@ -200,6 +200,21 @@ export default function DepartureTableMobile({
 		);
 	}
 
+	const generateRandomSquawk = (): string => {
+		let squawk = '';
+		for (let i = 0; i < 4; i++) {
+			squawk += Math.floor(Math.random() * 6) + 1;
+		}
+		return squawk;
+	};
+
+	const handleRegenerateSquawk = (flightId: string | number) => {
+		const newSquawk = generateRandomSquawk();
+		if (onFlightChange) {
+			onFlightChange(flightId, { squawk: newSquawk });
+		}
+	};
+
 	return (
 		<div className="mt-8 px-4">
 			{flights.some((flight) => flight.hidden) && (
@@ -378,21 +393,38 @@ export default function DepartureTableMobile({
 							{departureColumns.squawk !== false && (
 								<div>
 									<strong>Squawk:</strong>{' '}
-									<TextInput
-										value={flight.squawk || ''}
-										onChange={(value) =>
-											handleSquawkChange(flight.id, value)
-										}
-										className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-										placeholder="-"
-										maxLength={4}
-										pattern="[0-9]*"
-										onKeyDown={(e) => {
-											if (e.key === 'Enter') {
-												e.currentTarget.blur();
+									<div className="flex items-center gap-0.5 mt-1">
+										<TextInput
+											value={flight.squawk || ''}
+											onChange={(value) =>
+												handleSquawkChange(
+													flight.id,
+													value
+												)
 											}
-										}}
-									/>
+											className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white w-full min-w-0"
+											placeholder="-"
+											maxLength={4}
+											pattern="[0-9]*"
+											onKeyDown={(e) => {
+												if (e.key === 'Enter') {
+													e.currentTarget.blur();
+												}
+											}}
+										/>
+										<button
+											onClick={() =>
+												handleRegenerateSquawk(
+													flight.id
+												)
+											}
+											className="text-gray-400 hover:text-blue-500 rounded transition-colors flex-shrink-0"
+											title="Generate new squawk"
+											type="button"
+										>
+											<RefreshCw className="w-3 h-3" />
+										</button>
+									</div>
 								</div>
 							)}
 							{departureColumns.clearance !== false && (

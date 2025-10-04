@@ -26,17 +26,22 @@ function isAdmin(userId) {
 
 function requireAdmin(req, res, next) {
     const token = req.cookies.auth_token;
-    if (!token) return res.status(401).json({ error: "Not authenticated" });
+    if (!token) {
+        return res.status(401).json({ error: "Not authenticated" });
+    }
 
     try {
         const decoded = jwt.verify(token, JWT_SECRET);
         const adminIds = getAdminIds();
-        if (!adminIds.includes(decoded.id)) {
-            return res.status(403).json({ error: "Not an admin" });
+
+        if (!adminIds.includes(decoded.userId)) {
+            return res.status(403).json({ error: "Admin access required" });
         }
+
         req.user = decoded;
         next();
     } catch (err) {
+        console.error('Admin auth error:', err);
         return res.status(401).json({ error: "Invalid token" });
     }
 }

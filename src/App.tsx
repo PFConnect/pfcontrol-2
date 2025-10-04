@@ -10,7 +10,7 @@ import PFATCFlights from './pages/PFATCFlights';
 
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
-
+import Admin from './pages/Admin';
 import ProtectedRoute from './components/ProtectedRoute';
 
 export default function App() {
@@ -49,6 +49,14 @@ export default function App() {
 					element={
 						<ProtectedRoute>
 							<Settings />
+						</ProtectedRoute>
+					}
+				/>
+				<Route
+					path="/admin"
+					element={
+						<ProtectedRoute requireAdmin={true}>
+							<Admin />
 						</ProtectedRoute>
 					}
 				/>

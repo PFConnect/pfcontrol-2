@@ -37,7 +37,7 @@ const departureColumnLabels = {
 	clearance: 'Clearance',
 	status: 'Status',
 	remark: 'Remarks',
-	pdc: 'PDC',
+	pdc: 'PDC Button',
 	hide: 'Hide Button',
 	delete: 'Delete Button'
 };

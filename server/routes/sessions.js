@@ -11,8 +11,8 @@ import {
     getSessionsByUserDetailed
 } from '../db/sessions.js';
 import { generateSessionId, generateAccessId } from '../tools/ids.js';
+import { recordNewSession } from '../db/statistics.js';
 import requireAuth from '../middleware/isAuthenticated.js';
-
 const router = express.Router();
 initializeSessionsTable();
 
@@ -32,6 +32,9 @@ router.post('/create', requireAuth, async (req, res) => {
         }
 
         await createSession({ sessionId, accessId, activeRunway, airportIcao, createdBy, isPFATC });
+
+        await recordNewSession();
+
         res.status(201).json({
             sessionId,
             accessId,

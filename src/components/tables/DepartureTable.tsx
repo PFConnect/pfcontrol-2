@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMediaQuery } from 'react-responsive';
-import { EyeOff, Eye, Trash2, FileSpreadsheet } from 'lucide-react';
+import { EyeOff, Eye, Trash2, FileSpreadsheet, RefreshCw } from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { DepartureTableColumnSettings } from '../../types/settings';
 import Checkbox from '../common/Checkbox';
@@ -219,6 +219,21 @@ export default function DepartureTable({
 	const handleFieldBlur = (flightId: string | number, fieldName: string) => {
 		if (onFieldEditingStop) {
 			onFieldEditingStop(flightId, fieldName);
+		}
+	};
+
+	const generateRandomSquawk = (): string => {
+		let squawk = '';
+		for (let i = 0; i < 4; i++) {
+			squawk += Math.floor(Math.random() * 6) + 1;
+		}
+		return squawk;
+	};
+
+	const handleRegenerateSquawk = (flightId: string | number) => {
+		const newSquawk = generateRandomSquawk();
+		if (onFlightChange) {
+			onFlightChange(flightId, { squawk: newSquawk });
 		}
 	};
 
@@ -596,43 +611,62 @@ export default function DepartureTable({
 										)}
 										{departureColumns.squawk !== false && (
 											<td className="py-2 px-4">
-												<TextInput
-													value={flight.squawk || ''}
-													onChange={(value) =>
-														handleSquawkChange(
-															flight.id,
-															value
-														)
-													}
-													className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-													placeholder="-"
-													maxLength={4}
-													pattern="[0-9]*"
-													onKeyDown={(e) => {
-														if (e.key === 'Enter') {
-															e.currentTarget.blur();
+												<div className="flex items-center gap-0.5 w-full">
+													<TextInput
+														value={
+															flight.squawk || ''
 														}
-													}}
-													editingAvatar={
-														squawkEditingState?.avatar ||
-														null
-													}
-													editingUsername={
-														squawkEditingState?.username
-													}
-													onFocus={() =>
-														handleFieldFocus(
-															flight.id,
-															'squawk'
-														)
-													}
-													onBlur={() =>
-														handleFieldBlur(
-															flight.id,
-															'squawk'
-														)
-													}
-												/>
+														onChange={(value) =>
+															handleSquawkChange(
+																flight.id,
+																value
+															)
+														}
+														className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white w-full min-w-0"
+														placeholder="-"
+														maxLength={4}
+														pattern="[0-9]*"
+														onKeyDown={(e) => {
+															if (
+																e.key ===
+																'Enter'
+															) {
+																e.currentTarget.blur();
+															}
+														}}
+														editingAvatar={
+															squawkEditingState?.avatar ||
+															null
+														}
+														editingUsername={
+															squawkEditingState?.username
+														}
+														onFocus={() =>
+															handleFieldFocus(
+																flight.id,
+																'squawk'
+															)
+														}
+														onBlur={() =>
+															handleFieldBlur(
+																flight.id,
+																'squawk'
+															)
+														}
+													/>
+													<button
+														onClick={() =>
+															handleRegenerateSquawk(
+																flight.id
+															)
+														}
+														className="text-gray-400 hover:text-blue-500 rounded transition-colors flex-shrink-0 ml-0.5"
+														title="Generate new squawk"
+														type="button"
+													>
+														<RefreshCw className="w-2.5 h-2.5" />
+													</button>
+												</div>
 											</td>
 										)}
 										{departureColumns.clearance !==

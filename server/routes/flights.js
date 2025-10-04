@@ -2,6 +2,7 @@ import express from 'express';
 import requireAuth from '../middleware/isAuthenticated.js';
 import { getFlightsBySession, addFlight, updateFlight, deleteFlight } from '../db/flights.js';
 import { broadcastFlightEvent } from '../websockets/flightsWebsocket.js';
+import { recordNewFlight } from '../db/statistics.js';
 
 const router = express.Router();
 
@@ -26,6 +27,9 @@ router.post('/:sessionId', requireAuth, async (req, res) => {
         };
 
         const flight = await addFlight(req.params.sessionId, flightData);
+
+        await recordNewFlight();
+
         broadcastFlightEvent(req.params.sessionId, 'flightAdded', flight);
 
         res.status(201).json(flight);

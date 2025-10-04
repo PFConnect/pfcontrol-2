@@ -8,6 +8,7 @@ import chatsRouter from "./chats.js";
 import metarRoutes from './metar.js';
 import atisRouter from './atis.js';
 import uploadsRouter from './uploads.js';
+import adminRouter from './admin.js';
 
 const router = express.Router();
 
@@ -19,5 +20,6 @@ router.use("/chats", chatsRouter);
 router.use('/metar', metarRoutes);
 router.use('/atis', atisRouter);
 router.use('/uploads', uploadsRouter);
+router.use('/admin', adminRouter);
 
 export default router;

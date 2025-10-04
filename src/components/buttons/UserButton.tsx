@@ -8,6 +8,7 @@ import {
 	LayoutDashboard
 } from 'lucide-react';
 import { useAuth } from '../../hooks/auth/useAuth';
+import ProtectedRoute from '../ProtectedRoute';
 
 interface CustomUserButtonProps {
 	className?: string;
@@ -126,13 +127,17 @@ export default function CustomUserButton({
 					</button>
 
 					{user.isAdmin && (
-						<button
-							onClick={() => handleAction()}
-							className="w-full flex items-center space-x-3 px-4 py-3 text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 rounded-xl transition-all duration-200 font-medium"
-						>
-							<LayoutDashboard className="w-4 h-4" />
-							<span>Dashboard</span>
-						</button>
+						<ProtectedRoute requireAdmin={true}>
+							<button
+								onClick={() => {
+									window.location.href = '/admin';
+								}}
+								className="w-full flex items-center space-x-3 px-4 py-3 text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 rounded-xl transition-all duration-200 font-medium"
+							>
+								<LayoutDashboard className="w-4 h-4" />
+								<span>Dashboard</span>
+							</button>
+						</ProtectedRoute>
 					)}
 
 					<button
@@ -225,17 +230,21 @@ export default function CustomUserButton({
 						</button>
 					</div>
 					{user.isAdmin && (
-						<div className="border-t border-gray-700/50 py-1">
-							<button
-								onClick={() => {
-									setIsDropdownOpen(false);
-								}}
-								className="w-full flex items-center space-x-3 px-4 py-3 text-blue-400 hover:bg-blue-600/20 hover:text-blue-300 transition-all duration-200 group"
-							>
-								<LayoutDashboard className="w-4 h-4" />
-								<span className="font-medium">Dashboard</span>
-							</button>
-						</div>
+						<ProtectedRoute requireAdmin={true}>
+							<div className="border-t border-gray-700/50 py-1">
+								<button
+									onClick={() => {
+										window.location.href = '/admin';
+									}}
+									className="w-full flex items-center space-x-3 px-4 py-3 text-blue-400 hover:bg-blue-600/20 hover:text-blue-300 transition-all duration-200 group"
+								>
+									<LayoutDashboard className="w-4 h-4" />
+									<span className="font-medium">
+										Dashboard
+									</span>
+								</button>
+							</div>
+						</ProtectedRoute>
 					)}
 					<div className="border-t border-gray-700/50 pt-1">
 						<button

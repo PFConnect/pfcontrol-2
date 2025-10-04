@@ -1,0 +1,116 @@
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL || '';
+
+export interface DailyStats {
+    date: string;
+    logins_count: number;
+    new_sessions_count: number;
+    new_flights_count: number;
+    new_users_count: number;
+}
+
+export interface TotalStats {
+    total_logins: number;
+    total_sessions: number;
+    total_flights: number;
+    total_users: number;
+}
+
+export interface AdminStats {
+    daily: DailyStats[];
+    totals: TotalStats;
+}
+
+export interface AdminUser {
+    id: string;
+    username: string;
+    discriminator: string;
+    avatar: string;
+    last_login: string;
+    ip_address: string;
+    is_vpn: boolean;
+    total_sessions_created: number;
+    total_minutes: number;
+    created_at: string;
+}
+
+export interface AdminUsersResponse {
+    users: AdminUser[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+    };
+}
+
+export interface AdminSession {
+    session_id: string;
+    access_id: string;
+    airport_icao: string;
+    active_runway: string;
+    created_at: string;
+    created_by: string;
+    is_pfatc: boolean;
+    flight_count: number;
+}
+
+export interface SystemInfo {
+    database: Array<{
+        schemaname: string;
+        tablename: string;
+        inserts: number;
+        updates: number;
+        deletes: number;
+    }>;
+    server: {
+        nodeVersion: string;
+        uptime: number;
+        memoryUsage: {
+            rss: number;
+            heapTotal: number;
+            heapUsed: number;
+            external: number;
+            arrayBuffers: number;
+        };
+        platform: string;
+    };
+}
+
+async function makeAdminRequest(endpoint: string, options?: RequestInit) {
+    const response = await fetch(`${API_BASE_URL}/api/admin${endpoint}`, {
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json',
+            ...options?.headers,
+        },
+        ...options,
+    });
+
+    if (!response.ok) {
+        if (response.status === 403) {
+            throw new Error('Admin access required');
+        }
+        if (response.status === 401) {
+            throw new Error('Authentication required');
+        }
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    return response.json();
+}
+
+export async function fetchAdminStatistics(days: number = 30): Promise<AdminStats> {
+    return makeAdminRequest(`/statistics?days=${days}`);
+}
+
+export async function fetchAdminUsers(page: number = 1, limit: number = 50): Promise<AdminUsersResponse> {
+    return makeAdminRequest(`/users?page=${page}&limit=${limit}`);
+}
+
+export async function fetchAdminSessions(): Promise<AdminSession[]> {
+    return makeAdminRequest('/sessions');
+}
+
+export async function fetchSystemInfo(): Promise<SystemInfo> {
+    return makeAdminRequest('/system-info');
+}

@@ -5,6 +5,7 @@ import { createOrUpdateUser, getUserById, updateUserSettings } from '../db/users
 import { authLimiter } from '../middleware/security.js';
 import { detectVPN } from '../tools/detectVPN.js';
 import { isAdmin } from '../middleware/isAdmin.js';
+import { recordLogin, recordNewUser } from '../db/statistics.js';
 import requireAuth from '../middleware/isAuthenticated.js';
 
 const router = express.Router();
@@ -58,6 +59,9 @@ router.get('/discord/callback', authLimiter, async (req, res) => {
         const ipAddress = req.ip || req.connection.remoteAddress || req.socket.remoteAddress;
         const isVpn = await detectVPN(ipAddress);
 
+        const existingUser = await getUserById(discordUser.id);
+        const isNewUser = !existingUser;
+
         await createOrUpdateUser({
             id: discordUser.id,
             username: discordUser.username,
@@ -68,6 +72,11 @@ router.get('/discord/callback', authLimiter, async (req, res) => {
             ipAddress: ipAddress,
             isVpn: isVpn
         });
+
+        await recordLogin();
+        if (isNewUser) {
+            await recordNewUser();
+        }
 
         const payload = {
             userId: discordUser.id,
