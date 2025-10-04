@@ -128,6 +128,8 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 		} else if (diffMinutes < 1440) {
 			const hours = Math.floor(diffMinutes / 60);
 			return `${hours}h ago`;
+		} else if (diffMinutes == 0) {
+			return 'Just now';
 		} else {
 			return date.toLocaleTimeString([], {
 				hour: '2-digit',

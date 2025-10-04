@@ -9,10 +9,9 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const CEPHIE_API_KEY = process.env.CEPHIE_API_KEY;
-const CEPHIE_UPLOAD_URL = 'https://api.cephie.app/api/v1/images/pfcontrol/upload';
-const CEPHIE_DELETE_URL = 'https://api.cephie.app/api/v1/snap/delete';
+const CEPHIE_UPLOAD_URL = 'https://api.cephie.app/api/v1/pfcontrol/upload';
+const CEPHIE_DELETE_URL = 'https://api.cephie.app/api/v1/pfcontrol/delete';
 
-// Helper function to delete an existing image via Cephie API
 async function deleteOldImage(url) {
     if (!url) return;
     try {
@@ -26,7 +25,10 @@ async function deleteOldImage(url) {
             body: JSON.stringify({ url }),
         });
         if (!response.ok) {
-            console.error('Failed to delete old image:', response.statusText);
+            console.error('Failed to delete old image:', response.status, response.statusText);
+            console.error('Response headers:', response.headers);
+            console.error('Response body:', await response.text());
+            console.error('Request URL:', CEPHIE_DELETE_URL);
         }
     } catch (error) {
         console.error('Error deleting old image:', error);
@@ -36,7 +38,6 @@ async function deleteOldImage(url) {
 // POST: /api/uploads/upload-background - Upload a new background image
 router.post('/upload-background', requireAuth, upload.single('image'), async (req, res) => {
     try {
-        console.log('Request received for upload-background');
         const userId = req.user.userId;
         const file = req.file;
 
@@ -44,9 +45,6 @@ router.post('/upload-background', requireAuth, upload.single('image'), async (re
             console.error('Invalid file:', file);
             return res.status(400).json({ error: 'Invalid or missing image file' });
         }
-
-        console.log('File details:', file);
-        console.log('User ID:', userId);
 
         const user = await getUserById(userId);
         if (!user) {

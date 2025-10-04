@@ -30,6 +30,11 @@ export function setupFlightsWebsocket(httpServer) {
 
         socket.on('updateFlight', async ({ flightId, updates }) => {
             try {
+                // Handle local hide/unhide - don't process these on server
+                if (updates.hasOwnProperty('hidden')) {
+                    return; // Ignore hidden field updates
+                }
+
                 if (updates.callsign && updates.callsign.length > 16) {
                     socket.emit('flightError', { action: 'update', flightId, error: 'Callsign too long' });
                     return;

@@ -32,6 +32,7 @@ interface ToolbarProps {
 	isPFATC?: boolean;
 	currentView?: 'departures' | 'arrivals';
 	onViewChange?: (view: 'departures' | 'arrivals') => void;
+	showViewTabs?: boolean;
 }
 
 export default function Toolbar({
@@ -42,7 +43,8 @@ export default function Toolbar({
 	onRunwayChange,
 	isPFATC = false,
 	currentView = 'departures',
-	onViewChange
+	onViewChange,
+	showViewTabs = true
 }: ToolbarProps) {
 	const [runway, setRunway] = useState(activeRunway || '');
 	const [position, setPosition] = useState<Position | null>('ALL');
@@ -288,7 +290,7 @@ export default function Toolbar({
                     flex-wrap
                 "
 			>
-				{isPFATC && (
+				{isPFATC && showViewTabs && (
 					<div className="flex items-center gap-2">
 						<Button
 							className={`p-1 rounded ${

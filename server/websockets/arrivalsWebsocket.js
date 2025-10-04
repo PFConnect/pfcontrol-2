@@ -50,7 +50,7 @@ export function setupArrivalsWebsocket(httpServer) {
                     return;
                 }
 
-                const allowedFields = ['clearedFL', 'status', 'star', 'remark', 'squawk', 'hidden', 'gate'];
+                const allowedFields = ['clearedFL', 'status', 'star', 'remark', 'squawk', 'gate'];
                 const filteredUpdates = {};
 
                 for (const [key, value] of Object.entries(updates)) {

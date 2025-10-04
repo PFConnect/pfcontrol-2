@@ -1,10 +1,16 @@
 import { useEffect, useState, useRef, useContext } from 'react';
 import { UNSAFE_NavigationContext, useLocation } from 'react-router-dom';
-import { fetchUserSettings, updateUserSettings } from '../utils/fetch/settings';
-import { Save, AlertTriangle } from 'lucide-react';
-import type { Settings } from '../types/settings';
+import { Save, AlertTriangle, Settings as SettingsIcon } from 'lucide-react';
+import type {
+	Settings,
+	DepartureTableColumnSettings,
+	ArrivalsTableColumnSettings
+} from '../types/settings';
+import { useSettings } from '../hooks/settings/useSettings';
 import BackgroundImageSettings from '../components/Settings/BackgroundImageSettings';
 import SoundSettings from '../components/Settings/SoundSettings';
+import LayoutSettings from '../components/Settings/LayoutSettings';
+import TableColumnSettings from '../components/Settings/TableColumnSettings';
 import Navbar from '../components/Navbar';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
@@ -38,17 +44,18 @@ function useCustomBlocker(shouldBlock: boolean, onBlock: () => void) {
 }
 
 export default function Settings() {
-	const [settings, setSettings] = useState<Settings | null>(null);
+	const { settings, updateSettings, loading } = useSettings();
 	const [localSettings, setLocalSettings] = useState<Settings | null>(null);
-	const [loading, setLoading] = useState(true);
 	const [saving, setSaving] = useState(false);
 	const [hasChanges, setHasChanges] = useState(false);
 	const [showDiscardToast, setShowDiscardToast] = useState(false);
 	const preventNavigation = useRef(false);
 
 	useEffect(() => {
-		loadSettings();
-	}, []);
+		if (settings) {
+			setLocalSettings(settings);
+		}
+	}, [settings]);
 
 	useEffect(() => {
 		if (settings && localSettings) {
@@ -73,48 +80,75 @@ export default function Settings() {
 			window.removeEventListener('beforeunload', handleBeforeUnload);
 	}, [hasChanges]);
 
-	const loadSettings = async () => {
-		try {
-			const data = await fetchUserSettings();
-
-			const completeSettings = {
-				...data,
-				backgroundImage: {
-					selectedImage: data.backgroundImage?.selectedImage || null,
-					useCustomBackground:
-						data.backgroundImage?.useCustomBackground || false,
-					favorites: data.backgroundImage?.favorites || [],
-					stripOpacity: data.backgroundImage?.stripOpacity || 100
-				},
-				sounds: {
-					startupSound: data.sounds?.startupSound || {
-						enabled: true,
-						volume: 100
-					},
-					chatNotificationSound: data.sounds
-						?.chatNotificationSound || {
-						enabled: true,
-						volume: 100
-					},
-					newStripSound: data.sounds?.newStripSound || {
-						enabled: true,
-						volume: 100
-					}
-				}
-			};
-
-			console.log('Loaded settings:', completeSettings);
-			setSettings(completeSettings);
-			setLocalSettings(completeSettings);
-		} catch (error) {
-			console.error('Error fetching user settings:', error);
-		} finally {
-			setLoading(false);
-		}
-	};
-
 	const handleLocalSettingsChange = (updatedSettings: Settings) => {
 		setLocalSettings(updatedSettings);
+	};
+
+	const handleDepartureColumnsChange = (
+		columns: DepartureTableColumnSettings
+	) => {
+		if (!localSettings) return;
+		const newSettings = {
+			...localSettings,
+			departureTableColumns: columns
+		};
+		setLocalSettings(newSettings);
+	};
+
+	const handleArrivalsColumnsChange = (
+		columns: ArrivalsTableColumnSettings
+	) => {
+		if (!localSettings) return;
+		const newSettings = {
+			...localSettings,
+			arrivalsTableColumns: columns
+		};
+		setLocalSettings(newSettings);
+	};
+
+	const handleResetTableColumns = () => {
+		if (!localSettings) return;
+		const newSettings: Settings = {
+			...localSettings,
+			departureTableColumns: {
+				time: true as const,
+				callsign: true,
+				stand: true,
+				aircraft: true,
+				wakeTurbulence: true,
+				flightType: true,
+				arrival: true,
+				runway: true,
+				sid: true,
+				rfl: true,
+				cfl: true,
+				squawk: true,
+				clearance: true,
+				status: true,
+				remark: true,
+				pdc: true,
+				hide: true,
+				delete: true
+			},
+			arrivalsTableColumns: {
+				time: true as const,
+				callsign: true,
+				gate: true,
+				aircraft: true,
+				wakeTurbulence: true,
+				flightType: true,
+				departure: true,
+				runway: true,
+				star: true,
+				rfl: true,
+				cfl: true,
+				squawk: true,
+				status: true,
+				remark: true,
+				hide: true
+			}
+		};
+		setLocalSettings(newSettings);
 	};
 
 	const handleSave = async () => {
@@ -122,8 +156,7 @@ export default function Settings() {
 
 		try {
 			setSaving(true);
-			await updateUserSettings(localSettings);
-			setSettings(localSettings);
+			await updateSettings(localSettings);
 			setHasChanges(false);
 			preventNavigation.current = false;
 		} catch (error) {
@@ -150,27 +183,104 @@ export default function Settings() {
 
 	if (loading)
 		return (
-			<div className="min-h-screen bg-gradient-to-t from-black via-zinc-900 to-blue-950 text-white flex items-center justify-center">
+			<div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
 				<Navbar />
 				<Loader />
 			</div>
 		);
 
 	return (
-		<div className="min-h-screen bg-zinc-900 text-white">
+		<div className="min-h-screen bg-zinc-950 text-white">
 			<Navbar />
-			<div className="max-w-6xl mx-auto px-4 py-8 pt-24">
-				<h1
-					className="text-4xl sm:text-5xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-8 text-left"
-					style={{ lineHeight: 1.5 }}
-				>
-					Settings
-				</h1>
-				<SoundSettings
-					settings={localSettings}
-					onChange={handleLocalSettingsChange}
-				/>
-				<div className="mt-8">
+
+			{/* Header */}
+			<div className="bg-gradient-to-b from-zinc-800 to-zinc-900 border-b border-zinc-700/50">
+				<div className="max-w-5xl mx-auto px-6 py-12 pt-28">
+					<div className="flex items-center mb-4">
+						<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
+							<SettingsIcon className="h-8 w-8 text-blue-400" />
+						</div>
+						<div>
+							<h1
+								className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 font-extrabold mb-2"
+								style={{ lineHeight: 1.4 }}
+							>
+								Settings
+							</h1>
+						</div>
+					</div>
+
+					{hasChanges && (
+						<div className="flex items-center px-4 py-3 bg-amber-500/10 border border-amber-500/30 rounded-lg">
+							<AlertTriangle className="h-5 w-5 text-amber-400 mr-3" />
+							<span className="text-amber-200 text-sm">
+								You have unsaved changes
+							</span>
+						</div>
+					)}
+				</div>
+			</div>
+
+			{/* Content */}
+			<div className="max-w-5xl mx-auto px-6 py-8">
+				<div className="space-y-8">
+					<TableColumnSettings
+						departureColumns={
+							localSettings?.departureTableColumns || {
+								time: true,
+								callsign: true,
+								stand: true,
+								aircraft: true,
+								wakeTurbulence: true,
+								flightType: true,
+								arrival: true,
+								runway: true,
+								sid: true,
+								rfl: true,
+								cfl: true,
+								squawk: true,
+								clearance: true,
+								status: true,
+								remark: true,
+								pdc: true,
+								hide: true,
+								delete: true
+							}
+						}
+						arrivalsColumns={
+							localSettings?.arrivalsTableColumns || {
+								time: true,
+								callsign: true,
+								gate: true,
+								aircraft: true,
+								wakeTurbulence: true,
+								flightType: true,
+								departure: true,
+								runway: true,
+								star: true,
+								rfl: true,
+								cfl: true,
+								squawk: true,
+								status: true,
+								remark: true,
+								hide: true
+							}
+						}
+						onDepartureColumnsChange={handleDepartureColumnsChange}
+						onArrivalsColumnsChange={handleArrivalsColumnsChange}
+						onReset={handleResetTableColumns}
+					/>
+
+					<LayoutSettings
+						settings={localSettings}
+						onChange={handleLocalSettingsChange}
+					/>
+
+					<SoundSettings
+						settings={localSettings}
+						onChange={handleLocalSettingsChange}
+					/>
+
 					<BackgroundImageSettings
 						settings={localSettings}
 						onChange={handleLocalSettingsChange}
@@ -178,14 +288,15 @@ export default function Settings() {
 				</div>
 			</div>
 
+			{/* Save/Discard Bar */}
 			{hasChanges && !showDiscardToast && (
 				<div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-					<div className="bg-blue-900/95 backdrop-blur-sm border border-blue-600/50 rounded-2xl p-6 shadow-xl flex items-center space-x-4 min-w-[320px]">
+					<div className="bg-zinc-900/95 backdrop-blur-md border border-zinc-700/50 rounded-2xl p-4 shadow-2xl flex items-center space-x-4 min-w-[320px]">
 						<div className="flex-1">
 							<p className="text-white font-medium text-sm">
-								You have unsaved changes
+								Unsaved changes
 							</p>
-							<p className="text-blue-300 text-xs">
+							<p className="text-zinc-400 text-xs">
 								Don't forget to save your settings
 							</p>
 						</div>
@@ -195,7 +306,7 @@ export default function Settings() {
 								variant="outline"
 								size="sm"
 								disabled={saving}
-								className="text-xs text-white border-white hover:bg-white/20"
+								className="text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-800"
 							>
 								Discard
 							</Button>
@@ -203,7 +314,7 @@ export default function Settings() {
 								onClick={handleSave}
 								disabled={saving}
 								size="sm"
-								className="text-xs flex items-center space-x-1"
+								className="text-xs bg-blue-600 hover:bg-blue-700 flex items-center space-x-2"
 							>
 								{saving ? (
 									<>
@@ -225,14 +336,14 @@ export default function Settings() {
 			{/* Discard Warning Toast */}
 			{showDiscardToast && (
 				<div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50">
-					<div className="bg-red-900/95 backdrop-blur-sm border border-red-600/50 rounded-2xl p-6 shadow-xl flex items-center space-x-4 min-w-[380px]">
-						<AlertTriangle className="w-6 h-6 text-red-400 flex-shrink-0" />
+					<div className="bg-red-900/95 backdrop-blur-md border border-red-600/50 rounded-2xl p-4 shadow-2xl flex items-center space-x-4 min-w-[380px]">
+						<AlertTriangle className="w-5 h-5 text-red-400 flex-shrink-0" />
 						<div className="flex-1">
 							<p className="text-white font-medium text-sm">
 								Unsaved changes will be lost
 							</p>
 							<p className="text-red-300 text-xs">
-								Are you sure you want to leave without saving?
+								Are you sure you want to leave?
 							</p>
 						</div>
 						<div className="flex space-x-3">
@@ -240,7 +351,7 @@ export default function Settings() {
 								onClick={() => setShowDiscardToast(false)}
 								variant="outline"
 								size="sm"
-								className="text-xs border-white text-white hover:bg-white/20"
+								className="text-xs border-zinc-600 text-zinc-300 hover:bg-zinc-800"
 							>
 								Cancel
 							</Button>
@@ -248,7 +359,7 @@ export default function Settings() {
 								onClick={handleForceLeave}
 								variant="danger"
 								size="sm"
-								className="text-xs"
+								className="text-xs bg-red-600 hover:bg-red-700"
 							>
 								Leave anyway
 							</Button>
@@ -256,24 +367,6 @@ export default function Settings() {
 					</div>
 				</div>
 			)}
-
-			<style>{`
-                @keyframes slideUp {
-                    from {
-                        opacity: 0;
-                        transform: translateY(100%);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: translateY(0);
-                    }
-                }
-
-                .fixed.bottom-6 > div {
-                    left: 50%;
-                    animation: slideUp 0.3s ease-out;
-                }
-            `}</style>
 		</div>
 	);
 }

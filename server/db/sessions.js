@@ -149,18 +149,26 @@ export async function getSessionsByUserDetailed(userId) {
         FROM sessions WHERE created_by = $1 ORDER BY created_at DESC`,
         [userId]
     );
-    return result.rows.map(row => ({
-        sessionId: row.session_id,
-        accessId: row.access_id,
-        airportIcao: row.airport_icao,
-        activeRunway: row.active_runway,
-        createdAt: row.created_at,
-        refreshedAt: row.refreshed_at,
-        customName: row.custom_name,
-        flightCount: 0, // Will be set by frontend using flights API
-        isLegacy: false,
-        isPFATC: row.is_pfatc
-    }));
+    const sessions = [];
+    for (const row of result.rows) {
+        const flightCountResult = await flightsPool.query(
+            `SELECT COUNT(*) as count FROM flights_${row.session_id}`
+        );
+        const flightCount = parseInt(flightCountResult.rows[0].count, 10);
+        sessions.push({
+            sessionId: row.session_id,
+            accessId: row.access_id,
+            airportIcao: row.airport_icao,
+            activeRunway: row.active_runway,
+            createdAt: row.created_at,
+            refreshedAt: row.refreshed_at,
+            customName: row.custom_name,
+            flightCount,
+            isLegacy: false,
+            isPFATC: row.is_pfatc
+        });
+    }
+    return sessions;
 }
 
 export async function deleteSession(sessionId) {

@@ -13,11 +13,13 @@ interface ArrivalsTableMobileProps {
 		flightId: string | number,
 		updates: Partial<Flight>
 	) => void;
+	backgroundStyle?: React.CSSProperties;
 }
 
 export default function ArrivalsTableMobile({
 	flights,
-	onFlightChange
+	onFlightChange,
+	backgroundStyle
 }: ArrivalsTableMobileProps) {
 	const [showHidden, setShowHidden] = useState(false);
 
@@ -70,11 +72,12 @@ export default function ArrivalsTableMobile({
 					{visibleFlights.map((flight) => (
 						<div
 							key={flight.id}
-							className={`bg-zinc-900 rounded-lg p-4 border ${
+							className={`flight-card p-4 rounded-lg border ${
 								flight.hidden
-									? 'border-gray-600 bg-zinc-800'
+									? 'opacity-60 text-gray-400 border-gray-600'
 									: 'border-gray-700'
 							}`}
+							style={backgroundStyle}
 						>
 							<div className="flex justify-between items-start mb-3">
 								<div>

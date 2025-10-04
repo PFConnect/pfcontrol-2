@@ -54,26 +54,6 @@ export async function createOrUpdateUser(userData) {
 
     try {
         const defaultSettings = {
-            tableColumns: {
-                callsign: true,
-                aircraftType: true,
-                departure: true,
-                arrival: true,
-                route: true,
-                sid: true,
-                runway: true,
-                clearedFL: true,
-                status: true,
-                remark: true,
-                clearance: true,
-                actions: true,
-                stand: true,
-                wakeTurbulence: true,
-                flightType: true,
-                rfl: true,
-                squawk: true,
-                cfl: true
-            },
             sounds: {
                 startupSound: { enabled: true, volume: 100 },
                 chatNotificationSound: { enabled: true, volume: 100 },
@@ -82,40 +62,49 @@ export async function createOrUpdateUser(userData) {
             backgroundImage: {
                 selectedImage: null,
                 useCustomBackground: false,
-                favorites: [],
-                stripOpacity: 100
+                favorites: []
             },
             layout: {
-                showCombinedView: false
+                showCombinedView: false,
+                flightRowOpacity: 100
             },
-            stripColors: {
-                RWY: true,
-                PENDING: true,
-                STUP: true,
-                PUSH: true,
-                TAXI: true,
-                DEPA: true
+            departureTableColumns: {
+                time: true, // cannot be disabled
+                callsign: true,
+                stand: true,
+                aircraft: true,
+                wakeTurbulence: true,
+                flightType: true,
+                arrival: true,
+                runway: true,
+                sid: true,
+                rfl: true,
+                cfl: true,
+                squawk: true,
+                clearance: true,
+                status: true,
+                remark: true,
+                pdc: true,
+                hide: true,
+                delete: true
             },
             arrivalsTableColumns: {
+                time: true, // cannot be disabled
                 callsign: true,
+                gate: true,
                 aircraft: true,
+                wakeTurbulence: true,
+                flightType: true,
                 departure: true,
+                runway: true,
                 star: true,
-                clearedFL: true,
-                cruisingFL: true,
+                rfl: true,
+                cfl: true,
                 squawk: true,
                 status: true,
-                arrivingStand: true,
-                time: true,
-                actions: true
+                remark: true,
+                hide: true
             },
-            arrivalsStripColors: {
-                RWY: true,
-                PENDING: false,
-                APPROACH: false,
-                TAXI: false,
-                GATE: false
-            }
         };
 
         const existingUser = await pool.query('SELECT * FROM users WHERE id = $1', [id]);
@@ -229,16 +218,8 @@ export async function updateUserSettings(id, settings) {
             throw new Error('User not found');
         }
 
-        const mergedSettings = {
-            ...existingUser.settings,
-            ...settings,
-            ...(settings.backgroundImage && {
-                backgroundImage: {
-                    ...existingUser.settings?.backgroundImage,
-                    ...settings.backgroundImage
-                }
-            })
-        };
+        // Shallow merge: Replace top-level properties entirely since client sends full objects
+        const mergedSettings = { ...existingUser.settings, ...settings };
 
         const encryptedSettings = encrypt(mergedSettings);
 

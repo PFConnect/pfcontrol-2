@@ -20,12 +20,14 @@ interface DepartureTableProps {
 		updates: Partial<Flight>
 	) => void;
 	onFlightDelete: (flightId: string | number) => void;
+	backgroundStyle?: React.CSSProperties;
 }
 
 export default function DepartureTable({
 	flights,
 	onFlightDelete,
-	onFlightChange
+	onFlightChange,
+	backgroundStyle
 }: DepartureTableProps) {
 	const [showHidden, setShowHidden] = useState(false);
 	const isMobile = useMediaQuery({ maxWidth: 1000 });
@@ -151,8 +153,6 @@ export default function DepartureTable({
 	const visibleFlights = showHidden
 		? flights
 		: flights.filter((flight) => !flight.hidden);
-
-	// Move the hidden flights button logic before the empty check
 	const hasHiddenFlights = flights.some((flight) => flight.hidden);
 
 	if (isMobile) {
@@ -161,11 +161,10 @@ export default function DepartureTable({
 				flights={flights}
 				onFlightDelete={onFlightDelete}
 				onFlightChange={onFlightChange}
+				backgroundStyle={backgroundStyle}
 			/>
 		);
 	}
-
-	// Desktop table view
 	return (
 		<div className="mt-8 px-4">
 			{hasHiddenFlights && (
@@ -194,7 +193,7 @@ export default function DepartureTable({
 				</div>
 			) : (
 				<div className="table-view">
-					<table className="min-w-full bg-zinc-900 rounded-lg">
+					<table className="min-w-full rounded-lg">
 						<thead>
 							<tr className="bg-blue-950 text-blue-200">
 								<th className="py-2.5 px-4 text-left column-time">
@@ -241,11 +240,12 @@ export default function DepartureTable({
 							{visibleFlights.map((flight) => (
 								<tr
 									key={flight.id}
-									className={`${
+									className={`flight-row ${
 										flight.hidden
-											? 'bg-zinc-800 text-gray-500'
+											? 'opacity-60 text-gray-400'
 											: ''
 									}`}
+									style={backgroundStyle}
 								>
 									<td className="py-2 px-4 column-time">
 										{flight.timestamp

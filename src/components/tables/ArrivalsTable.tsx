@@ -15,11 +15,13 @@ interface ArrivalsTableProps {
 		flightId: string | number,
 		updates: Partial<Flight>
 	) => void;
+	backgroundStyle?: React.CSSProperties;
 }
 
 export default function ArrivalsTable({
 	flights,
-	onFlightChange
+	onFlightChange,
+	backgroundStyle
 }: ArrivalsTableProps) {
 	const [showHidden, setShowHidden] = useState(false);
 	const isMobile = useMediaQuery({ maxWidth: 1000 });
@@ -86,6 +88,7 @@ export default function ArrivalsTable({
 			<ArrivalsTableMobile
 				flights={flights}
 				onFlightChange={onFlightChange}
+				backgroundStyle={backgroundStyle}
 			/>
 		);
 	}
@@ -118,7 +121,7 @@ export default function ArrivalsTable({
 				</div>
 			) : (
 				<div className="table-view">
-					<table className="min-w-full bg-zinc-900 rounded-lg">
+					<table className="min-w-full rounded-lg">
 						<thead>
 							<tr className="bg-green-950 text-green-200">
 								<th className="py-2.5 px-4 text-left column-time">
@@ -162,9 +165,10 @@ export default function ArrivalsTable({
 									key={flight.id}
 									className={`${
 										flight.hidden
-											? 'bg-zinc-800 text-gray-500'
+											? 'opacity-60 text-gray-400'
 											: ''
 									}`}
+									style={backgroundStyle}
 								>
 									<td className="py-2 px-4 column-time">
 										{flight.timestamp

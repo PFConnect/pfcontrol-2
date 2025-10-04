@@ -17,7 +17,7 @@ export default function Checkbox({
 }: CheckboxProps) {
 	return (
 		<label
-			className={`flex items-center space-x-3 cursor-pointer ${className}`}
+			className={`checkbox flex items-center space-x-3 cursor-pointer ${className}`}
 		>
 			<div className="relative">
 				<input

@@ -1,8 +1,9 @@
-import { Volume2 } from 'lucide-react';
+import { Volume2, VolumeX, ChevronDown, ChevronUp } from 'lucide-react';
+import { useState } from 'react';
 import { SOUNDS } from '../../utils/playSound';
 import type { Settings } from '../../types/settings';
 import AudioVisualizerButton from './AudioVisualizerButton';
-import { useState } from 'react';
+import Button from '../common/Button';
 
 interface SoundSettingsProps {
 	settings: Settings | null;
@@ -13,17 +14,23 @@ const soundConfigs = [
 	{
 		key: 'startupSound' as const,
 		label: 'Session Startup Sound',
-		sound: SOUNDS.SESSION_STARTUP
+		description: 'Plays when you join a session',
+		sound: SOUNDS.SESSION_STARTUP,
+		color: 'blue'
 	},
 	{
 		key: 'chatNotificationSound' as const,
 		label: 'Chat Notification Sound',
-		sound: SOUNDS.CHAT_NOTIFICATION
+		description: 'Plays when you receive a chat message',
+		sound: SOUNDS.CHAT_NOTIFICATION,
+		color: 'green'
 	},
 	{
 		key: 'newStripSound' as const,
 		label: 'New Strip Sound',
-		sound: SOUNDS.NEW_STRIP
+		description: 'Plays when a new flight strip appears',
+		sound: SOUNDS.NEW_STRIP,
+		color: 'purple'
 	}
 ];
 
@@ -31,6 +38,7 @@ export default function SoundSettings({
 	settings,
 	onChange
 }: SoundSettingsProps) {
+	const [isExpanded, setIsExpanded] = useState(false);
 	const [playingKey, setPlayingKey] = useState<
 		keyof Settings['sounds'] | null
 	>(null);
@@ -88,152 +96,267 @@ export default function SoundSettings({
 
 	if (!settings) return null;
 
+	const getColorClasses = (color: string) => {
+		switch (color) {
+			case 'blue':
+				return {
+					bg: 'bg-blue-500/20',
+					text: 'text-blue-400',
+					border: 'border-blue-500/30',
+					hover: 'hover:bg-blue-500/30'
+				};
+			case 'green':
+				return {
+					bg: 'bg-green-500/20',
+					text: 'text-green-400',
+					border: 'border-green-500/30',
+					hover: 'hover:bg-green-500/30'
+				};
+			case 'purple':
+				return {
+					bg: 'bg-purple-500/20',
+					text: 'text-purple-400',
+					border: 'border-purple-500/30',
+					hover: 'hover:bg-purple-500/30'
+				};
+			default:
+				return {
+					bg: 'bg-zinc-500/20',
+					text: 'text-zinc-400',
+					border: 'border-zinc-500/30',
+					hover: 'hover:bg-zinc-500/30'
+				};
+		}
+	};
+
 	return (
-		<div className="bg-zinc-900 rounded-lg p-4 sm:p-6">
+		<div className="bg-zinc-900 border border-zinc-700/50 rounded-2xl overflow-hidden">
 			{/* Header */}
-			<div className="flex items-start mb-6">
-				<div className="p-2 bg-green-500/10 rounded-lg mr-3 sm:mr-4 flex-shrink-0">
-					<Volume2 className="h-5 w-5 sm:h-6 sm:w-6 text-green-400" />
+			<button
+				onClick={() => setIsExpanded(!isExpanded)}
+				className="w-full p-6 border-b border-zinc-700/50"
+			>
+				<div className="flex items-center justify-between">
+					<div className="flex items-center">
+						<div className="p-2 bg-orange-500/20 rounded-lg mr-4">
+							<Volume2 className="h-6 w-6 text-orange-400" />
+						</div>
+						<div className="text-left">
+							<h3 className="text-xl font-semibold text-white">
+								Sound Settings
+							</h3>
+							<p className="text-zinc-400 text-sm mt-1">
+								Configure audio notifications and their volume
+								levels
+							</p>
+						</div>
+					</div>
+					<Button
+						onClick={() => setIsExpanded(!isExpanded)}
+						variant="outline"
+						size="sm"
+						className="border-zinc-600 text-zinc-300 hover:bg-zinc-800"
+					>
+						{isExpanded ? (
+							<ChevronUp className="h-4 w-4" />
+						) : (
+							<ChevronDown className="h-4 w-4" />
+						)}
+					</Button>
 				</div>
-				<div>
-					<h3 className="text-lg sm:text-xl font-semibold text-white mb-1 sm:mb-2">
-						Sound Settings
-					</h3>
-					<p className="text-gray-400 text-xs sm:text-sm leading-relaxed">
-						Enable/disable sounds and adjust their volume. Test them
-						to ensure they sound right.
-					</p>
-				</div>
-			</div>
+			</button>
 
-			{/* Sound Controls */}
-			<div className="space-y-6">
-				{soundConfigs.map(({ key, label }) => {
-					const soundSetting = settings.sounds[key];
-					return (
-						<div
-							key={key}
-							className="flex items-center justify-between p-4 bg-gray-800/30 rounded-lg border border-gray-700/50"
-						>
-							<div className="flex-1">
-								<h4 className="text-white font-medium text-sm mb-2">
-									{label}
-								</h4>
-								<div className="flex items-center space-x-4">
-									{/* Toggle */}
-									<label className="flex items-center cursor-pointer">
-										<input
-											type="checkbox"
-											checked={soundSetting.enabled}
-											onChange={() => handleToggle(key)}
-											className="sr-only"
-										/>
-										<div
-											className={`relative inline-block w-10 h-6 rounded-full transition-colors ${
-												soundSetting.enabled
-													? 'bg-green-500'
-													: 'bg-gray-600'
-											}`}
-										>
-											<div
-												className={`absolute top-1 left-1 w-4 h-4 bg-white rounded-full transition-transform ${
-													soundSetting.enabled
-														? 'translate-x-4'
-														: 'translate-x-0'
-												}`}
-											></div>
-										</div>
-										<span className="ml-2 text-sm text-gray-300">
-											{soundSetting.enabled
-												? 'Enabled'
-												: 'Disabled'}
-										</span>
-									</label>
+			{/* Content */}
+			<div
+				className={`transition-all duration-300 ease-in-out ${
+					isExpanded
+						? 'max-h-[2000px] opacity-100'
+						: 'max-h-0 opacity-0 overflow-hidden'
+				}`}
+			>
+				<div className="p-6">
+					<div className="space-y-4">
+						{soundConfigs.map(
+							({ key, label, description, color }) => {
+								const soundSetting = settings.sounds[key];
+								const colors = getColorClasses(color);
 
-									{/* Volume Slider */}
+								return (
 									<div
-										className={`flex items-center space-x-2 ${
-											!soundSetting.enabled
-												? 'opacity-50 pointer-events-none'
-												: ''
+										key={key}
+										className={`bg-zinc-800/30 border border-zinc-700/50 rounded-xl p-5 transition-all ${
+											soundSetting.enabled
+												? `hover:${colors.border}`
+												: 'opacity-75'
 										}`}
 									>
-										<span className="text-xs text-gray-400">
-											Volume:
-										</span>
-										<input
-											type="range"
-											min="10"
-											max="200"
-											step="10"
-											value={soundSetting.volume}
-											onChange={(e) =>
-												handleVolumeChange(
-													key,
-													parseInt(e.target.value)
-												)
-											}
-											className="w-48 h-2 bg-gray-700 rounded-lg appearance-none cursor-pointer slider"
-										/>
-										<span className="text-sm text-white font-medium w-12 text-center">
-											{soundSetting.volume}%
-										</span>
+										<div className="flex items-start justify-between mb-4">
+											<div className="flex items-start flex-1">
+												{/* Icon Toggle Button */}
+												<button
+													onClick={() =>
+														handleToggle(key)
+													}
+													className={`relative p-2 rounded-lg mr-4 mt-0.5 transition-all duration-200 cursor-pointer group ${
+														soundSetting.enabled
+															? `${colors.bg} ${colors.hover}`
+															: 'bg-zinc-700/30 hover:bg-zinc-600/30'
+													}`}
+												>
+													{soundSetting.enabled ? (
+														<Volume2
+															className={`h-5 w-5 transition-colors ${colors.text}`}
+														/>
+													) : (
+														<VolumeX className="h-5 w-5 text-zinc-500 group-hover:text-zinc-400 transition-colors" />
+													)}
+
+													{/* Toggle indicator */}
+													<div
+														className={`absolute -top-1 -right-1 w-3 h-3 rounded-full border-2 border-zinc-800 transition-all ${
+															soundSetting.enabled
+																? 'bg-emerald-500'
+																: 'bg-zinc-600'
+														}`}
+													/>
+												</button>
+
+												<div className="flex-1">
+													<div className="flex items-center justify-between">
+														<h4 className="text-white font-medium">
+															{label}
+														</h4>
+													</div>
+													<p className="text-zinc-400 text-sm">
+														{description}
+													</p>
+												</div>
+											</div>
+
+											<div className="ml-4">
+												<AudioVisualizerButton
+													isPlaying={
+														playingKey === key
+													}
+													onClick={() =>
+														handlePlayTest(key)
+													}
+													label="Test"
+													variant={
+														key === 'startupSound'
+															? 'default'
+															: key ===
+															  'chatNotificationSound'
+															? 'notification'
+															: key ===
+															  'newStripSound'
+															? 'newstrip'
+															: 'custom'
+													}
+												/>
+											</div>
+										</div>
+
+										{/* Volume Control */}
+										<div
+											className={`transition-all ${
+												soundSetting.enabled
+													? 'opacity-100'
+													: 'opacity-50 pointer-events-none'
+											}`}
+										>
+											<div className="flex items-center space-x-4">
+												<span className="text-xs text-zinc-500 w-12">
+													10%
+												</span>
+												<div className="flex-1 relative">
+													<input
+														type="range"
+														min="10"
+														max="200"
+														step="10"
+														value={
+															soundSetting.volume
+														}
+														onChange={(e) =>
+															handleVolumeChange(
+																key,
+																parseInt(
+																	e.target
+																		.value
+																)
+															)
+														}
+														className="w-full h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer volume-slider"
+													/>
+													<div
+														className={`absolute top-1/2 left-0 h-2 -translate-y-1/2 ${
+															soundSetting.volume <=
+															100
+																? 'bg-gradient-to-r from-green-500 to-yellow-500'
+																: 'bg-gradient-to-r from-yellow-500 to-red-500'
+														} rounded-lg pointer-events-none`}
+														style={{
+															width: `${Math.min(
+																((soundSetting.volume -
+																	10) /
+																	190) *
+																	100,
+																100
+															)}%`
+														}}
+													></div>
+												</div>
+												<span className="text-xs text-zinc-500 w-12">
+													200%
+												</span>
+												<span
+													className={`text-sm font-medium w-16 text-center px-2 py-1 rounded ${
+														soundSetting.volume <=
+														100
+															? 'bg-green-500/20 text-green-400'
+															: 'bg-red-500/20 text-red-400'
+													}`}
+												>
+													{soundSetting.volume}%
+												</span>
+											</div>
+										</div>
 									</div>
-								</div>
-							</div>
-
-							<AudioVisualizerButton
-								isPlaying={playingKey === key}
-								onClick={() => handlePlayTest(key)}
-								label="Test"
-								variant={
-									key === 'startupSound'
-										? 'default'
-										: key === 'chatNotificationSound'
-										? 'notification'
-										: key === 'newStripSound'
-										? 'newstrip'
-										: 'custom'
-								}
-							/>
-						</div>
-					);
-				})}
-			</div>
-
-			{/* Info Section */}
-			<div className="mt-6 p-4 bg-gradient-to-r from-blue-900/20 to-indigo-900/20 border border-blue-500/20 rounded-lg">
-				<div className="flex items-start">
-					<div className="w-2 h-2 bg-blue-400 rounded-full mt-2 mr-3 flex-shrink-0"></div>
-					<div>
-						<h4 className="text-blue-300 font-medium text-sm mb-1">
-							How it works
-						</h4>
-						<p className="text-blue-200/80 text-xs sm:text-sm leading-relaxed">
-							Toggle sounds on/off and adjust volume from 10% to
-							200%. Use the "Test" button to preview.
-						</p>
+								);
+							}
+						)}
 					</div>
 				</div>
 			</div>
 
-			{/* Custom Slider Styles */}
 			<style>{`
-                .slider::-webkit-slider-thumb {
+                .volume-slider::-webkit-slider-thumb {
                     appearance: none;
-                    height: 16px;
-                    width: 16px;
+                    height: 18px;
+                    width: 18px;
                     border-radius: 50%;
-                    background: #3b82f6;
+                    background: #ffffff;
                     cursor: pointer;
+                    border: 2px solid #10b981;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    position: relative;
+                    z-index: 10;
                 }
-                .slider::-moz-range-thumb {
-                    height: 16px;
-                    width: 16px;
+                .volume-slider::-moz-range-thumb {
+                    height: 18px;
+                    width: 18px;
                     border-radius: 50%;
-                    background: #3b82f6;
+                    background: #ffffff;
                     cursor: pointer;
-                    border: none;
+                    border: 2px solid #10b981;
+                    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+                    position: relative;
+                    z-index: 10;
+                }
+                .volume-slider {
+                    background: transparent;
+                    position: relative;
                 }
             `}</style>
 		</div>

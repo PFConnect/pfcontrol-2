@@ -19,6 +19,7 @@ import {
 	deleteSession
 } from '../utils/fetch/sessions';
 import type { SessionInfo } from '../types/session';
+import { fetchFlights } from '../utils/fetch/flights';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import TextInput from '../components/common/TextInput';
@@ -42,7 +43,21 @@ export default function Sessions() {
 			return;
 		}
 		fetchMySessions()
-			.then((data) => setSessions(data))
+			.then(async (data) => {
+				const sessionsWithCounts = await Promise.all(
+					data.map(async (session) => {
+						try {
+							const flights = await fetchFlights(
+								session.sessionId
+							);
+							return { ...session, flightCount: flights.length };
+						} catch {
+							return { ...session, flightCount: 0 };
+						}
+					})
+				);
+				setSessions(sessionsWithCounts);
+			})
 			.catch(() => setError('Failed to load sessions.'))
 			.finally(() => setLoading(false));
 	}, [user]);
@@ -142,7 +157,10 @@ export default function Sessions() {
 						{' '}
 						My Sessions
 					</h2>
-					<Button onClick={() => (window.location.href = '/create')}>
+					<Button
+						onClick={() => (window.location.href = '/create')}
+						size="md"
+					>
 						Create New Session
 					</Button>
 				</div>

@@ -1,5 +1,6 @@
 import { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router-dom';
+import { useMediaQuery } from 'react-responsive';
 import { fetchFlights } from '../utils/fetch/flights';
 import { fetchSession, updateSession } from '../utils/fetch/sessions';
 import { fetchBackgrounds } from '../utils/fetch/data';
@@ -7,11 +8,13 @@ import { createFlightsSocket } from '../sockets/flightsSocket';
 import { createArrivalsSocket } from '../sockets/arrivalsSocket';
 import { useAuth } from '../hooks/auth/useAuth';
 import { playSoundWithSettings } from '../utils/playSound';
+import { useSettings } from '../hooks/settings/useSettings';
 import type { Flight } from '../types/flight';
 import Navbar from '../components/Navbar';
 import Toolbar from '../components/tools/Toolbar';
 import DepartureTable from '../components/tables/DepartureTable';
 import ArrivalsTable from '../components/tables/ArrivalsTable';
+import CombinedFlightsTable from '../components/tables/CombinedFlightsTable';
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -33,6 +36,7 @@ export default function Flights() {
 	const { sessionId } = useParams<{ sessionId?: string }>();
 	const [searchParams] = useSearchParams();
 	const accessId = searchParams.get('accessId') ?? undefined;
+	const isMobile = useMediaQuery({ maxWidth: 768 });
 
 	const [session, setSession] = useState<SessionData | null>(null);
 	const [flights, setFlights] = useState<Flight[]>([]);
@@ -50,10 +54,14 @@ export default function Flights() {
 	);
 	const [startupSoundPlayed, setStartupSoundPlayed] = useState(false);
 	const { user } = useAuth();
+	const { settings } = useSettings();
 	const [currentView, setCurrentView] = useState<'departures' | 'arrivals'>(
 		'departures'
 	);
 	const [externalArrivals, setExternalArrivals] = useState<Flight[]>([]);
+	const [localHiddenFlights, setLocalHiddenFlights] = useState<
+		Set<string | number>
+	>(new Set());
 
 	useEffect(() => {
 		const loadImages = async () => {
@@ -88,17 +96,15 @@ export default function Flights() {
 				if (sessionData) setSession(sessionData);
 				setFlights(flightsData);
 				setInitialLoadComplete(true);
-				if (!startupSoundPlayed && user) {
-					playSoundWithSettings(
-						'startupSound',
-						user.settings,
-						0.7
-					).catch((error) => {
-						console.warn(
-							'Failed to play session startup sound:',
-							error
-						);
-					});
+				if (!startupSoundPlayed && user && settings) {
+					playSoundWithSettings('startupSound', settings, 0.7).catch(
+						(error) => {
+							console.warn(
+								'Failed to play session startup sound:',
+								error
+							);
+						}
+					);
 					setStartupSoundPlayed(true);
 				}
 			})
@@ -110,7 +116,8 @@ export default function Flights() {
 		lastSessionId,
 		initialLoadComplete,
 		startupSoundPlayed,
-		user
+		user,
+		settings
 	]);
 
 	useEffect(() => {
@@ -125,19 +132,18 @@ export default function Flights() {
 					prev.map((f) => (f.id === flight.id ? flight : f))
 				);
 			},
-			// onFlightAdded - NEW STRIP SOUND
+			// onFlightAdded
 			(flight: Flight) => {
 				setFlights((prev) => [...prev, flight]);
-
-				// Play new strip sound when a flight is added
-				if (user) {
-					playSoundWithSettings(
-						'newStripSound',
-						user.settings,
-						0.7
-					).catch((error) => {
-						console.warn('Failed to play new strip sound:', error);
-					});
+				if (user && settings) {
+					playSoundWithSettings('newStripSound', settings, 0.7).catch(
+						(error) => {
+							console.warn(
+								'Failed to play new strip sound:',
+								error
+							);
+						}
+					);
 				}
 			},
 			// onFlightDeleted
@@ -158,7 +164,7 @@ export default function Flights() {
 		return () => {
 			socket.socket.disconnect();
 		};
-	}, [sessionId, accessId, initialLoadComplete, user]);
+	}, [sessionId, accessId, initialLoadComplete, user, settings]);
 
 	useEffect(() => {
 		if (
@@ -198,6 +204,19 @@ export default function Flights() {
 		flightId: string | number,
 		updates: Partial<Flight>
 	) => {
+		if (Object.prototype.hasOwnProperty.call(updates, 'hidden')) {
+			if (updates.hidden) {
+				setLocalHiddenFlights((prev) => new Set(prev).add(flightId));
+			} else {
+				setLocalHiddenFlights((prev) => {
+					const newSet = new Set(prev);
+					newSet.delete(flightId);
+					return newSet;
+				});
+			}
+			return;
+		}
+
 		const isExternalArrival = externalArrivals.some(
 			(f) => f.id === flightId
 		);
@@ -244,7 +263,46 @@ export default function Flights() {
 		setCurrentView(view);
 	};
 
+	const departureFlights = useMemo(() => {
+		return flights
+			.filter(
+				(flight) =>
+					flight.departure?.toUpperCase() ===
+					session?.airportIcao?.toUpperCase()
+			)
+			.map((flight) => ({
+				...flight,
+				hidden: localHiddenFlights.has(flight.id)
+			}));
+	}, [flights, session?.airportIcao, localHiddenFlights]);
+
+	const arrivalFlights = useMemo(() => {
+		const ownArrivals = flights.filter(
+			(flight) =>
+				flight.arrival?.toUpperCase() ===
+				session?.airportIcao?.toUpperCase()
+		);
+
+		let baseArrivals = ownArrivals;
+		if (session?.isPFATC) {
+			baseArrivals = [...ownArrivals, ...externalArrivals];
+		}
+
+		return baseArrivals.map((flight) => ({
+			...flight,
+			hidden: localHiddenFlights.has(flight.id)
+		}));
+	}, [
+		flights,
+		externalArrivals,
+		session?.airportIcao,
+		session?.isPFATC,
+		localHiddenFlights
+	]);
+
 	const filteredFlights = useMemo(() => {
+		let baseFlights: Flight[] = [];
+
 		if (currentView === 'arrivals') {
 			const ownArrivals = flights.filter(
 				(flight) =>
@@ -253,26 +311,44 @@ export default function Flights() {
 			);
 
 			if (session?.isPFATC) {
-				return [...ownArrivals, ...externalArrivals];
+				baseFlights = [...ownArrivals, ...externalArrivals];
+			} else {
+				baseFlights = ownArrivals;
 			}
-			return ownArrivals;
 		} else {
-			return flights.filter(
+			baseFlights = flights.filter(
 				(flight) =>
 					flight.departure?.toUpperCase() ===
 					session?.airportIcao?.toUpperCase()
 			);
 		}
+
+		return baseFlights.map((flight) => ({
+			...flight,
+			hidden: localHiddenFlights.has(flight.id)
+		}));
 	}, [
 		flights,
 		externalArrivals,
 		currentView,
 		session?.airportIcao,
-		session?.isPFATC
+		session?.isPFATC,
+		localHiddenFlights
 	]);
 
-	const selectedImage = user?.settings?.backgroundImage?.selectedImage;
+	const selectedImage = settings?.backgroundImage?.selectedImage;
 	let backgroundImage = 'url("/assets/app/backgrounds/mdpc_01.png")';
+
+	const getImageUrl = (filename: string | null): string | null => {
+		if (!filename || filename === 'random' || filename === 'favorites') {
+			return filename;
+		}
+		if (filename.startsWith('https://api.cephie.app/')) {
+			return filename;
+		}
+		return `${API_BASE_URL}/assets/app/backgrounds/${filename}`;
+	};
+
 	if (selectedImage === 'random') {
 		if (availableImages.length > 0) {
 			const randomIndex = Math.floor(
@@ -281,15 +357,41 @@ export default function Flights() {
 			backgroundImage = `url(${API_BASE_URL}${availableImages[randomIndex].path})`;
 		}
 	} else if (selectedImage === 'favorites') {
-		const favorites = user?.settings?.backgroundImage?.favorites || [];
+		const favorites = settings?.backgroundImage?.favorites || [];
 		if (favorites.length > 0) {
 			const randomFav =
 				favorites[Math.floor(Math.random() * favorites.length)];
-			backgroundImage = `url(${API_BASE_URL}/assets/app/backgrounds/${randomFav})`;
+			// Updated: Use the helper function to get correct URL
+			const favImageUrl = getImageUrl(randomFav);
+			if (
+				favImageUrl &&
+				favImageUrl !== 'random' &&
+				favImageUrl !== 'favorites'
+			) {
+				backgroundImage = `url(${favImageUrl})`;
+			}
 		}
 	} else if (selectedImage) {
-		backgroundImage = `url(${API_BASE_URL}/assets/app/backgrounds/${selectedImage})`;
+		const imageUrl = getImageUrl(selectedImage);
+		if (imageUrl && imageUrl !== 'random' && imageUrl !== 'favorites') {
+			backgroundImage = `url(${imageUrl})`;
+		}
 	}
+
+	const showCombinedView = !isMobile && settings?.layout?.showCombinedView;
+	const flightRowOpacity = settings?.layout?.flightRowOpacity ?? 100;
+
+	const getBackgroundStyle = (opacity: number) => {
+		if (opacity === 0) {
+			return { backgroundColor: 'transparent' };
+		}
+		const alpha = opacity / 100;
+		return {
+			backgroundColor: `rgba(0, 0, 0, ${alpha})`
+		};
+	};
+
+	const backgroundStyle = getBackgroundStyle(flightRowOpacity);
 
 	return (
 		<div className="min-h-screen text-white relative">
@@ -318,12 +420,21 @@ export default function Flights() {
 						isPFATC={session?.isPFATC}
 						currentView={currentView}
 						onViewChange={handleViewChange}
+						showViewTabs={!showCombinedView}
 					/>
 					<div className="-mt-4">
 						{loading ? (
 							<div className="text-center py-12 text-gray-400">
 								Loading {currentView}...
 							</div>
+						) : showCombinedView ? (
+							<CombinedFlightsTable
+								departureFlights={departureFlights}
+								arrivalFlights={arrivalFlights}
+								onFlightDelete={handleFlightDelete}
+								onFlightChange={handleFlightUpdate}
+								backgroundStyle={backgroundStyle}
+							/>
 						) : (
 							<>
 								{currentView === 'departures' ? (
@@ -331,11 +442,13 @@ export default function Flights() {
 										flights={filteredFlights}
 										onFlightDelete={handleFlightDelete}
 										onFlightChange={handleFlightUpdate}
+										backgroundStyle={backgroundStyle}
 									/>
 								) : (
 									<ArrivalsTable
 										flights={filteredFlights}
 										onFlightChange={handleFlightUpdate}
+										backgroundStyle={backgroundStyle}
 									/>
 								)}
 							</>
