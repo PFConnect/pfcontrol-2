@@ -388,6 +388,7 @@ export default function Submit() {
 											required
 											placeholder="e.g. DLH123"
 											className="flex items-center w-full pl-6 p-3 bg-gray-800 border-2 border-blue-600 rounded-full text-white font-semibold focus:outline-none focus:ring-2 focus:ring-blue-600 transition-all"
+											maxLength={16}
 										/>
 									</div>
 									<div>
