@@ -47,9 +47,9 @@ const getColorClass = (status: string, isArrival = false) => {
 			case 'PENDING':
 				return 'text-yellow-600';
 			case 'STUP':
-				return 'text-cyan-600';
+				return 'text-cyan-500';
 			case 'PUSH':
-				return 'text-blue-600';
+				return 'text-blue-500';
 			case 'TAXI':
 				return 'text-pink-600';
 			case 'RWY':

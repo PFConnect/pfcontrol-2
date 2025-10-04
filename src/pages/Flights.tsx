@@ -10,11 +10,16 @@ import { useAuth } from '../hooks/auth/useAuth';
 import { playSoundWithSettings } from '../utils/playSound';
 import { useSettings } from '../hooks/settings/useSettings';
 import type { Flight } from '../types/flight';
+import type { Position } from '../types/session';
 import Navbar from '../components/Navbar';
 import Toolbar from '../components/tools/Toolbar';
 import DepartureTable from '../components/tables/DepartureTable';
 import ArrivalsTable from '../components/tables/ArrivalsTable';
 import CombinedFlightsTable from '../components/tables/CombinedFlightsTable';
+import type {
+	ArrivalsTableColumnSettings,
+	DepartureTableColumnSettings
+} from '../types/settings';
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -62,6 +67,7 @@ export default function Flights() {
 	const [localHiddenFlights, setLocalHiddenFlights] = useState<
 		Set<string | number>
 	>(new Set());
+	const [position, setPosition] = useState<Position>('ALL');
 
 	useEffect(() => {
 		const loadImages = async () => {
@@ -263,6 +269,23 @@ export default function Flights() {
 		setCurrentView(view);
 	};
 
+	const getAllowedStatuses = (pos: Position): string[] => {
+		switch (pos) {
+			case 'ALL':
+				return [];
+			case 'DEL':
+				return ['PENDING', 'STUP'];
+			case 'GND':
+				return ['STUP', 'PUSH', 'TAXI'];
+			case 'TWR':
+				return ['TAXI', 'RWY', 'DEPA'];
+			case 'APP':
+				return ['RWY', 'DEPA'];
+			default:
+				return [];
+		}
+	};
+
 	const departureFlights = useMemo(() => {
 		return flights
 			.filter(
@@ -323,6 +346,13 @@ export default function Flights() {
 			);
 		}
 
+		if (currentView === 'departures' && position !== 'ALL') {
+			const allowedStatuses = getAllowedStatuses(position);
+			baseFlights = baseFlights.filter((flight) =>
+				allowedStatuses.includes(flight.status || '')
+			);
+		}
+
 		return baseFlights.map((flight) => ({
 			...flight,
 			hidden: localHiddenFlights.has(flight.id)
@@ -333,7 +363,8 @@ export default function Flights() {
 		currentView,
 		session?.airportIcao,
 		session?.isPFATC,
-		localHiddenFlights
+		localHiddenFlights,
+		position
 	]);
 
 	const selectedImage = settings?.backgroundImage?.selectedImage;
@@ -361,7 +392,6 @@ export default function Flights() {
 		if (favorites.length > 0) {
 			const randomFav =
 				favorites[Math.floor(Math.random() * favorites.length)];
-			// Updated: Use the helper function to get correct URL
 			const favImageUrl = getImageUrl(randomFav);
 			if (
 				favImageUrl &&
@@ -393,6 +423,54 @@ export default function Flights() {
 
 	const backgroundStyle = getBackgroundStyle(flightRowOpacity);
 
+	const defaultDepartureColumns: DepartureTableColumnSettings = {
+		time: true,
+		callsign: true,
+		stand: true,
+		aircraft: true,
+		wakeTurbulence: true,
+		flightType: true,
+		arrival: true,
+		runway: true,
+		sid: true,
+		rfl: true,
+		cfl: true,
+		squawk: true,
+		clearance: true,
+		status: true,
+		remark: true,
+		pdc: true,
+		hide: true,
+		delete: true
+	};
+
+	const defaultArrivalsColumns: ArrivalsTableColumnSettings = {
+		time: true,
+		callsign: true,
+		gate: true,
+		aircraft: true,
+		wakeTurbulence: true,
+		flightType: true,
+		departure: true,
+		runway: true,
+		star: true,
+		rfl: true,
+		cfl: true,
+		squawk: true,
+		status: true,
+		remark: true,
+		hide: true
+	};
+
+	const departureColumns = {
+		...defaultDepartureColumns,
+		...settings?.departureTableColumns
+	};
+	const arrivalsColumns = {
+		...defaultArrivalsColumns,
+		...settings?.arrivalsTableColumns
+	};
+
 	return (
 		<div className="min-h-screen text-white relative">
 			<div
@@ -421,6 +499,8 @@ export default function Flights() {
 						currentView={currentView}
 						onViewChange={handleViewChange}
 						showViewTabs={!showCombinedView}
+						position={position}
+						onPositionChange={setPosition}
 					/>
 					<div className="-mt-4">
 						{loading ? (
@@ -443,12 +523,14 @@ export default function Flights() {
 										onFlightDelete={handleFlightDelete}
 										onFlightChange={handleFlightUpdate}
 										backgroundStyle={backgroundStyle}
+										departureColumns={departureColumns}
 									/>
 								) : (
 									<ArrivalsTable
 										flights={filteredFlights}
 										onFlightChange={handleFlightUpdate}
 										backgroundStyle={backgroundStyle}
+										arrivalsColumns={arrivalsColumns}
 									/>
 								)}
 							</>

@@ -33,6 +33,8 @@ interface ToolbarProps {
 	currentView?: 'departures' | 'arrivals';
 	onViewChange?: (view: 'departures' | 'arrivals') => void;
 	showViewTabs?: boolean;
+	position: Position;
+	onPositionChange: (pos: Position) => void;
 }
 
 export default function Toolbar({
@@ -44,10 +46,11 @@ export default function Toolbar({
 	isPFATC = false,
 	currentView = 'departures',
 	onViewChange,
-	showViewTabs = true
+	showViewTabs = true,
+	position,
+	onPositionChange
 }: ToolbarProps) {
 	const [runway, setRunway] = useState(activeRunway || '');
-	const [position, setPosition] = useState<Position | null>('ALL');
 	const [chatOpen, setChatOpen] = useState(false);
 	const [atisOpen, setAtisOpen] = useState(false);
 	const [activeUsers, setActiveUsers] = useState<SessionUser[]>([]);
@@ -69,7 +72,7 @@ export default function Toolbar({
 	};
 
 	const handlePositionChange = (selectedPosition: string) => {
-		setPosition(selectedPosition as Position);
+		onPositionChange(selectedPosition as Position); // Updated to call prop
 	};
 
 	const handleViewChange = (view: 'departures' | 'arrivals') => {
@@ -327,7 +330,7 @@ export default function Toolbar({
 						{ value: 'TWR', label: 'Tower' },
 						{ value: 'APP', label: 'Approach' }
 					]}
-					value={position || ''}
+					value={position} // Updated to use prop
 					onChange={handlePositionChange}
 					placeholder="Select Position"
 					disabled={!icao}
