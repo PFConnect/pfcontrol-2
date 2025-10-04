@@ -7,6 +7,7 @@ import { detectVPN } from '../tools/detectVPN.js';
 import { isAdmin } from '../middleware/isAdmin.js';
 import { recordLogin, recordNewUser } from '../db/statistics.js';
 import requireAuth from '../middleware/isAuthenticated.js';
+import { isUserBanned } from '../db/ban.js';  // New import
 
 const router = express.Router();
 
@@ -116,19 +117,23 @@ router.get('/me', requireAuth, async (req, res) => {
             return res.status(404).json({ error: 'User not found' });
         }
 
+        const banRecord = await isUserBanned(req.user.userId);
+        const isBanned = !!banRecord;
+
         res.json({
             userId: req.user.userId,
             username: req.user.username,
             discriminator: req.user.discriminator,
             avatar: req.user.avatar ? `https://cdn.discordapp.com/avatars/${req.user.userId}/${req.user.avatar}.png` : null,
-            isAdmin: req.user.isAdmin,
             settings: user.settings || {},
             lastLogin: user.lastLogin,
-            totalSessionsCreated: user.totalSessionsCreated || 0
+            totalSessionsCreated: user.totalSessionsCreated || 0,
+            isAdmin: isAdmin(req.user.userId),
+            isBanned: isBanned,
         });
     } catch (error) {
-        console.error('Error fetching user data:', error);
-        res.status(500).json({ error: 'Failed to fetch user data' });
+        console.error('Error fetching user:', error);
+        res.status(500).json({ error: 'Internal server error' });
     }
 });
 

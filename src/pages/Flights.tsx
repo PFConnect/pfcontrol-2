@@ -22,6 +22,7 @@ import Toolbar from '../components/tools/Toolbar';
 import DepartureTable from '../components/tables/DepartureTable';
 import ArrivalsTable from '../components/tables/ArrivalsTable';
 import CombinedFlightsTable from '../components/tables/CombinedFlightsTable';
+import AccessDenied from '../components/AccessDenied';
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
@@ -43,8 +44,10 @@ export default function Flights() {
 	const { sessionId } = useParams<{ sessionId?: string }>();
 	const [searchParams] = useSearchParams();
 	const accessId = searchParams.get('accessId') ?? undefined;
-	const isMobile = useMediaQuery({ maxWidth: 768 });
+	const isMobile = useMediaQuery({ maxWidth: 1000 });
 
+	const [accessError, setAccessError] = useState<string | null>(null);
+	const [validatingAccess, setValidatingAccess] = useState(true);
 	const [session, setSession] = useState<SessionData | null>(null);
 	const [flights, setFlights] = useState<Flight[]>([]);
 	const [loading, setLoading] = useState(true);
@@ -118,15 +121,52 @@ export default function Flights() {
 	}, []);
 
 	useEffect(() => {
-		if (!sessionId || sessionId === lastSessionId || initialLoadComplete)
+		if (!sessionId) {
+			setAccessError('Session ID is required');
+			setValidatingAccess(false);
+			return;
+		}
+
+		if (!accessId) {
+			setAccessError(
+				'Access ID is required. Please use a valid session link.'
+			);
+			setValidatingAccess(false);
+			return;
+		}
+
+		setValidatingAccess(false);
+		setAccessError(null);
+	}, [sessionId, accessId]);
+
+	useEffect(() => {
+		if (
+			!sessionId ||
+			sessionId === lastSessionId ||
+			initialLoadComplete ||
+			accessError
+		)
 			return;
 
 		setLoading(true);
 		setLastSessionId(sessionId);
 
 		Promise.all([
-			fetchSession(sessionId).catch((error) => {
+			fetchSession(sessionId, accessId ?? '').catch((error) => {
 				console.error('Error fetching session:', error);
+				if (
+					error.message?.includes('403') ||
+					error.message?.includes('Invalid session access')
+				) {
+					setAccessError('Invalid access link or session expired');
+				} else if (
+					error.message?.includes('404') ||
+					error.message?.includes('not found')
+				) {
+					setAccessError('Session not found');
+				} else {
+					setAccessError('Unable to access session');
+				}
 				return null;
 			}),
 			fetchFlights(sessionId).catch((error) => {
@@ -135,7 +175,9 @@ export default function Flights() {
 			})
 		])
 			.then(([sessionData, flightsData]) => {
-				if (sessionData) setSession(sessionData);
+				if (sessionData) {
+					setSession(sessionData);
+				}
 				setFlights(flightsData);
 				setInitialLoadComplete(true);
 				if (!startupSoundPlayed && user && settings) {
@@ -155,15 +197,19 @@ export default function Flights() {
 			});
 	}, [
 		sessionId,
+		accessId,
 		lastSessionId,
 		initialLoadComplete,
 		startupSoundPlayed,
 		user,
-		settings
+		settings,
+		accessError
 	]);
 
+	// Don't initialize sockets if there's an access error
 	useEffect(() => {
-		if (!sessionId || !accessId || !initialLoadComplete) return;
+		if (!sessionId || !accessId || !initialLoadComplete || accessError)
+			return;
 
 		const socket = createFlightsSocket(
 			sessionId,
@@ -206,7 +252,7 @@ export default function Flights() {
 		return () => {
 			socket.socket.disconnect();
 		};
-	}, [sessionId, accessId, initialLoadComplete, user, settings]);
+	}, [sessionId, accessId, initialLoadComplete, user, settings, accessError]);
 
 	useEffect(() => {
 		if (
@@ -559,6 +605,32 @@ export default function Flights() {
 			sessionUsersSocket.emitFieldEditingStop(flightId, fieldName);
 		}
 	};
+
+	// Early return for validation states
+	if (validatingAccess) {
+		return (
+			<div className="min-h-screen text-white relative">
+				<div className="relative z-10">
+					<Navbar sessionId={sessionId} accessId={accessId} />
+					<div className="pt-16">
+						<div className="text-center py-12 text-gray-400">
+							Validating access...
+						</div>
+					</div>
+				</div>
+			</div>
+		);
+	}
+
+	if (accessError) {
+		return (
+			<AccessDenied
+				message={accessError}
+				sessionId={sessionId}
+				accessId={accessId}
+			/>
+		);
+	}
 
 	return (
 		<div className="min-h-screen text-white relative">

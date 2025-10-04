@@ -1,5 +1,14 @@
 import { useState, useEffect } from 'react';
-import { Users, Search, Filter, Settings, Eye, EyeOff, X } from 'lucide-react';
+import {
+	Users,
+	Search,
+	Filter,
+	Settings,
+	Eye,
+	EyeOff,
+	X,
+	Ban
+} from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import Loader from '../../components/common/Loader';
@@ -46,23 +55,52 @@ export default function AdminUsers() {
 		try {
 			setLoading(true);
 			setError(null);
-			const data: AdminUsersResponse = await fetchAdminUsers(page, limit);
-			let filteredUsers = data.users;
 
-			if (search) {
-				filteredUsers = filteredUsers.filter((user) =>
-					user.username.toLowerCase().includes(search.toLowerCase())
+			let filteredUsers: AdminUser[] = [];
+			let totalFilteredPages = 1;
+
+			if (search || filterAdmin !== 'all') {
+				const allData: AdminUsersResponse = await fetchAdminUsers(
+					1,
+					10000
 				);
+				filteredUsers = allData.users;
+
+				if (search) {
+					filteredUsers = filteredUsers.filter((user) =>
+						user.username
+							.toLowerCase()
+							.includes(search.toLowerCase())
+					);
+				}
+
+				if (filterAdmin === 'admin') {
+					filteredUsers = filteredUsers.filter(
+						(user) => user.is_admin
+					);
+				} else if (filterAdmin === 'non-admin') {
+					filteredUsers = filteredUsers.filter(
+						(user) => !user.is_admin
+					);
+				}
+
+				const start = (page - 1) * limit;
+				const end = start + limit;
+				const paginatedUsers = filteredUsers.slice(start, end);
+				setUsers(paginatedUsers);
+				totalFilteredPages = Math.ceil(filteredUsers.length / limit);
+			} else {
+				// No filters: Use server-side pagination
+				const data: AdminUsersResponse = await fetchAdminUsers(
+					page,
+					limit
+				);
+				filteredUsers = data.users;
+				setUsers(filteredUsers);
+				totalFilteredPages = data.pagination.pages;
 			}
 
-			if (filterAdmin === 'admin') {
-				filteredUsers = filteredUsers.filter((user) => user.is_admin);
-			} else if (filterAdmin === 'non-admin') {
-				filteredUsers = filteredUsers.filter((user) => !user.is_admin);
-			}
-
-			setUsers(filteredUsers);
-			setTotalPages(data.pagination.pages);
+			setTotalPages(totalFilteredPages);
 		} catch (err) {
 			setError(
 				err instanceof Error ? err.message : 'Failed to fetch users'
@@ -344,10 +382,13 @@ export default function AdminUsers() {
 						{/* Header */}
 						<div className="mb-8">
 							<div className="flex items-center mb-4">
-								<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
-									<Users className="h-8 w-8 text-blue-400" />
+								<div className="p-3 bg-green-500/20 rounded-xl mr-4">
+									<Users className="h-8 w-8 text-green-400" />
 								</div>
-								<h1 className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 font-extrabold mb-2">
+								<h1
+									className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-green-600 font-extrabold mb-2"
+									style={{ lineHeight: 1.4 }}
+								>
 									User Management
 								</h1>
 							</div>
@@ -544,6 +585,21 @@ export default function AdminUsers() {
 															<span>
 																Settings
 															</span>
+														</Button>
+														<Button
+															size="sm"
+															variant="danger"
+															onClick={() =>
+																(window.location.href = `/admin/bans?userId=${
+																	user.id
+																}&username=${encodeURIComponent(
+																	user.username
+																)}`)
+															}
+															className="flex items-center space-x-2 ml-2"
+														>
+															<Ban className="w-4 h-4" />{' '}
+															<span>Ban</span>
 														</Button>
 													</td>
 												</tr>

@@ -21,6 +21,7 @@ export function setupChatWebsocket(httpServer, sessionUsersWebsocketIO) {
         const accessId = socket.handshake.query.accessId;
         const userId = socket.handshake.query.userId;
 
+        // Only validate access ID, not ownership
         const valid = await validateSessionAccess(sessionId, accessId);
         if (!valid) {
             socket.disconnect(true);
@@ -103,6 +104,8 @@ export function setupChatWebsocket(httpServer, sessionUsersWebsocketIO) {
             }
         });
     });
+
+    return io;
 }
 
 function parseMentions(message) {

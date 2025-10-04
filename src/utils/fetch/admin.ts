@@ -109,6 +109,24 @@ export interface RevealIPResponse {
     ip_address: string;
 }
 
+export interface Ban {
+    id: string;
+    userId?: string;
+    ip?: string;
+    username: string;
+    reason: string;
+    expiresAt?: string;
+    createdAt: string;
+    createdBy: string;
+}
+
+export interface Pagination {
+    page: number;
+    limit: number;
+    total: number;
+    pages: number;
+}
+
 async function makeAdminRequest(endpoint: string, options?: RequestInit) {
     const response = await fetch(`${API_BASE_URL}/api/admin${endpoint}`, {
         credentials: 'include',
@@ -152,6 +170,24 @@ export async function revealUserIP(userId: string): Promise<RevealIPResponse> {
     return makeAdminRequest(`/users/${userId}/reveal-ip`, {
         method: 'POST'
     });
+}
+
+export async function banUser({ userId, ip, username, reason, expiresAt }: { userId?: string, ip?: string, username: string, reason: string, expiresAt?: string }) {
+    return makeAdminRequest('/bans/ban', {
+        method: 'POST',
+        body: JSON.stringify({ userId, ip, username, reason, expiresAt })
+    });
+}
+
+export async function unbanUser(userIdOrIp: string) {
+    return makeAdminRequest('/bans/unban', {
+        method: 'POST',
+        body: JSON.stringify({ userIdOrIp })
+    });
+}
+
+export async function fetchAllBans(page: number = 1, limit: number = 50): Promise<{ bans: Ban[], pagination: Pagination }> {
+    return makeAdminRequest(`/bans?page=${page}&limit=${limit}`);
 }
 
 export async function fetchAuditLogs(

@@ -1,10 +1,12 @@
 import { useAuth } from '../hooks/auth/useAuth';
 import { Navigate } from 'react-router-dom';
 import Loader from './common/Loader';
+import AccessDenied from './AccessDenied';
 
 interface ProtectedRouteProps {
 	children: React.ReactNode;
 	requireAdmin?: boolean;
+	accessDeniedMessage?: string;
 }
 
 export default function ProtectedRoute({
@@ -25,17 +27,12 @@ export default function ProtectedRoute({
 		return <Navigate to="/login" replace />;
 	}
 
+	if (user.isBanned) {
+		return <AccessDenied errorType="banned" />;
+	}
+
 	if (requireAdmin && !user.isAdmin) {
-		return (
-			<div className="min-h-screen bg-gradient-to-b from-black to-slate-900 flex items-center justify-center text-white">
-				<div className="text-center">
-					<h2 className="text-2xl font-bold mb-2">Access Denied</h2>
-					<p className="text-gray-400">
-						You need administrator privileges to access this page.
-					</p>
-				</div>
-			</div>
-		);
+		return <AccessDenied message="Administrator Access Required" />;
 	}
 
 	return <>{children}</>;

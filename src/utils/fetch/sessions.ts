@@ -2,8 +2,11 @@ import type { SessionInfo } from "../../types/session";
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
-export async function fetchSession(sessionId: string): Promise<SessionInfo> {
-    const res = await fetch(`${API_BASE_URL}/api/sessions/${sessionId}`, {
+export async function fetchSession(sessionId: string, accessId: string): Promise<SessionInfo> {
+    const url = new URL(`${API_BASE_URL}/api/sessions/${sessionId}`);
+    url.searchParams.append('accessId', accessId);
+    
+    const res = await fetch(url.toString(), {
         credentials: 'include'
     });
     if (!res.ok) throw new Error('Failed to fetch session');

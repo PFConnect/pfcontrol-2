@@ -53,12 +53,14 @@ export default function AdminSidebar({
 				{
 					icon: Users,
 					label: 'Users',
-					path: '/admin/users'
+					path: '/admin/users',
+					textColor: 'green-400'
 				},
 				{
 					icon: Database,
 					label: 'Sessions',
-					path: '/admin/sessions'
+					path: '/admin/sessions',
+					textColor: 'yellow-400'
 				}
 			]
 		},
@@ -71,7 +73,8 @@ export default function AdminSidebar({
 				{
 					icon: Ban,
 					label: 'Bans',
-					path: '/admin/bans'
+					path: '/admin/bans',
+					textColor: 'red-400'
 				},
 				{
 					icon: ShieldAlert,

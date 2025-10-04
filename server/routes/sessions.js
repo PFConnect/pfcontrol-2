@@ -13,6 +13,8 @@ import {
 import { generateSessionId, generateAccessId } from '../tools/ids.js';
 import { recordNewSession } from '../db/statistics.js';
 import requireAuth from '../middleware/isAuthenticated.js';
+import { requireSessionAccess, requireSessionOwnership } from '../middleware/sessionAccess.js';
+
 const router = express.Router();
 initializeSessionsTable();
 
@@ -63,7 +65,7 @@ router.get('/mine', requireAuth, async (req, res) => {
 });
 
 // GET: /api/sessions/:sessionId - Get session by ID
-router.get('/:sessionId', async (req, res) => {
+router.get('/:sessionId', requireSessionAccess, async (req, res) => {
     try {
         const { sessionId } = req.params;
         const session = await getSessionById(sessionId);
@@ -88,7 +90,7 @@ router.get('/:sessionId', async (req, res) => {
 });
 
 // PUT: /api/sessions/:sessionId - Update session
-router.put('/:sessionId', async (req, res) => {
+router.put('/:sessionId', requireSessionAccess, async (req, res) => {
     try {
         const { sessionId } = req.params;
         const { activeRunway, atis } = req.body;
@@ -114,7 +116,7 @@ router.put('/:sessionId', async (req, res) => {
 });
 
 // POST: /api/sessions/update-name - Rename session
-router.post('/update-name', requireAuth, async (req, res) => {
+router.post('/update-name', requireAuth, requireSessionOwnership, async (req, res) => {
     try {
         const { sessionId, name } = req.body;
         if (!sessionId || typeof name !== 'string' || name.length > 50) {
@@ -132,7 +134,7 @@ router.post('/update-name', requireAuth, async (req, res) => {
 });
 
 // POST: /api/sessions/delete - Delete session (POST for compatibility)
-router.post('/delete', requireAuth, async (req, res) => {
+router.post('/delete', requireAuth, requireSessionOwnership, async (req, res) => {
     try {
         const { sessionId } = req.body;
         if (!sessionId) {

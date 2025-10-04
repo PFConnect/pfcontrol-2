@@ -1,10 +1,9 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import WindDisplay from '../components/tools/WindDisplay';
 import Button from '../components/common/Button';
 import {
-	AlertCircle,
 	Check,
 	X,
 	AlertTriangle,
@@ -22,12 +21,14 @@ import {
 	MapPinCheck,
 	Plane
 } from 'lucide-react';
+import { createFlightsSocket } from '../sockets/flightsSocket';
 import { addFlight } from '../utils/fetch/flights';
 import type { Flight } from '../types/flight';
 import AirportDropdown from '../components/dropdowns/AirportDropdown';
 import Dropdown from '../components/common/Dropdown';
 import AircraftDropdown from '../components/dropdowns/AircraftDropdown';
-import { createFlightsSocket } from '../sockets/flightsSocket';
+import Loader from '../components/common/Loader';
+import AccessDenied from '../components/AccessDenied';
 
 interface SessionData {
 	sessionId: string;
@@ -38,7 +39,6 @@ interface SessionData {
 
 export default function Submit() {
 	const { sessionId } = useParams<{ sessionId: string }>();
-	const navigate = useNavigate();
 	const [searchParams] = useSearchParams();
 	const accessId = searchParams.get('accessId') ?? undefined;
 
@@ -171,24 +171,13 @@ export default function Submit() {
 		return (
 			<div className="min-h-screen bg-black text-white flex items-center justify-center">
 				<Navbar />
-				<div>Loading...</div>
+				<Loader />
 			</div>
 		);
 	}
 
 	if (!sessionId || !session) {
-		return (
-			<div className="min-h-screen bg-black text-white flex items-center justify-center">
-				<Navbar />
-				<div className="bg-gray-800/50 border border-gray-700 rounded-lg p-8 text-center">
-					<AlertCircle className="h-8 w-8 text-red-500 mb-4" />
-					<h2 className="text-xl font-semibold mb-2">
-						Invalid session
-					</h2>
-					<Button onClick={() => navigate('/')}>Go Home</Button>
-				</div>
-			</div>
-		);
+		return <AccessDenied errorType="invalid-session" />;
 	}
 
 	return (

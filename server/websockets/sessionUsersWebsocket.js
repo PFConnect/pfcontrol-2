@@ -96,8 +96,10 @@ export function setupSessionUsersWebsocket(httpServer) {
         const sessionId = socket.handshake.query.sessionId;
         const accessId = socket.handshake.query.accessId;
         const user = JSON.parse(socket.handshake.query.user);
+
+        // Only validate access ID, not ownership
         const valid = await validateSessionAccess(sessionId, accessId);
-        if (!valid || !user) {
+        if (!valid) {
             socket.disconnect(true);
             return;
         }

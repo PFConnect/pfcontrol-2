@@ -6,7 +6,9 @@ import {
 	Calendar,
 	User,
 	Eye,
-	Clock
+	Clock,
+	Ban,
+	X
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
@@ -47,7 +49,10 @@ export default function AdminAudit() {
 		{ value: 'ADMIN_SESSIONS_ACCESSED', label: 'Sessions Access' },
 		{ value: 'ADMIN_SYSTEM_INFO_ACCESSED', label: 'System Info Access' },
 		{ value: 'ADMIN_AUDIT_LOGS_ACCESSED', label: 'Audit Logs Access' },
-		{ value: 'IP_ADDRESS_VIEWED', label: 'IP Address Revealed' }
+		{ value: 'IP_ADDRESS_VIEWED', label: 'IP Address Revealed' },
+		{ value: 'USER_BANNED', label: 'User Banned' },
+		{ value: 'USER_UNBANNED', label: 'User Unbanned' },
+		{ value: 'ADMIN_BANS_ACCESSED', label: 'Bans Page Access' }
 	];
 
 	useEffect(() => {
@@ -154,6 +159,12 @@ export default function AdminAudit() {
 				return 'Audit Logs Access';
 			case 'IP_ADDRESS_VIEWED':
 				return 'IP Address Revealed';
+			case 'USER_BANNED':
+				return 'User Banned';
+			case 'USER_UNBANNED':
+				return 'User Unbanned';
+			case 'ADMIN_BANS_ACCESSED':
+				return 'Bans Page Access';
 			default:
 				return actionType;
 		}
@@ -167,6 +178,12 @@ export default function AdminAudit() {
 				return <ShieldAlert className="w-4 h-4 text-blue-400" />;
 			case 'ADMIN_USERS_ACCESSED':
 				return <User className="w-4 h-4 text-green-400" />;
+			case 'USER_BANNED':
+				return <Ban className="w-4 h-4 text-red-400" />;
+			case 'USER_UNBANNED':
+				return <X className="w-4 h-4 text-green-400" />;
+			case 'ADMIN_BANS_ACCESSED':
+				return <ShieldAlert className="w-4 h-4 text-orange-400" />;
 			default:
 				return <ShieldAlert className="w-4 h-4 text-zinc-400" />;
 		}
@@ -252,27 +269,37 @@ export default function AdminAudit() {
 
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 									{/* Date From */}
-									<div className="relative">
-										<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-										<input
-											type="datetime-local"
-											placeholder="From date..."
-											value={dateFromFilter}
-											onChange={handleDateFromChange}
-											className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-										/>
+									<div>
+										<label className="block text-zinc-300 mb-2">
+											From Date
+										</label>
+										<div className="relative">
+											<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+											<input
+												type="datetime-local"
+												placeholder="From date..."
+												value={dateFromFilter}
+												onChange={handleDateFromChange}
+												className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+											/>
+										</div>
 									</div>
 
 									{/* Date To */}
-									<div className="relative">
-										<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-										<input
-											type="datetime-local"
-											placeholder="To date..."
-											value={dateToFilter}
-											onChange={handleDateToChange}
-											className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-										/>
+									<div>
+										<label className="block text-zinc-300 mb-2">
+											To Date
+										</label>
+										<div className="relative">
+											<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+											<input
+												type="datetime-local"
+												placeholder="To date..."
+												value={dateToFilter}
+												onChange={handleDateToChange}
+												className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+											/>
+										</div>
 									</div>
 
 									{/* Clear Filters */}
