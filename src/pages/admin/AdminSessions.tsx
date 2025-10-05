@@ -30,6 +30,7 @@ import {
 	logSessionJoin,
 	type AdminSession
 } from '../../utils/fetch/admin';
+import ErrorScreen from '../../components/common/ErrorScreen';
 
 type ViewMode = 'grid' | 'list';
 type SortBy = 'date' | 'airport' | 'creator';
@@ -601,20 +602,11 @@ export default function AdminSessions() {
 								<Loader />
 							</div>
 						) : error ? (
-							<div className="text-center py-12">
-								<div className="text-red-400 mb-2">
-									Error loading sessions
-								</div>
-								<div className="text-zinc-400 text-sm">
-									{error}
-								</div>
-								<button
-									onClick={fetchSessions}
-									className="mt-4 px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
-								>
-									Retry
-								</button>
-							</div>
+							<ErrorScreen
+								title="Error loading sessions"
+								message={error}
+								onRetry={fetchSessions}
+							/>
 						) : filteredSessions.length === 0 ? (
 							<div className="text-center py-12 text-zinc-400">
 								{search

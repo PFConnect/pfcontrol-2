@@ -27,6 +27,7 @@ import {
 } from '../../utils/fetch/admin';
 import Button from '../../components/common/Button';
 import Toast from '../../components/common/Toast';
+import ErrorScreen from '../../components/common/ErrorScreen';
 
 export default function AdminAudit() {
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -437,20 +438,11 @@ export default function AdminAudit() {
 								<Loader />
 							</div>
 						) : error ? (
-							<div className="text-center py-12">
-								<div className="text-red-400 mb-2">
-									Error loading audit logs
-								</div>
-								<div className="text-zinc-400 text-sm">
-									{error}
-								</div>
-								<button
-									onClick={fetchLogs}
-									className="mt-4 px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700"
-								>
-									Retry
-								</button>
-							</div>
+							<ErrorScreen
+								title="Error loading audit logs"
+								message={error}
+								onRetry={fetchLogs}
+							/>
 						) : (
 							<>
 								{/* Audit Logs Table */}

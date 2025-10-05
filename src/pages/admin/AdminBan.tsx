@@ -9,6 +9,7 @@ import Button from '../../components/common/Button';
 import TextInput from '../../components/common/TextInput';
 import Loader from '../../components/common/Loader';
 import Toast from '../../components/common/Toast';
+import ErrorScreen from '../../components/common/ErrorScreen';
 
 interface BanRecord {
 	id: number;
@@ -323,7 +324,11 @@ export default function AdminBan() {
 							{bansLoading ? (
 								<Loader />
 							) : bansError ? (
-								<div className="text-red-400">{bansError}</div>
+								<ErrorScreen
+									title="Error loading bans"
+									message={bansError}
+									onRetry={fetchBans}
+								/>
 							) : (
 								<div className="space-y-4">
 									{bans.map((ban) => (

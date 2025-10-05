@@ -27,7 +27,9 @@ import {
 	type AdminStats,
 	type DailyStats
 } from '../utils/fetch/admin';
+import Toast from '../components/common/Toast';
 import Button from '../components/common/Button';
+import ErrorScreen from '../components/common/ErrorScreen';
 
 ChartJS.register(
 	CategoryScale,
@@ -46,6 +48,10 @@ export default function Admin() {
 	const [loading, setLoading] = useState(true);
 	const [timeRange, setTimeRange] = useState(30);
 	const [error, setError] = useState<string | null>(null);
+	const [toast, setToast] = useState<{
+		message: string;
+		type: 'success' | 'error' | 'info';
+	} | null>(null);
 
 	const fetchStats = useCallback(async () => {
 		try {
@@ -75,6 +81,10 @@ export default function Admin() {
 					? error.message
 					: 'Failed to fetch statistics'
 			);
+			setToast({
+				message: 'Failed to fetch',
+				type: 'error'
+			});
 		} finally {
 			setLoading(false);
 		}
@@ -279,20 +289,11 @@ export default function Admin() {
 								<Loader />
 							</div>
 						) : error ? (
-							<div className="text-center py-12">
-								<div className="text-red-400 mb-2">
-									Error loading statistics
-								</div>
-								<div className="text-zinc-400 text-sm">
-									{error}
-								</div>
-								<button
-									onClick={fetchStats}
-									className="mt-4 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-								>
-									Retry
-								</button>
-							</div>
+							<ErrorScreen
+								title="Error loading statistics"
+								message={error}
+								onRetry={fetchStats}
+							/>
 						) : stats ? (
 							<>
 								{/* Stats Cards */}
@@ -420,6 +421,15 @@ export default function Admin() {
 						)}
 					</div>
 				</div>
+
+				{/* Toast Notification */}
+				{toast && (
+					<Toast
+						message={toast.message}
+						type={toast.type}
+						onClose={() => setToast(null)}
+					/>
+				)}
 			</div>
 		</ProtectedRoute>
 	);
