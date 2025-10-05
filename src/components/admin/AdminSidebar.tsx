@@ -9,7 +9,8 @@ import {
 	ChevronDown,
 	Ban,
 	LayoutDashboard,
-	ShieldAlert
+	ShieldAlert,
+	Bell
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 
@@ -60,6 +61,12 @@ export default function AdminSidebar({
 					label: 'Sessions',
 					path: '/admin/sessions',
 					textColor: 'yellow-400'
+				},
+				{
+					icon: Bell,
+					label: 'Notifications',
+					path: '/admin/notifications',
+					textColor: 'cyan-400'
 				}
 			]
 		},

@@ -501,13 +501,6 @@ export default function AdminSessions() {
 										>
 											Sessions
 										</h1>
-										<p className="text-zinc-400">
-											{filteredSessions.length} active
-											session
-											{filteredSessions.length !== 1
-												? 's'
-												: ''}
-										</p>
 									</div>
 								</div>
 							</div>

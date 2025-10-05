@@ -1,6 +1,7 @@
 import type { Airport, AirportFrequency } from '../../types/airports';
 import type { Aircraft } from '../../types/aircraft';
 import type { TesterSettings } from './testers';
+import type { Notification as AdminNotification } from '../fetch/admin';
 
 interface AvailableImage {
     filename: string;
@@ -69,4 +70,14 @@ export async function getTesterSettings(): Promise<TesterSettings> {
         console.error('Error fetching tester settings:', error);
         return { tester_gate_enabled: true };
     }
+}
+
+export async function fetchActiveNotifications(): Promise<AdminNotification[]> {
+    const response = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/data/notifications/active`
+    );
+    if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    return await response.json();
 }

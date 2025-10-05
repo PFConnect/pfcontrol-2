@@ -3,6 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import { getTesterSettings } from '../db/testers.js';
+import { getActiveNotifications } from '../db/notifications.js';
 
 import dotenv from 'dotenv';
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
@@ -236,6 +237,17 @@ router.get('/settings', async (req, res) => {
     } catch (error) {
         console.error('Error fetching tester settings:', error);
         res.status(500).json({ error: 'Failed to fetch settings' });
+    }
+});
+
+// GET: /api/data/notifications/active - Get active notifications (for Navbar)
+router.get('/notifications/active', async (req, res) => {
+    try {
+        const notifications = await getActiveNotifications();
+        res.json(notifications);
+    } catch (error) {
+        console.error('Error fetching active notifications:', error);
+        res.status(500).json({ error: 'Failed to fetch active notifications' });
     }
 });
 

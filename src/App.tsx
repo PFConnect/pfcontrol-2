@@ -21,6 +21,7 @@ import AdminAudit from './pages/admin/AdminAudit';
 import AdminBan from './pages/admin/AdminBan';
 import AdminSessions from './pages/admin/AdminSessions';
 import AdminTesters from './pages/admin/AdminTesters';
+import AdminNotifications from './pages/admin/AdminNotifications';
 
 export default function App() {
 	const { user } = useAuth();
@@ -87,6 +88,10 @@ export default function App() {
 									<Route
 										path="testers"
 										element={<AdminTesters />}
+									/>
+									<Route
+										path="notifications"
+										element={<AdminNotifications />}
 									/>
 								</Routes>
 							</ProtectedRoute>

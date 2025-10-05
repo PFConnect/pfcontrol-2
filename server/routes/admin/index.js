@@ -9,6 +9,7 @@ import sessionsRouter from './sessions.js';
 import auditLogsRouter from './audit-logs.js';
 import bansRouter from './ban.js';
 import testersRouter from './testers.js';
+import notificationRouter from './notifications.js';
 
 const router = express.Router();
 
@@ -21,6 +22,7 @@ router.use('/sessions', sessionsRouter);
 router.use('/audit-logs', auditLogsRouter);
 router.use('/bans', bansRouter);
 router.use('/testers', testersRouter);
+router.use('/notifications', notificationRouter);
 
 // GET: /api/admin/statistics - Get dashboard statistics
 router.get('/statistics', async (req, res) => {

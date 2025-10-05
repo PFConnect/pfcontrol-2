@@ -7,9 +7,13 @@ import {
 	Info,
 	CheckCircle,
 	AlertTriangle,
-	ShieldX
+	ShieldX,
+	ChevronDown,
+	ChevronUp
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
+import { fetchActiveNotifications } from '../utils/fetch/data';
+import type { Notification as AdminNotification } from '../utils/fetch/admin';
 import CustomUserButton from './buttons/UserButton';
 import Button from './common/Button';
 
@@ -20,22 +24,7 @@ type NavbarProps = {
 
 type NotificationType = 'info' | 'warning' | 'success' | 'error';
 
-type NotificationConfig = {
-	show: boolean;
-	type: NotificationType;
-	text: string;
-	customColor?: string;
-	customIcon?: React.ReactNode;
-};
-
-// Konfigurierbare Notification - Hier können Sie die Notification anpassen
-const NOTIFICATION_CONFIG: NotificationConfig = {
-	show: true, // Auf true setzen um die Notification anzuzeigen
-	type: 'error', // 'info', 'warning', 'success', 'error'
-	text: 'Oh no, we should destroy PFTracker, and create our own tracker called PFCP cause we like CP, yk?', // Der anzuzeigende Text
-	customColor: undefined, // Optional: '#FF6B6B' für custom Farbe
-	customIcon: undefined // Optional: <Bell className="h-4 w-4" /> für custom Icon
-};
+type AppNotification = AdminNotification & { custom_icon?: React.ReactNode };
 
 export default function Navbar({ sessionId, accessId }: NavbarProps) {
 	const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -48,6 +37,12 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 		window.innerWidth < 950
 	);
 	const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+	const [notifications, setNotifications] = useState<AppNotification[]>([]);
+	const [currentNotificationIndex, setCurrentNotificationIndex] = useState(0);
+	const [showAllNotifications, setShowAllNotifications] = useState(false);
+	const [hiddenNotifications, setHiddenNotifications] = useState<string[]>(
+		[]
+	);
 
 	useEffect(() => {
 		const handleScroll = () => {
@@ -108,6 +103,61 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 		}
 	}, [sessionId, accessId]);
 
+	useEffect(() => {
+		const stored = localStorage.getItem('hiddenNotifications');
+		if (stored) {
+			try {
+				setHiddenNotifications(JSON.parse(stored));
+			} catch (error) {
+				console.error(
+					'Error parsing hidden notifications from localStorage:',
+					error
+				);
+			}
+		}
+	}, []);
+
+	useEffect(() => {
+		const fetchNotifications = async () => {
+			try {
+				const activeNotifications = await fetchActiveNotifications();
+				const filtered = activeNotifications
+					.filter(
+						(n) => !hiddenNotifications.includes(n.id.toString())
+					)
+					.map((n) => ({ ...n } as AppNotification));
+				setNotifications(filtered);
+			} catch (error) {
+				console.error('Failed to fetch notifications:', error);
+			}
+		};
+		fetchNotifications();
+	}, [hiddenNotifications]);
+
+	useEffect(() => {
+		if (notifications.length > 1 && !showAllNotifications) {
+			const interval = setInterval(() => {
+				setCurrentNotificationIndex(
+					(prev) => (prev + 1) % notifications.length
+				);
+			}, 10000);
+			return () => clearInterval(interval);
+		}
+	}, [notifications, showAllNotifications]);
+
+	const hideNotification = (id: number) => {
+		const idStr = id.toString();
+		const updatedHidden = [...hiddenNotifications, idStr];
+		setHiddenNotifications(updatedHidden);
+		localStorage.setItem(
+			'hiddenNotifications',
+			JSON.stringify(updatedHidden)
+		);
+		setNotifications((prev) =>
+			prev.filter((n) => n.id.toString() !== idStr)
+		);
+	};
+
 	const navClass = [
 		'fixed top-0 w-full z-50 transition-all duration-300',
 		atTop
@@ -129,10 +179,6 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 	};
 
 	const getNotificationIcon = (type: NotificationType) => {
-		if (NOTIFICATION_CONFIG.customIcon) {
-			return NOTIFICATION_CONFIG.customIcon;
-		}
-
 		switch (type) {
 			case 'info':
 				return <Info className="h-4 w-4" />;
@@ -147,74 +193,168 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 		}
 	};
 
+	const getNotificationStyle = (notification: AppNotification) => {
+		if (notification.custom_color) {
+			return {
+				backgroundColor: `${notification.custom_color}B3`,
+				borderColor: `${notification.custom_color}80`
+			};
+		}
+
+		switch (notification.type) {
+			case 'info':
+				return {
+					backgroundColor: 'rgba(59, 130, 246, 0.7)',
+					borderColor: 'rgba(96, 165, 250, 0.5)'
+				};
+			case 'warning':
+				return {
+					backgroundColor: 'rgba(245, 158, 11, 0.7)',
+					borderColor: 'rgba(251, 191, 36, 0.5)'
+				};
+			case 'success':
+				return {
+					backgroundColor: 'rgba(16, 185, 129, 0.7)',
+					borderColor: 'rgba(52, 211, 153, 0.5)'
+				};
+			case 'error':
+				return {
+					backgroundColor: 'rgba(239, 68, 68, 0.7)',
+					borderColor: 'rgba(248, 113, 113, 0.5)'
+				};
+			default:
+				return {
+					backgroundColor: 'rgba(107, 114, 128, 0.7)',
+					borderColor: 'rgba(156, 163, 175, 0.5)'
+				};
+		}
+	};
+
+	const currentNotification = notifications[currentNotificationIndex];
+
 	return (
 		<>
 			{/* Mobile Notification Banner */}
-			{NOTIFICATION_CONFIG.show && isMobile && (
-				<div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-					<div
-						id="mobile-notification"
-						className="backdrop-blur-lg border rounded-2xl px-2 py-2"
-						style={
-							NOTIFICATION_CONFIG.customColor
-								? {
-										backgroundColor: `${NOTIFICATION_CONFIG.customColor}B3`, // 70% Opazität mit Hex
-										borderColor: `${NOTIFICATION_CONFIG.customColor}80` // 50% Opazität
-								  }
-								: (() => {
-										switch (NOTIFICATION_CONFIG.type) {
-											case 'info':
-												return {
-													backgroundColor:
-														'rgba(59, 130, 246, 0.7)', // Blau mit 70% Opazität
-													borderColor:
-														'rgba(96, 165, 250, 0.5)' // Hellblau mit 50% Opazität
-												};
-											case 'warning':
-												return {
-													backgroundColor:
-														'rgba(245, 158, 11, 0.7)', // Amber mit 70% Opazität
-													borderColor:
-														'rgba(251, 191, 36, 0.5)' // Hellamber mit 50% Opazität
-												};
-											case 'success':
-												return {
-													backgroundColor:
-														'rgba(16, 185, 129, 0.7)', // Emerald mit 70% Opazität
-													borderColor:
-														'rgba(52, 211, 153, 0.5)' // Hellemerald mit 50% Opazität
-												};
-											case 'error':
-												return {
-													backgroundColor:
-														'rgba(239, 68, 68, 0.7)', // Rot mit 70% Opazität
-													borderColor:
-														'rgba(248, 113, 113, 0.5)' // Hellrot mit 50% Opazität
-												};
-											default:
-												return {
-													backgroundColor:
-														'rgba(107, 114, 128, 0.7)', // Grau mit 70% Opazität
-													borderColor:
-														'rgba(156, 163, 175, 0.5)' // Hellgrau mit 50% Opazität
-												};
-										}
-								  })()
-						}
-					>
-						<div className="flex items-start space-x-2">
-							<div className="flex-shrink-0 mt-0.5">
-								{getNotificationIcon(NOTIFICATION_CONFIG.type)}
+			{notifications.length > 0 && isMobile && (
+				<div className="fixed bottom-4 left-4 right-4 z-40">
+					<div className="flex items-start space-x-2">
+						{/* Control Circle */}
+						{notifications.length > 1 && (
+							<button
+								onClick={() =>
+									setShowAllNotifications(
+										!showAllNotifications
+									)
+								}
+								className="flex-shrink-0 w-8 h-8 rounded-full backdrop-blur-lg border flex items-center justify-center"
+								style={{
+									backgroundColor:
+										currentNotification.custom_color
+											? `${currentNotification.custom_color}B3`
+											: currentNotification.type ===
+											  'info'
+											? 'rgba(59, 130, 246, 0.7)'
+											: currentNotification.type ===
+											  'warning'
+											? 'rgba(245, 158, 11, 0.7)'
+											: currentNotification.type ===
+											  'success'
+											? 'rgba(16, 185, 129, 0.7)'
+											: currentNotification.type ===
+											  'error'
+											? 'rgba(239, 68, 68, 0.7)'
+											: 'rgba(107, 114, 128, 0.7)',
+									borderColor:
+										currentNotification.custom_color
+											? `${currentNotification.custom_color}80`
+											: currentNotification.type ===
+											  'info'
+											? 'rgba(96, 165, 250, 0.5)'
+											: currentNotification.type ===
+											  'warning'
+											? 'rgba(251, 191, 36, 0.5)'
+											: currentNotification.type ===
+											  'success'
+											? 'rgba(52, 211, 153, 0.5)'
+											: currentNotification.type ===
+											  'error'
+											? 'rgba(248, 113, 113, 0.5)'
+											: 'rgba(156, 163, 175, 0.5)'
+								}}
+							>
+								{showAllNotifications ? (
+									<ChevronUp className="h-4 w-4 text-white" />
+								) : (
+									<ChevronDown className="h-4 w-4 text-white" />
+								)}
+							</button>
+						)}
+
+						{/* Notifications */}
+						<div className="flex-1">
+							<div
+								className="transition-all duration-300 ease-in-out overflow-hidden"
+								style={{
+									maxHeight: showAllNotifications
+										? '300px'
+										: '60px'
+								}}
+							>
+								<div
+									className={
+										showAllNotifications ? 'space-y-2' : ''
+									}
+								>
+									{notifications.map(
+										(notification, index) => (
+											<div
+												key={index}
+												className={`backdrop-blur-lg border rounded-2xl px-3 py-2 ${
+													showAllNotifications ||
+													index ===
+														currentNotificationIndex
+														? ''
+														: 'hidden'
+												}`}
+												style={getNotificationStyle(
+													notification
+												)}
+											>
+												<div className="flex items-start space-x-2">
+													<div className="flex-shrink-0 mt-0.5">
+														{notification.custom_icon ||
+															getNotificationIcon(
+																notification.type
+															)}
+													</div>
+													<p className="text-sm font-medium text-white leading-tight flex-1">
+														{notification.text}
+													</p>
+													{/* New: Hide button */}
+													<button
+														onClick={() =>
+															hideNotification(
+																notification.id
+															)
+														}
+														className="flex-shrink-0 ml-2 text-white hover:text-gray-300 transition-colors"
+														aria-label="Hide notification"
+													>
+														<X className="h-4 w-4" />
+													</button>
+												</div>
+											</div>
+										)
+									)}
+								</div>
 							</div>
-							<p className="text-sm font-medium text-white leading-tight">
-								{NOTIFICATION_CONFIG.text}
-							</p>
 						</div>
 					</div>
 				</div>
 			)}
 
 			<nav className={navClass}>
+				{/* ...existing nav content... */}
 				<div className="max-w-7xl mx-auto px-6 lg:px-8">
 					<div className="flex justify-between items-center h-16">
 						<div className="flex items-center space-x-4">
@@ -424,66 +564,112 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 				</div>
 			</nav>
 
-			{/* Desktop Notification - Bottom Banner */}
-			{NOTIFICATION_CONFIG.show && !isMobile && (
+			{currentNotification && !isMobile && (
 				<div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
-					<div
-						className="backdrop-blur-lg border rounded-full px-4 py-3 max-w-full"
-						style={
-							NOTIFICATION_CONFIG.customColor
-								? {
-										backgroundColor: `${NOTIFICATION_CONFIG.customColor}B3`, // 70% Opazität mit Hex
-										borderColor: `${NOTIFICATION_CONFIG.customColor}80` // 50% Opazität
-								  }
-								: (() => {
-										switch (NOTIFICATION_CONFIG.type) {
-											case 'info':
-												return {
-													backgroundColor:
-														'rgba(59, 130, 246, 0.7)', // Blau mit 70% Opazität
-													borderColor:
-														'rgba(96, 165, 250, 0.5)' // Hellblau mit 50% Opazität
-												};
-											case 'warning':
-												return {
-													backgroundColor:
-														'rgba(245, 158, 11, 0.7)', // Amber mit 70% Opazität
-													borderColor:
-														'rgba(251, 191, 36, 0.5)' // Hellamber mit 50% Opazität
-												};
-											case 'success':
-												return {
-													backgroundColor:
-														'rgba(16, 185, 129, 0.7)', // Emerald mit 70% Opazität
-													borderColor:
-														'rgba(52, 211, 153, 0.5)' // Hellemerald mit 50% Opazität
-												};
-											case 'error':
-												return {
-													backgroundColor:
-														'rgba(239, 68, 68, 0.7)', // Rot mit 70% Opazität
-													borderColor:
-														'rgba(248, 113, 113, 0.5)' // Hellrot mit 50% Opazität
-												};
-											default:
-												return {
-													backgroundColor:
-														'rgba(107, 114, 128, 0.7)', // Grau mit 70% Opazität
-													borderColor:
-														'rgba(156, 163, 175, 0.5)' // Hellgrau mit 50% Opazität
-												};
-										}
-								  })()
-						}
-					>
-						<div className="flex items-center space-x-3">
-							<div className="flex-shrink-0">
-								{getNotificationIcon(NOTIFICATION_CONFIG.type)}
+					<div className="relative">
+						<div
+							className="transition-all duration-300 ease-in-out overflow-hidden"
+							style={{
+								maxHeight: showAllNotifications
+									? '300px'
+									: '60px'
+							}}
+						>
+							<div
+								className={
+									showAllNotifications ? 'space-y-2' : ''
+								}
+							>
+								{notifications.map((notification, index) => (
+									<div
+										key={index}
+										className={`backdrop-blur-lg border rounded-full px-4 py-3 max-w-full transition-all duration-300 ease-in-out ${
+											showAllNotifications ||
+											index === currentNotificationIndex
+												? ''
+												: 'hidden'
+										}`}
+										style={getNotificationStyle(
+											notification
+										)}
+									>
+										<div className="flex items-start space-x-2">
+											<div className="flex-shrink-0 mt-0.5">
+												{notification.custom_icon ||
+													getNotificationIcon(
+														notification.type
+													)}
+											</div>
+											<p className="text-sm font-medium text-white leading-tight flex-1">
+												{notification.text}
+											</p>
+											<button
+												onClick={() =>
+													hideNotification(
+														notification.id
+													)
+												}
+												className="flex-shrink-0 ml-2 text-white hover:text-gray-300 transition-colors"
+												aria-label="Hide notification"
+											>
+												<X className="h-4 w-4" />
+											</button>
+										</div>
+									</div>
+								))}
 							</div>
-							<span className="text-sm font-medium text-white">
-								{NOTIFICATION_CONFIG.text}
-							</span>
 						</div>
+
+						{notifications.length > 1 && (
+							<button
+								onClick={() =>
+									setShowAllNotifications(
+										!showAllNotifications
+									)
+								}
+								className="absolute bottom-0.5 -left-12 w-10 h-10 rounded-full backdrop-blur-lg border flex items-center justify-center transition-all duration-300 ease-in-out"
+								style={{
+									backgroundColor:
+										currentNotification.custom_color
+											? `${currentNotification.custom_color}B3`
+											: currentNotification.type ===
+											  'info'
+											? 'rgba(59, 130, 246, 0.7)'
+											: currentNotification.type ===
+											  'warning'
+											? 'rgba(245, 158, 11, 0.7)'
+											: currentNotification.type ===
+											  'success'
+											? 'rgba(16, 185, 129, 0.7)'
+											: currentNotification.type ===
+											  'error'
+											? 'rgba(239, 68, 68, 0.7)'
+											: 'rgba(107, 114, 128, 0.7)',
+									borderColor:
+										currentNotification.custom_color
+											? `${currentNotification.custom_color}80`
+											: currentNotification.type ===
+											  'info'
+											? 'rgba(96, 165, 250, 0.5)'
+											: currentNotification.type ===
+											  'warning'
+											? 'rgba(251, 191, 36, 0.5)'
+											: currentNotification.type ===
+											  'success'
+											? 'rgba(52, 211, 153, 0.5)'
+											: currentNotification.type ===
+											  'error'
+											? 'rgba(248, 113, 113, 0.5)'
+											: 'rgba(156, 163, 175, 0.5)'
+								}}
+							>
+								{showAllNotifications ? (
+									<ChevronUp className="h-5 w-5 text-white" />
+								) : (
+									<ChevronDown className="h-5 w-5 text-white" />
+								)}
+							</button>
+						)}
 					</div>
 				</div>
 			)}

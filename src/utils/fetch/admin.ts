@@ -140,6 +140,16 @@ export interface Pagination {
     pages: number;
 }
 
+export interface Notification {
+    id: number;
+    type: 'info' | 'warning' | 'success' | 'error';
+    text: string;
+    show: boolean;
+    custom_color?: string;
+    created_at: string;
+    updated_at: string;
+}
+
 async function makeAdminRequest(endpoint: string, options?: RequestInit) {
     const response = await fetch(`${API_BASE_URL}/api/admin${endpoint}`, {
         credentials: 'include',
@@ -259,5 +269,32 @@ export async function deleteAdminSession(sessionId: string): Promise<{ message: 
 export async function logSessionJoin(sessionId: string): Promise<{ message: string; sessionId: string }> {
     return makeAdminRequest(`/sessions/${sessionId}/join`, {
         method: 'POST'
+    });
+}
+
+export async function fetchNotifications(): Promise<Notification[]> {
+    const response = await makeAdminRequest('/notifications');
+    return response;
+}
+
+export async function addNotification(notification: Omit<Notification, 'id' | 'created_at' | 'updated_at'>): Promise<Notification> {
+    const response = await makeAdminRequest('/notifications', {
+        method: 'POST',
+        body: JSON.stringify(notification),
+    });
+    return response;
+}
+
+export async function updateNotification(id: number, notification: Partial<Omit<Notification, 'id' | 'created_at' | 'updated_at'>>): Promise<Notification> {
+    const response = await makeAdminRequest(`/notifications/${id}`, {
+        method: 'PUT',
+        body: JSON.stringify(notification),
+    });
+    return response;
+}
+
+export async function deleteNotification(id: number): Promise<void> {
+    await makeAdminRequest(`/notifications/${id}`, {
+        method: 'DELETE',
     });
 }
