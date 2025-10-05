@@ -31,6 +31,7 @@ import ErrorScreen from '../../components/common/ErrorScreen';
 import { useAuth } from '../../hooks/auth/useAuth';
 
 export default function AdminUsers() {
+    const { user } = useAuth();
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
     const [users, setUsers] = useState<AdminUser[]>([]);
     const [roles, setRoles] = useState<Role[]>([]);
@@ -421,9 +422,6 @@ export default function AdminUsers() {
         );
     };
 
-    // Add auth hook to get current user
-    const { user: currentUser } = useAuth();
-
     return (
         <div className="min-h-screen bg-black text-white">
             <Navbar />
@@ -499,7 +497,7 @@ export default function AdminUsers() {
                                             <th className="px-6 py-4 text-left text-zinc-400 font-medium">
                                                 Last Login
                                             </th>
-                                            {currentUser?.isAdmin && (
+                                            {user?.isAdmin && (
                                                 <th className="px-6 py-4 text-left text-zinc-400 font-medium">
                                                     IP Address
                                                 </th>
@@ -554,7 +552,7 @@ export default function AdminUsers() {
                                                         user.last_login
                                                     ).toLocaleDateString()}
                                                 </td>
-                                                {currentUser?.isAdmin && (
+                                                {user?.is_admin && (
                                                     <td className="px-6 py-4 text-zinc-300">
                                                         <div className="flex items-center space-x-2">
                                                             <span
