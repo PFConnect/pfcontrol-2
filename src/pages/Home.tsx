@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import Button from '../components/common/Button';
 import Navbar from '../components/Navbar';
 import { fetchStatistics } from '../utils/fetch/data';
+import Footer from '../components/Footer';
 
 export default function Home() {
 	const [stats, setStats] = useState({
@@ -65,17 +66,7 @@ export default function Home() {
 					</div>
 
 					<div className="flex-1 justify-center items-center mt-12 md:mt-0 md:ml-32 ml-0 w-full hidden md:flex">
-						<div className="w-full md:w-[500px] lg:w-[600px] mt-12 md:mt-0">
-							<div className="relative pb-[56.25%] h-0 overflow-hidden shadow-2xl rounded-xl border-2 border-blue-600">
-								<iframe
-									className="absolute top-0 left-0 w-full h-full rounded-lg"
-									src="https://www.youtube.com/embed/N5eaO49CuuI?rel=0"
-									title="PFControl 3.0 Stable Release Trailer"
-									allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-									allowFullScreen
-								></iframe>
-							</div>
-						</div>
+						<TowerControl className="h-96 w-96 text-blue-500" />
 					</div>
 				</div>
 			</section>
@@ -362,6 +353,8 @@ export default function Home() {
 					</div>
 				</div>
 			</section>
+
+			<Footer />
 		</div>
 	);
 }

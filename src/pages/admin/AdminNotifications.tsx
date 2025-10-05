@@ -269,8 +269,8 @@ export default function AdminNotifications() {
 					{/* Add/Edit Modal */}
 					{(showAddModal || editingNotification) && (
 						<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-							<div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 w-full max-w-md">
-								<h2 className="text-xl font-bold mb-4">
+							<div className="bg-zinc-900 border-2 border-zinc-700 rounded-2xl p-6 w-full max-w-md">
+								<h2 className="text-2xl font-bold mb-4">
 									{editingNotification ? 'Edit' : 'Add'}{' '}
 									Notification
 								</h2>

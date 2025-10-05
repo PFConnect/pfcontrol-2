@@ -378,7 +378,10 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 							<a href="/" className="flex items-center space-x-2">
 								<TowerControl className="h-8 w-8 text-blue-400" />
 								<span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
-									PFControl
+									PFControl{' '}
+									<span className="text-red-300 font-medium text-md">
+										Beta
+									</span>
 								</span>
 							</a>
 						</div>
