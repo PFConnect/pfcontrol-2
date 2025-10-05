@@ -11,7 +11,7 @@ import {
 	ChevronDown,
 	ChevronUp
 } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { fetchActiveNotifications } from '../utils/fetch/data';
 import type { Notification as AdminNotification } from '../utils/fetch/admin';
 import CustomUserButton from './buttons/UserButton';
@@ -104,10 +104,10 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 	}, [sessionId, accessId]);
 
 	useEffect(() => {
-		const stored = localStorage.getItem('hiddenNotifications');
-		if (stored) {
+		const storedHidden = localStorage.getItem('hiddenNotifications');
+		if (storedHidden) {
 			try {
-				setHiddenNotifications(JSON.parse(stored));
+				setHiddenNotifications(JSON.parse(storedHidden));
 			} catch (error) {
 				console.error(
 					'Error parsing hidden notifications from localStorage:',
@@ -115,35 +115,53 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 				);
 			}
 		}
+
+		const storedNotifications = localStorage.getItem('cachedNotifications');
+		if (storedNotifications) {
+			try {
+				setNotifications(JSON.parse(storedNotifications));
+			} catch (error) {
+				console.error(
+					'Error parsing cached notifications from localStorage:',
+					error
+				);
+			}
+		}
+	}, []);
+
+	const filteredNotifications = useMemo(() => {
+		return notifications.filter(
+			(n) => !hiddenNotifications.includes(n.id.toString())
+		);
+	}, [notifications, hiddenNotifications]);
+
+	const fetchNotifications = useCallback(async () => {
+		try {
+			const activeNotifications = await fetchActiveNotifications();
+			const mapped = activeNotifications.map(
+				(n) => ({ ...n } as AppNotification)
+			);
+			setNotifications(mapped);
+			localStorage.setItem('cachedNotifications', JSON.stringify(mapped));
+		} catch (error) {
+			console.error('Failed to fetch notifications:', error);
+		}
 	}, []);
 
 	useEffect(() => {
-		const fetchNotifications = async () => {
-			try {
-				const activeNotifications = await fetchActiveNotifications();
-				const filtered = activeNotifications
-					.filter(
-						(n) => !hiddenNotifications.includes(n.id.toString())
-					)
-					.map((n) => ({ ...n } as AppNotification));
-				setNotifications(filtered);
-			} catch (error) {
-				console.error('Failed to fetch notifications:', error);
-			}
-		};
 		fetchNotifications();
-	}, [hiddenNotifications]);
+	}, [fetchNotifications]);
 
 	useEffect(() => {
-		if (notifications.length > 1 && !showAllNotifications) {
+		if (filteredNotifications.length > 1 && !showAllNotifications) {
 			const interval = setInterval(() => {
 				setCurrentNotificationIndex(
-					(prev) => (prev + 1) % notifications.length
+					(prev) => (prev + 1) % filteredNotifications.length
 				);
 			}, 10000);
 			return () => clearInterval(interval);
 		}
-	}, [notifications, showAllNotifications]);
+	}, [filteredNotifications, showAllNotifications]);
 
 	const hideNotification = (id: number) => {
 		const idStr = id.toString();
@@ -230,16 +248,16 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 		}
 	};
 
-	const currentNotification = notifications[currentNotificationIndex];
+	const currentNotification = filteredNotifications[currentNotificationIndex];
 
 	return (
 		<>
 			{/* Mobile Notification Banner */}
-			{notifications.length > 0 && isMobile && (
+			{filteredNotifications.length > 0 && isMobile && (
 				<div className="fixed bottom-4 left-4 right-4 z-40">
 					<div className="flex items-start space-x-2">
 						{/* Control Circle */}
-						{notifications.length > 1 && (
+						{filteredNotifications.length > 1 && (
 							<button
 								onClick={() =>
 									setShowAllNotifications(
@@ -305,7 +323,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 										showAllNotifications ? 'space-y-2' : ''
 									}
 								>
-									{notifications.map(
+									{filteredNotifications.map(
 										(notification, index) => (
 											<div
 												key={index}
@@ -354,7 +372,6 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 			)}
 
 			<nav className={navClass}>
-				{/* ...existing nav content... */}
 				<div className="max-w-7xl mx-auto px-6 lg:px-8">
 					<div className="flex justify-between items-center h-16">
 						<div className="flex items-center space-x-4">
@@ -580,47 +597,50 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 									showAllNotifications ? 'space-y-2' : ''
 								}
 							>
-								{notifications.map((notification, index) => (
-									<div
-										key={index}
-										className={`backdrop-blur-lg border rounded-full px-4 py-3 max-w-full transition-all duration-300 ease-in-out ${
-											showAllNotifications ||
-											index === currentNotificationIndex
-												? ''
-												: 'hidden'
-										}`}
-										style={getNotificationStyle(
-											notification
-										)}
-									>
-										<div className="flex items-start space-x-2">
-											<div className="flex-shrink-0 mt-0.5">
-												{notification.custom_icon ||
-													getNotificationIcon(
-														notification.type
-													)}
+								{filteredNotifications.map(
+									(notification, index) => (
+										<div
+											key={index}
+											className={`backdrop-blur-lg border rounded-full px-4 py-3 max-w-full transition-all duration-300 ease-in-out ${
+												showAllNotifications ||
+												index ===
+													currentNotificationIndex
+													? ''
+													: 'hidden'
+											}`}
+											style={getNotificationStyle(
+												notification
+											)}
+										>
+											<div className="flex items-start space-x-2">
+												<div className="flex-shrink-0 mt-0.5">
+													{notification.custom_icon ||
+														getNotificationIcon(
+															notification.type
+														)}
+												</div>
+												<p className="text-sm font-medium text-white leading-tight flex-1">
+													{notification.text}
+												</p>
+												<button
+													onClick={() =>
+														hideNotification(
+															notification.id
+														)
+													}
+													className="flex-shrink-0 ml-2 text-white hover:text-gray-300 transition-colors"
+													aria-label="Hide notification"
+												>
+													<X className="h-4 w-4" />
+												</button>
 											</div>
-											<p className="text-sm font-medium text-white leading-tight flex-1">
-												{notification.text}
-											</p>
-											<button
-												onClick={() =>
-													hideNotification(
-														notification.id
-													)
-												}
-												className="flex-shrink-0 ml-2 text-white hover:text-gray-300 transition-colors"
-												aria-label="Hide notification"
-											>
-												<X className="h-4 w-4" />
-											</button>
 										</div>
-									</div>
-								))}
+									)
+								)}
 							</div>
 						</div>
 
-						{notifications.length > 1 && (
+						{filteredNotifications.length > 1 && (
 							<button
 								onClick={() =>
 									setShowAllNotifications(

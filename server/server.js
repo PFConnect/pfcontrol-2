@@ -13,6 +13,7 @@ import { setupFlightsWebsocket } from './websockets/flightsWebsocket.js';
 import { setupOverviewWebsocket } from './websockets/overviewWebsocket.js';
 import { setupArrivalsWebsocket } from './websockets/arrivalsWebsocket.js';
 
+console.log('NODE_ENV:', process.env.NODE_ENV);
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 const cors_origin = process.env.NODE_ENV === 'production' ? ['https://control.pfconnect.online', 'https://test.pfconnect.online'] : ['http://localhost:5000', 'http://localhost:5173', 'https://control.pfconnect.online'];
 dotenv.config({ path: envFile });
