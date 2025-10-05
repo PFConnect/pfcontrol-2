@@ -184,7 +184,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 	].join(' ');
 
 	const submitLink = `${window.location.origin}/submit/${sessionId}`;
-	const viewLink = `${window.location.origin}/submit/${sessionId}?accessId=${accessId}`;
+	const viewLink = `${window.location.origin}/view/${sessionId}?accessId=${accessId}`;
 
 	const handleCopy = async (text: string) => {
 		try {
