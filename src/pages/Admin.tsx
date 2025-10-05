@@ -58,6 +58,7 @@ export default function Admin() {
 			setError(null);
 
 			const data = await fetchAdminStatistics(timeRange);
+
 			const periodTotals = data.daily.reduce(
 				(acc, day) => ({
 					total_logins: acc.total_logins + day.logins_count,
@@ -72,7 +73,12 @@ export default function Admin() {
 					total_users: 0
 				}
 			);
-			setStats({ ...data, totals: periodTotals });
+
+			setStats({
+				...data,
+				periodTotals,
+				totals: data.totals
+			});
 		} catch (error) {
 			console.error('Error fetching admin statistics:', error);
 			setError(
@@ -304,7 +310,7 @@ export default function Admin() {
 										<TrendingUp className="w-5 h-5 text-green-400" />
 									</div>
 									<h3 className="text-2xl font-bold text-white mb-1">
-										{stats.totals.total_users?.toLocaleString() ||
+										{stats.totals?.total_users?.toLocaleString() ||
 											'0'}
 									</h3>
 									<p className="text-zinc-400 text-sm">
@@ -320,7 +326,7 @@ export default function Admin() {
 										<TrendingUp className="w-5 h-5 text-green-400" />
 									</div>
 									<h3 className="text-2xl font-bold text-white mb-1">
-										{stats.totals.total_sessions?.toLocaleString() ||
+										{stats.totals?.total_sessions?.toLocaleString() ||
 											'0'}
 									</h3>
 									<p className="text-zinc-400 text-sm">
@@ -336,7 +342,7 @@ export default function Admin() {
 										<TrendingUp className="w-5 h-5 text-green-400" />
 									</div>
 									<h3 className="text-2xl font-bold text-white mb-1">
-										{stats.totals.total_flights?.toLocaleString() ||
+										{stats.totals?.total_flights?.toLocaleString() ||
 											'0'}
 									</h3>
 									<p className="text-zinc-400 text-sm">
@@ -352,7 +358,7 @@ export default function Admin() {
 										<TrendingUp className="w-5 h-5 text-green-400" />
 									</div>
 									<h3 className="text-2xl font-bold text-white mb-1">
-										{stats.totals.total_logins?.toLocaleString() ||
+										{stats.totals?.total_logins?.toLocaleString() ||
 											'0'}
 									</h3>
 									<p className="text-zinc-400 text-sm">

@@ -17,10 +17,21 @@ export interface TotalStats {
     total_users: number;
 }
 
-export interface AdminStats {
+export type AdminStats = {
+    totals: {
+        total_users: number;
+        total_sessions: number;
+        total_flights: number;
+        total_logins: number;
+    };
     daily: DailyStats[];
-    totals: TotalStats;
-}
+    periodTotals?: {
+        total_logins: number;
+        total_sessions: number;
+        total_flights: number;
+        total_users: number;
+    };
+};
 
 export interface AdminUser {
     id: string;

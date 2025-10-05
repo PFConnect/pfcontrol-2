@@ -36,6 +36,8 @@ export async function getDailyStatistics(days = 30) {
 
 export async function getTotalStatistics() {
     try {
+        const directStats = await calculateDirectStatistics();
+
         const dailyResult = await pool.query(`
             SELECT
                 COALESCE(SUM(logins_count), 0) as total_logins,
@@ -45,13 +47,14 @@ export async function getTotalStatistics() {
             FROM daily_statistics
         `);
 
-        const stats = dailyResult.rows[0];
-        if (stats.total_users === 0) {
-            const directStats = await calculateDirectStatistics();
-            return directStats;
-        }
+        const dailyStats = dailyResult.rows[0];
 
-        return stats;
+        return {
+            total_logins: dailyStats.total_logins || 0,
+            total_sessions: directStats.total_sessions,
+            total_flights: directStats.total_flights,
+            total_users: directStats.total_users
+        };
     } catch (error) {
         console.error('Error fetching total statistics:', error);
         return {
@@ -162,7 +165,6 @@ export async function getAllUsers(page = 1, limit = 50, search = '', filterAdmin
                 queryParams.push(...adminIds);
                 paramIndex += adminIds.length;
             } else if (filterAdmin === 'admin') {
-                // No admins defined, return empty result
                 return {
                     users: [],
                     pagination: { page, limit, total: 0, pages: 0 }
