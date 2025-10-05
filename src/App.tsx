@@ -55,6 +55,7 @@ export default function App() {
 										path="settings"
 										element={<Settings />}
 									/>
+									<Route path="*" element={<NotFound />} />
 								</Routes>
 							</ProtectedRoute>
 						}
@@ -93,6 +94,7 @@ export default function App() {
 										path="notifications"
 										element={<AdminNotifications />}
 									/>
+									<Route path="*" element={<NotFound />} />
 								</Routes>
 							</ProtectedRoute>
 						}
