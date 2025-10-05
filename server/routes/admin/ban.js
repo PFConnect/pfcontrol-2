@@ -3,6 +3,7 @@ import { createAuditLogger } from '../../middleware/auditLogger.js';
 import { requirePermission } from '../../middleware/rolePermissions.js';
 import { banUser, unbanUser, getAllBans } from '../../db/ban.js';
 import { logAdminAction } from '../../db/audit.js';
+import { isAdmin } from '../../middleware/isAdmin.js';
 import pool from '../../db/connections/connection.js';
 
 const router = express.Router();
@@ -20,6 +21,9 @@ router.post('/ban', async (req, res) => {
     const { userId, ip, username, reason, expiresAt } = req.body;
     if (!userId && !ip) {
         return res.status(400).json({ error: 'Either userId or ip must be provided' });
+    }
+    if (userId && isAdmin(userId)) {
+        return res.status(403).json({ error: 'Cannot ban a super admin' });
     }
     await banUser({
         userId,
