@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { getUserById } from "../db/users.js";
+import { isAdmin } from "./isAdmin.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
@@ -18,9 +19,13 @@ export default async function requireAuth(req, res, next) {
         }
 
         req.user = {
-            id: user.id,
-            username: user.username,
-            ...decoded
+            userId: decoded.userId,
+            username: decoded.username,
+            discriminator: decoded.discriminator,
+            avatar: decoded.avatar,
+            isAdmin: isAdmin(decoded.userId),
+            rolePermissions: user.rolePermissions,
+            id: user.id
         };
 
         next();

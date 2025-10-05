@@ -69,7 +69,6 @@ export default function App() {
                         path="/admin/*"
                         element={
                             <ProtectedRoute
-                                requireAdmin={false}
                                 requireTester={false}
                                 requirePermission="admin"
                             >

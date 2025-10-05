@@ -1,8 +1,11 @@
 import express from 'express';
 import { createAuditLogger, logIPAccess } from '../../middleware/auditLogger.js';
+import { requirePermission } from '../../middleware/rolePermissions.js';
 import { getAuditLogs, getAuditLogById } from '../../db/audit.js';
 
 const router = express.Router();
+
+router.use(requirePermission('audit'));
 
 // GET: /api/admin/audit-logs - Get audit logs
 router.get('/', createAuditLogger('ADMIN_AUDIT_LOGS_ACCESSED'), async (req, res) => {

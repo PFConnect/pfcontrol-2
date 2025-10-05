@@ -185,10 +185,71 @@ export async function getUserById(id) {
 
         const user = result.rows[0];
 
-        const decryptedAccessToken = decrypt(JSON.parse(user.access_token || 'null'));
-        const decryptedRefreshToken = decrypt(JSON.parse(user.refresh_token || 'null'));
-        const decryptedSessions = decrypt(JSON.parse(user.sessions || 'null')) || [];
-        const decryptedSettings = decrypt(JSON.parse(user.settings || 'null')) || {};
+        let decryptedAccessToken;
+        if (user.access_token) {
+            try {
+                const parsed = JSON.parse(user.access_token);
+                decryptedAccessToken = decrypt(parsed);
+            } catch (error) {
+                console.warn(`Failed to parse access_token for user ${id}, attempting direct decryption:`, error.message);
+                decryptedAccessToken = decrypt(user.access_token);
+            }
+        } else {
+            decryptedAccessToken = null;
+        }
+
+        let decryptedRefreshToken;
+        if (user.refresh_token) {
+            try {
+                const parsed = JSON.parse(user.refresh_token);
+                decryptedRefreshToken = decrypt(parsed);
+            } catch (error) {
+                console.warn(`Failed to parse refresh_token for user ${id}, attempting direct decryption:`, error.message);
+                decryptedRefreshToken = decrypt(user.refresh_token);
+            }
+        } else {
+            decryptedRefreshToken = null;
+        }
+
+        let decryptedSessions;
+        if (user.sessions) {
+            try {
+                const parsed = JSON.parse(user.sessions);
+                decryptedSessions = decrypt(parsed) || [];
+            } catch (error) {
+                console.warn(`Failed to parse sessions for user ${id}, attempting direct decryption:`, error.message);
+                decryptedSessions = decrypt(user.sessions) || [];
+            }
+        } else {
+            decryptedSessions = [];
+        }
+
+        let decryptedSettings;
+        if (user.settings) {
+            try {
+                const parsed = JSON.parse(user.settings);
+                decryptedSettings = decrypt(parsed) || {};
+            } catch (error) {
+                console.warn(`Failed to parse settings for user ${id}, attempting direct decryption:`, error.message);
+                decryptedSettings = decrypt(user.settings) || {};
+            }
+        } else {
+            decryptedSettings = {};
+        }
+
+        let rolePermissions = null;
+        if (user.role_permissions) {
+            if (typeof user.role_permissions === 'string') {
+                try {
+                    rolePermissions = JSON.parse(user.role_permissions);
+                } catch (error) {
+                    console.warn(`Failed to parse role_permissions for user ${id}:`, error.message);
+                    rolePermissions = null;
+                }
+            } else {
+                rolePermissions = user.role_permissions;
+            }
+        }
 
         return {
             id: user.id,
@@ -211,7 +272,7 @@ export async function getUserById(id) {
             updatedAt: user.updated_at,
             roleId: user.role_id,
             roleName: user.role_name,
-            rolePermissions: user.role_permissions ? JSON.parse(user.role_permissions) : null
+            rolePermissions: rolePermissions
         };
     } catch (error) {
         console.error('Error fetching user:', error);

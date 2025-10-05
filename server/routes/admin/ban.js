@@ -1,10 +1,13 @@
 import express from 'express';
 import { createAuditLogger } from '../../middleware/auditLogger.js';
+import { requirePermission } from '../../middleware/rolePermissions.js';
 import { banUser, unbanUser, getAllBans } from '../../db/ban.js';
 import { logAdminAction } from '../../db/audit.js';
 import pool from '../../db/connections/connection.js';
 
 const router = express.Router();
+
+router.use(requirePermission('bans'));
 
 router.get('/', createAuditLogger('ADMIN_BANS_ACCESSED'), async (req, res) => {
     const page = parseInt(req.query.page) || 1;

@@ -7,6 +7,7 @@ import Button from '../../components/common/Button';
 import TextInput from '../../components/common/TextInput';
 import Toast from '../../components/common/Toast';
 import ErrorScreen from '../../components/common/ErrorScreen';
+import Dropdown from '../../components/common/Dropdown';
 import {
     fetchRoles,
     createRole,
@@ -437,55 +438,48 @@ export default function AdminRoles() {
                                                 <div className="flex items-center space-x-2">
                                                     {!user.is_admin && (
                                                         <>
-                                                            <select
+                                                            <Dropdown
+                                                                options={[
+                                                                    {
+                                                                        value: '',
+                                                                        label: 'No Role',
+                                                                    },
+                                                                    ...roles.map(
+                                                                        (
+                                                                            role
+                                                                        ) => ({
+                                                                            value: role.id.toString(),
+                                                                            label: role.name,
+                                                                        })
+                                                                    ),
+                                                                ]}
                                                                 value={
-                                                                    user.role_id ||
-                                                                    ''
+                                                                    user.role_id
+                                                                        ? user.role_id.toString()
+                                                                        : ''
                                                                 }
                                                                 onChange={(
-                                                                    e
+                                                                    val
                                                                 ) => {
-                                                                    const roleId =
-                                                                        parseInt(
-                                                                            e
-                                                                                .target
-                                                                                .value
-                                                                        );
                                                                     if (
-                                                                        roleId
+                                                                        val ===
+                                                                        ''
                                                                     ) {
-                                                                        handleAssignRole(
-                                                                            user.id,
-                                                                            roleId
-                                                                        );
-                                                                    } else {
                                                                         handleRemoveRole(
                                                                             user.id
                                                                         );
+                                                                    } else {
+                                                                        handleAssignRole(
+                                                                            user.id,
+                                                                            parseInt(
+                                                                                val
+                                                                            )
+                                                                        );
                                                                     }
                                                                 }}
-                                                                className="bg-zinc-700 border border-zinc-600 rounded px-3 py-1 text-white text-sm"
-                                                            >
-                                                                <option value="">
-                                                                    No Role
-                                                                </option>
-                                                                {roles.map(
-                                                                    (role) => (
-                                                                        <option
-                                                                            key={
-                                                                                role.id
-                                                                            }
-                                                                            value={
-                                                                                role.id
-                                                                            }
-                                                                        >
-                                                                            {
-                                                                                role.name
-                                                                            }
-                                                                        </option>
-                                                                    )
-                                                                )}
-                                                            </select>
+                                                                size="sm"
+                                                                className="w-48"
+                                                            />
                                                         </>
                                                     )}
                                                 </div>

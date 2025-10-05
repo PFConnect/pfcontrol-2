@@ -1,9 +1,12 @@
 import express from 'express';
 import { createAuditLogger } from '../../middleware/auditLogger.js';
+import { requirePermission } from '../../middleware/rolePermissions.js';
 import { getAdminSessions } from '../../db/admin.js';
 import { deleteSession } from '../../db/sessions.js';
 
 const router = express.Router();
+
+router.use(requirePermission('sessions'));
 
 // GET: /api/admin/sessions - Get all sessions with details
 router.get('/', createAuditLogger('ADMIN_SESSIONS_ACCESSED'), async (req, res) => {

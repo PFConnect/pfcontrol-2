@@ -1,7 +1,7 @@
 import express from 'express';
 import requireAuth from '../../middleware/isAuthenticated.js';
-import { requireAdmin } from '../../middleware/isAdmin.js';
 import { createAuditLogger } from '../../middleware/auditLogger.js';
+import { requirePermission } from '../../middleware/rolePermissions.js';
 import { getDailyStatistics, getTotalStatistics, getSystemInfo } from '../../db/admin.js';
 
 import usersRouter from './users.js';
@@ -15,7 +15,6 @@ import rolesRouter from './roles.js';
 const router = express.Router();
 
 router.use(requireAuth);
-router.use(requireAdmin);
 
 // Heavy routes in separate files
 router.use('/users', usersRouter);
@@ -27,7 +26,7 @@ router.use('/notifications', notificationRouter);
 router.use('/roles', rolesRouter);
 
 // GET: /api/admin/statistics - Get dashboard statistics
-router.get('/statistics', async (req, res) => {
+router.get('/statistics', requirePermission('admin'), async (req, res) => {
     try {
         const days = parseInt(req.query.days) || 30;
         const dailyStats = await getDailyStatistics(days);
@@ -44,7 +43,7 @@ router.get('/statistics', async (req, res) => {
 });
 
 // GET: /api/admin/system-info - Get system information
-router.get('/system-info', createAuditLogger('ADMIN_SYSTEM_INFO_ACCESSED'), async (req, res) => {
+router.get('/system-info', requirePermission('admin'), createAuditLogger('ADMIN_SYSTEM_INFO_ACCESSED'), async (req, res) => {
     try {
         const systemInfo = await getSystemInfo();
         res.json(systemInfo);

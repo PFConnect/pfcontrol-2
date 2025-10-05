@@ -14,8 +14,8 @@ import {
 
 const router = express.Router();
 
-// GET: /api/admin/roles - Get all roles (requires roles permission)
-router.get('/', requirePermission('roles'), createAuditLogger('ADMIN_ROLES_ACCESSED'), async (req, res) => {
+// GET: /api/admin/roles - Get all roles (requires users permission)
+router.get('/', requirePermission('users'), createAuditLogger('ADMIN_ROLES_ACCESSED'), async (req, res) => {
     try {
         const roles = await getAllRoles();
         res.json(roles);
@@ -25,8 +25,8 @@ router.get('/', requirePermission('roles'), createAuditLogger('ADMIN_ROLES_ACCES
     }
 });
 
-// GET: /api/admin/roles/users - Get users with roles (requires roles permission)
-router.get('/users', requirePermission('roles'), createAuditLogger('ADMIN_ROLE_USERS_ACCESSED'), async (req, res) => {
+// GET: /api/admin/roles/users - Get users with roles (requires users permission)
+router.get('/users', requirePermission('users'), createAuditLogger('ADMIN_ROLE_USERS_ACCESSED'), async (req, res) => {
     try {
         const users = await getUsersWithRoles();
         res.json(users);

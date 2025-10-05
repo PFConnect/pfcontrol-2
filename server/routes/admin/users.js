@@ -1,10 +1,14 @@
 import express from 'express';
 import { createAuditLogger } from '../../middleware/auditLogger.js';
+import { requirePermission } from '../../middleware/rolePermissions.js';
 import { getAllUsers, syncUserSessionCounts } from '../../db/admin.js';
 import { getUserById } from '../../db/users.js';
 import { logAdminAction } from '../../db/audit.js';
+import { isAdmin } from '../../middleware/isAdmin.js';
 
 const router = express.Router();
+
+router.use(requirePermission('users'));
 
 // GET: /api/admin/users - Get all users with pagination, search, and filters
 router.get('/', createAuditLogger('ADMIN_USERS_ACCESSED'), async (req, res) => {
@@ -25,6 +29,10 @@ router.get('/', createAuditLogger('ADMIN_USERS_ACCESSED'), async (req, res) => {
 // POST: /api/admin/users/:userId/reveal-ip - Reveal user's IP address
 router.post('/:userId/reveal-ip', async (req, res) => {
     try {
+        if (!isAdmin(req.user?.userId)) {
+            return res.status(403).json({ error: 'Access denied - insufficient permissions' });
+        }
+
         const { userId } = req.params;
         const user = await getUserById(userId);
 

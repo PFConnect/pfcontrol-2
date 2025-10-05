@@ -28,6 +28,7 @@ import {
 import Button from '../../components/common/Button';
 import Toast from '../../components/common/Toast';
 import ErrorScreen from '../../components/common/ErrorScreen';
+import { useAuth } from '../../hooks/auth/useAuth';
 
 export default function AdminUsers() {
     const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
@@ -420,6 +421,9 @@ export default function AdminUsers() {
         );
     };
 
+    // Add auth hook to get current user
+    const { user: currentUser } = useAuth();
+
     return (
         <div className="min-h-screen bg-black text-white">
             <Navbar />
@@ -495,9 +499,11 @@ export default function AdminUsers() {
                                             <th className="px-6 py-4 text-left text-zinc-400 font-medium">
                                                 Last Login
                                             </th>
-                                            <th className="px-6 py-4 text-left text-zinc-400 font-medium">
-                                                IP Address
-                                            </th>
+                                            {currentUser?.isAdmin && (
+                                                <th className="px-6 py-4 text-left text-zinc-400 font-medium">
+                                                    IP Address
+                                                </th>
+                                            )}
                                             <th className="px-6 py-4 text-left text-zinc-400 font-medium">
                                                 VPN
                                             </th>
@@ -548,49 +554,51 @@ export default function AdminUsers() {
                                                         user.last_login
                                                     ).toLocaleDateString()}
                                                 </td>
-                                                <td className="px-6 py-4 text-zinc-300">
-                                                    <div className="flex items-center space-x-2">
-                                                        <span
-                                                            className={
-                                                                revealedIPs.has(
+                                                {currentUser?.isAdmin && (
+                                                    <td className="px-6 py-4 text-zinc-300">
+                                                        <div className="flex items-center space-x-2">
+                                                            <span
+                                                                className={
+                                                                    revealedIPs.has(
+                                                                        user.id
+                                                                    )
+                                                                        ? ''
+                                                                        : 'filter blur-sm'
+                                                                }
+                                                            >
+                                                                {formatIPAddress(
+                                                                    user.ip_address,
                                                                     user.id
-                                                                )
-                                                                    ? ''
-                                                                    : 'filter blur-sm'
-                                                            }
-                                                        >
-                                                            {formatIPAddress(
-                                                                user.ip_address,
-                                                                user.id
-                                                            )}
-                                                        </span>
-                                                        <Button
-                                                            size="sm"
-                                                            variant="ghost"
-                                                            onClick={() =>
-                                                                handleRevealIP(
+                                                                )}
+                                                            </span>
+                                                            <Button
+                                                                size="sm"
+                                                                variant="ghost"
+                                                                onClick={() =>
+                                                                    handleRevealIP(
+                                                                        user.id
+                                                                    )
+                                                                }
+                                                                disabled={
+                                                                    revealingIP ===
                                                                     user.id
-                                                                )
-                                                            }
-                                                            disabled={
-                                                                revealingIP ===
-                                                                user.id
-                                                            }
-                                                            className="p-1"
-                                                        >
-                                                            {revealingIP ===
-                                                            user.id ? (
-                                                                <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-                                                            ) : revealedIPs.has(
-                                                                  user.id
-                                                              ) ? (
-                                                                <EyeOff className="w-4 h-4" />
-                                                            ) : (
-                                                                <Eye className="w-4 h-4" />
-                                                            )}
-                                                        </Button>
-                                                    </div>
-                                                </td>
+                                                                }
+                                                                className="p-1"
+                                                            >
+                                                                {revealingIP ===
+                                                                user.id ? (
+                                                                    <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+                                                                ) : revealedIPs.has(
+                                                                      user.id
+                                                                  ) ? (
+                                                                    <EyeOff className="w-4 h-4" />
+                                                                ) : (
+                                                                    <Eye className="w-4 h-4" />
+                                                                )}
+                                                            </Button>
+                                                        </div>
+                                                    </td>
+                                                )}
                                                 <td className="px-6 py-4">
                                                     <span
                                                         className={`px-2 py-1 rounded-full text-xs font-medium ${
