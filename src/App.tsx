@@ -20,18 +20,10 @@ import AdminUsers from './pages/admin/AdminUsers';
 import AdminAudit from './pages/admin/AdminAudit';
 import AdminBan from './pages/admin/AdminBan';
 import AdminSessions from './pages/admin/AdminSessions';
-import Loader from './components/common/Loader';
+import AdminTesters from './pages/admin/AdminTesters';
 
 export default function App() {
-	const { user, isLoading } = useAuth();
-
-	if (isLoading) {
-		return (
-			<div className="min-h-screen bg-gradient-to-b from-black to-slate-900 flex items-center justify-center">
-				<Loader />
-			</div>
-		);
-	}
+	const { user } = useAuth();
 
 	return (
 		<Router>
@@ -39,80 +31,64 @@ export default function App() {
 				<AccessDenied errorType="banned" />
 			) : (
 				<Routes>
-					<Route path="/" element={<Home />} />
-					<Route path="/pfatc" element={<PFATCFlights />} />
+					<Route
+						path="/*"
+						element={
+							<ProtectedRoute>
+								<Routes>
+									<Route index element={<Home />} />
+									<Route
+										path="pfatc"
+										element={<PFATCFlights />}
+									/>
+									<Route path="create" element={<Create />} />
+									<Route
+										path="sessions"
+										element={<Sessions />}
+									/>
+									<Route
+										path="view/:sessionId"
+										element={<Flights />}
+									/>
+									<Route
+										path="settings"
+										element={<Settings />}
+									/>
+								</Routes>
+							</ProtectedRoute>
+						}
+					/>
+
 					<Route path="/submit/:sessionId" element={<Submit />} />
-					<Route
-						path="/create"
-						element={
-							<ProtectedRoute>
-								<Create />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/sessions"
-						element={
-							<ProtectedRoute>
-								<Sessions />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/view/:sessionId"
-						element={
-							<ProtectedRoute>
-								<Flights />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/settings"
-						element={
-							<ProtectedRoute>
-								<Settings />
-							</ProtectedRoute>
-						}
-					/>
 					<Route path="/login" element={<Login />} />
 
 					<Route
-						path="/admin"
+						path="/admin/*"
 						element={
-							<ProtectedRoute requireAdmin={true}>
-								<Admin />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/admin/users"
-						element={
-							<ProtectedRoute requireAdmin={true}>
-								<AdminUsers />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/admin/audit"
-						element={
-							<ProtectedRoute requireAdmin={true}>
-								<AdminAudit />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/admin/bans"
-						element={
-							<ProtectedRoute requireAdmin={true}>
-								<AdminBan />
-							</ProtectedRoute>
-						}
-					/>
-					<Route
-						path="/admin/sessions"
-						element={
-							<ProtectedRoute requireAdmin={true}>
-								<AdminSessions />
+							<ProtectedRoute
+								requireAdmin={true}
+								requireTester={false}
+							>
+								<Routes>
+									<Route index element={<Admin />} />
+									<Route
+										path="users"
+										element={<AdminUsers />}
+									/>
+									<Route
+										path="audit"
+										element={<AdminAudit />}
+									/>
+									<Route path="bans" element={<AdminBan />} />
+									<Route
+										path="sessions"
+										element={<AdminSessions />}
+									/>
+									<Route
+										path="testers"
+										element={<AdminTesters />}
+									/>
+								</Routes>
 							</ProtectedRoute>
 						}
 					/>

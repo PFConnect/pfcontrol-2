@@ -7,5 +7,6 @@ export interface User {
     avatar: string | null;
     isAdmin: boolean;
     isBanned: boolean;
+    isTester?: boolean;
     settings: Settings;
 }

@@ -1,5 +1,6 @@
 import type { Airport, AirportFrequency } from '../../types/airports';
 import type { Aircraft } from '../../types/aircraft';
+import type { TesterSettings } from './testers';
 
 interface AvailableImage {
     filename: string;
@@ -52,4 +53,20 @@ export function fetchBackgrounds(): Promise<AvailableImage[]> {
 
 export function fetchStatistics(): Promise<string[]> {
     return fetchData<string>('statistics');
+}
+
+export async function getTesterSettings(): Promise<TesterSettings> {
+    try {
+        const response = await fetch(
+            `${import.meta.env.VITE_SERVER_URL}/api/data/settings`
+        );
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        const settings: TesterSettings = await response.json();
+        return settings;
+    } catch (error) {
+        console.error('Error fetching tester settings:', error);
+        return { tester_gate_enabled: true };
+    }
 }

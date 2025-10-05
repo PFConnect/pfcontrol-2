@@ -127,7 +127,10 @@ export default function CustomUserButton({
 					</button>
 
 					{user.isAdmin && (
-						<ProtectedRoute requireAdmin={true}>
+						<ProtectedRoute
+							requireAdmin={true}
+							requireTester={false}
+						>
 							<button
 								onClick={() => {
 									window.location.href = '/admin';
@@ -230,7 +233,10 @@ export default function CustomUserButton({
 						</button>
 					</div>
 					{user.isAdmin && (
-						<ProtectedRoute requireAdmin={true}>
+						<ProtectedRoute
+							requireAdmin={true}
+							requireTester={false}
+						>
 							<div className="border-t border-gray-700/50 py-1">
 								<button
 									onClick={() => {

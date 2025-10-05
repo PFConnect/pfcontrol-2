@@ -20,7 +20,6 @@ import {
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import Loader from '../../components/common/Loader';
-import ProtectedRoute from '../../components/ProtectedRoute';
 import Button from '../../components/common/Button';
 import Toast from '../../components/common/Toast';
 import Dropdown from '../../components/common/Dropdown';
@@ -321,13 +320,6 @@ export default function AdminSessions() {
 								{formatTimeAgo(session.created_at)}
 							</span>
 						</div>
-						{session.is_pfatc && (
-							<div className="flex items-center justify-center">
-								<span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30">
-									PFATC Session
-								</span>
-							</div>
-						)}
 					</div>
 
 					{/* Join Button */}
@@ -486,7 +478,7 @@ export default function AdminSessions() {
 	);
 
 	return (
-		<ProtectedRoute requireAdmin={true}>
+		<>
 			<div className="min-h-screen bg-black text-white">
 				<Navbar />
 				<div className="flex pt-16">
@@ -849,6 +841,6 @@ export default function AdminSessions() {
 					onClose={() => setToast(null)}
 				/>
 			)}
-		</ProtectedRoute>
+		</>
 	);
 }

@@ -2,6 +2,7 @@ import express from 'express';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
+import { getTesterSettings } from '../db/testers.js';
 
 import dotenv from 'dotenv';
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
@@ -224,6 +225,17 @@ router.get('/statistics', async (req, res) => {
     } catch (error) {
         console.error('Error fetching statistics:', error);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to fetch statistics' });
+    }
+});
+
+// GET: /api/data/settings - Get tester gate settings
+router.get('/settings', async (req, res) => {
+    try {
+        const settings = await getTesterSettings();
+        res.json(settings);
+    } catch (error) {
+        console.error('Error fetching tester settings:', error);
+        res.status(500).json({ error: 'Failed to fetch settings' });
     }
 });
 

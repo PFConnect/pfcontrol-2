@@ -7,7 +7,11 @@ interface AccessDeniedProps {
 	description?: string;
 	sessionId?: string;
 	accessId?: string;
-	errorType?: 'access-denied' | 'invalid-session' | 'banned';
+	errorType?:
+		| 'access-denied'
+		| 'invalid-session'
+		| 'banned'
+		| 'tester-required';
 }
 
 export default function AccessDenied({
@@ -25,12 +29,16 @@ export default function AccessDenied({
 			? 'from-black via-zinc-900 to-yellow-700'
 			: errorType === 'banned'
 			? 'from-black via-zinc-900 to-red-900'
+			: errorType === 'tester-required'
+			? 'from-black via-zinc-900 to-cyan-900'
 			: 'from-black via-zinc-900 to-red-950';
 	const textGradient =
 		errorType === 'invalid-session'
 			? 'from-yellow-400 to-yellow-700'
 			: errorType === 'banned'
 			? 'from-red-400 to-red-700'
+			: errorType === 'tester-required'
+			? 'from-cyan-400 to-cyan-700'
 			: 'from-red-400 to-red-900';
 
 	if (errorType === 'invalid-session') {
@@ -43,6 +51,11 @@ export default function AccessDenied({
 		displayDescription =
 			displayDescription ||
 			'Your account has been banned. Please contact support for more information.';
+	} else if (errorType === 'tester-required') {
+		displayMessage = displayMessage || 'Tester Access Required';
+		displayDescription =
+			displayDescription ||
+			'This application is currently in testing. Please contact an administrator if you believe you should have access.';
 	} else {
 		displayMessage = displayMessage || 'Access Denied';
 		displayDescription =
@@ -68,17 +81,19 @@ export default function AccessDenied({
 					<p className="text-lg mb-8 text-gray-400">
 						{displayDescription}
 					</p>
-					<Link
-						to="/"
-						className={`inline-flex items-center px-8 py-4 rounded-full ${
-							errorType === 'invalid-session'
-								? 'bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800'
-								: 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
-						} text-white text-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl`}
-					>
-						<ArrowLeft className="mr-3 h-6 w-6 group-hover:-translate-x-1 transition-transform duration-300" />
-						Go Home
-					</Link>
+					{errorType !== 'tester-required' && (
+						<Link
+							to="/"
+							className={`inline-flex items-center px-8 py-4 rounded-full ${
+								errorType === 'invalid-session'
+									? 'bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800'
+									: 'bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800'
+							} text-white text-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl`}
+						>
+							<ArrowLeft className="mr-3 h-6 w-6 group-hover:-translate-x-1 transition-transform duration-300" />
+							Go Home
+						</Link>
+					)}
 				</div>
 			</div>
 		</div>

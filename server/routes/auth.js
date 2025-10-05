@@ -6,8 +6,9 @@ import { authLimiter } from '../middleware/security.js';
 import { detectVPN } from '../tools/detectVPN.js';
 import { isAdmin } from '../middleware/isAdmin.js';
 import { recordLogin, recordNewUser } from '../db/statistics.js';
+import { isUserBanned } from '../db/ban.js';
+import { isTester } from '../db/testers.js'; // Import from db instead of middleware
 import requireAuth from '../middleware/isAuthenticated.js';
-import { isUserBanned } from '../db/ban.js';  // New import
 
 const router = express.Router();
 
@@ -118,7 +119,6 @@ router.get('/me', requireAuth, async (req, res) => {
         }
 
         const banRecord = await isUserBanned(req.user.userId);
-        const isBanned = !!banRecord;
 
         res.json({
             userId: req.user.userId,
@@ -129,7 +129,8 @@ router.get('/me', requireAuth, async (req, res) => {
             lastLogin: user.lastLogin,
             totalSessionsCreated: user.totalSessionsCreated || 0,
             isAdmin: isAdmin(req.user.userId),
-            isBanned: isBanned,
+            isBanned: !!banRecord,
+            isTester: await isTester(req.user.userId),
         });
     } catch (error) {
         console.error('Error fetching user:', error);

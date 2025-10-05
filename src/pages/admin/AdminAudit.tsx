@@ -12,12 +12,14 @@ import {
 	X,
 	Trash2,
 	ExternalLink,
-	Database
+	Database,
+	Plus,
+	Settings,
+	Shield
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import Loader from '../../components/common/Loader';
-import ProtectedRoute from '../../components/ProtectedRoute';
 import Dropdown from '../../components/common/Dropdown';
 import {
 	fetchAuditLogs,
@@ -55,6 +57,7 @@ export default function AdminAudit() {
 		{ value: 'ADMIN_SESSIONS_ACCESSED', label: 'Sessions Access' },
 		{ value: 'ADMIN_SYSTEM_INFO_ACCESSED', label: 'System Info Access' },
 		{ value: 'ADMIN_AUDIT_LOGS_ACCESSED', label: 'Audit Logs Access' },
+		{ value: 'ADMIN_TESTERS_ACCESSED', label: 'Testers Page Access' },
 		{ value: 'IP_ADDRESS_VIEWED', label: 'IP Address Revealed' },
 		{
 			value: 'AUDIT_LOG_IP_VIEWED',
@@ -64,7 +67,10 @@ export default function AdminAudit() {
 		{ value: 'USER_UNBANNED', label: 'User Unbanned' },
 		{ value: 'ADMIN_BANS_ACCESSED', label: 'Bans Page Access' },
 		{ value: 'SESSION_DELETED', label: 'Session Deleted' },
-		{ value: 'SESSION_JOINED', label: 'Session Joined' }
+		{ value: 'SESSION_JOINED', label: 'Session Joined' },
+		{ value: 'TESTER_ADDED', label: 'Tester Added' },
+		{ value: 'TESTER_REMOVED', label: 'Tester Removed' },
+		{ value: 'TESTER_SETTINGS_UPDATED', label: 'Tester Settings Updated' }
 	];
 
 	useEffect(() => {
@@ -191,6 +197,8 @@ export default function AdminAudit() {
 				return 'System Info Access';
 			case 'ADMIN_AUDIT_LOGS_ACCESSED':
 				return 'Audit Logs Access';
+			case 'ADMIN_TESTERS_ACCESSED':
+				return 'Testers Page Access';
 			case 'IP_ADDRESS_VIEWED':
 				return 'IP Address Revealed';
 			case 'AUDIT_LOG_IP_VIEWED':
@@ -205,6 +213,12 @@ export default function AdminAudit() {
 				return 'Session Deleted';
 			case 'SESSION_JOINED':
 				return 'Session Joined';
+			case 'TESTER_ADDED':
+				return 'Tester Added';
+			case 'TESTER_REMOVED':
+				return 'Tester Removed';
+			case 'TESTER_SETTINGS_UPDATED':
+				return 'Tester Settings Updated';
 			default:
 				return actionType;
 		}
@@ -221,6 +235,8 @@ export default function AdminAudit() {
 				return <User className="w-4 h-4 text-green-400" />;
 			case 'ADMIN_SESSIONS_ACCESSED':
 				return <Database className="w-4 h-4 text-yellow-400" />;
+			case 'ADMIN_TESTERS_ACCESSED':
+				return <Shield className="w-4 h-4 text-purple-400" />;
 			case 'USER_BANNED':
 				return <Ban className="w-4 h-4 text-red-400" />;
 			case 'USER_UNBANNED':
@@ -233,6 +249,12 @@ export default function AdminAudit() {
 				return <ExternalLink className="w-4 h-4 text-blue-400" />;
 			case 'ADMIN_AUDIT_LOGS_ACCESSED':
 				return <ShieldAlert className="w-4 h-4 text-orange-400" />;
+			case 'TESTER_ADDED':
+				return <Plus className="w-4 h-4 text-green-400" />;
+			case 'TESTER_REMOVED':
+				return <Trash2 className="w-4 h-4 text-red-400" />;
+			case 'TESTER_SETTINGS_UPDATED':
+				return <Settings className="w-4 h-4 text-blue-400" />;
 			default:
 				return <ShieldAlert className="w-4 h-4 text-zinc-400" />;
 		}
@@ -317,496 +339,483 @@ export default function AdminAudit() {
 	);
 
 	return (
-		<ProtectedRoute requireAdmin={true}>
-			<div className="min-h-screen bg-black text-white">
-				<Navbar />
-				<div className="flex pt-16">
-					<AdminSidebar
-						collapsed={sidebarCollapsed}
-						onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-					/>
-					<div className="flex-1 p-8">
-						{/* Header */}
-						<div className="mb-8">
-							<div className="flex items-center mb-4">
-								<div className="p-3 bg-orange-500/20 rounded-xl mr-4">
-									<ShieldAlert className="h-8 w-8 text-orange-400" />
+		<div className="min-h-screen bg-black text-white">
+			<Navbar />
+			<div className="flex pt-16">
+				<AdminSidebar
+					collapsed={sidebarCollapsed}
+					onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+				/>
+				<div className="flex-1 p-8">
+					{/* Header */}
+					<div className="mb-8">
+						<div className="flex items-center mb-4">
+							<div className="p-3 bg-orange-500/20 rounded-xl mr-4">
+								<ShieldAlert className="h-8 w-8 text-orange-400" />
+							</div>
+							<h1
+								className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600 font-extrabold mb-2"
+								style={{ lineHeight: 1.4 }}
+							>
+								Audit Log
+							</h1>
+						</div>
+
+						{/* Filters */}
+						<div className="space-y-4">
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+								{/* Admin Filter */}
+								<div className="relative">
+									<User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+									<input
+										type="text"
+										placeholder="Filter by admin username..."
+										value={adminFilter}
+										onChange={handleAdminFilterChange}
+										className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+									/>
 								</div>
-								<h1
-									className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-orange-400 to-red-600 font-extrabold mb-2"
-									style={{ lineHeight: 1.4 }}
-								>
-									Audit Log
-								</h1>
+
+								{/* Target User Filter */}
+								<div className="relative">
+									<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+									<input
+										type="text"
+										placeholder="Filter by target user..."
+										value={targetUserFilter}
+										onChange={handleTargetUserFilterChange}
+										className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+									/>
+								</div>
+
+								{/* Action Type Filter */}
+								<div className="relative">
+									<Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400 z-10 ml-3" />
+									<Dropdown
+										size="sm"
+										options={actionTypeOptions}
+										value={actionTypeFilter}
+										onChange={handleActionTypeChange}
+										placeholder="Filter by action..."
+										className="pl-10 h-11"
+									/>
+								</div>
 							</div>
 
-							{/* Filters */}
-							<div className="space-y-4">
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-									{/* Admin Filter */}
+							<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+								{/* Date From */}
+								<div>
+									<label className="block text-zinc-500 text-xs -mt-2 mb-2">
+										From Date
+									</label>
 									<div className="relative">
-										<User className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+										<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
 										<input
-											type="text"
-											placeholder="Filter by admin username..."
-											value={adminFilter}
-											onChange={handleAdminFilterChange}
+											type="datetime-local"
+											placeholder="From date..."
+											value={dateFromFilter}
+											onChange={handleDateFromChange}
 											className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-										/>
-									</div>
-
-									{/* Target User Filter */}
-									<div className="relative">
-										<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-										<input
-											type="text"
-											placeholder="Filter by target user..."
-											value={targetUserFilter}
-											onChange={
-												handleTargetUserFilterChange
-											}
-											className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-										/>
-									</div>
-
-									{/* Action Type Filter */}
-									<div className="relative">
-										<Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400 z-10 ml-3" />
-										<Dropdown
-											size="sm"
-											options={actionTypeOptions}
-											value={actionTypeFilter}
-											onChange={handleActionTypeChange}
-											placeholder="Filter by action..."
-											className="pl-10 h-11"
 										/>
 									</div>
 								</div>
 
-								<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-									{/* Date From */}
-									<div>
-										<label className="block text-zinc-500 text-xs -mt-2 mb-2">
-											From Date
-										</label>
-										<div className="relative">
-											<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-											<input
-												type="datetime-local"
-												placeholder="From date..."
-												value={dateFromFilter}
-												onChange={handleDateFromChange}
-												className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-											/>
-										</div>
+								{/* Date To */}
+								<div>
+									<label className="block text-zinc-500 text-xs -mt-2 mb-2">
+										To Date
+									</label>
+									<div className="relative">
+										<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+										<input
+											type="datetime-local"
+											placeholder="To date..."
+											value={dateToFilter}
+											onChange={handleDateToChange}
+											className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
+										/>
 									</div>
+								</div>
 
-									{/* Date To */}
-									<div>
-										<label className="block text-zinc-500 text-xs -mt-2 mb-2">
-											To Date
-										</label>
-										<div className="relative">
-											<Calendar className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
-											<input
-												type="datetime-local"
-												placeholder="To date..."
-												value={dateToFilter}
-												onChange={handleDateToChange}
-												className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-orange-500"
-											/>
-										</div>
-									</div>
-
-									{/* Clear Filters */}
-									<div className="flex flex-col gap-2">
-										<Button
-											onClick={clearFilters}
-											variant="outline"
-											size="md"
-											className="h-11 mt-4"
-										>
-											Clear Filters
-										</Button>
-									</div>
+								{/* Clear Filters */}
+								<div className="flex flex-col gap-2">
+									<Button
+										onClick={clearFilters}
+										variant="outline"
+										size="md"
+										className="h-11 mt-4"
+									>
+										Clear Filters
+									</Button>
 								</div>
 							</div>
 						</div>
+					</div>
 
-						{loading ? (
-							<div className="flex justify-center py-12">
-								<Loader />
-							</div>
-						) : error ? (
-							<ErrorScreen
-								title="Error loading audit logs"
-								message={error}
-								onRetry={fetchLogs}
-							/>
-						) : (
-							<>
-								{/* Audit Logs Table */}
-								<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl overflow-hidden">
-									<table className="w-full">
-										<thead className="bg-zinc-800">
-											<tr>
-												<th className="px-6 py-4 text-left text-zinc-400 font-medium">
-													Action
-												</th>
-												<th className="px-6 py-4 text-left text-zinc-400 font-medium">
-													Admin
-												</th>
-												<th className="px-6 py-4 text-left text-zinc-400 font-medium">
-													Target User
-												</th>
-												<th className="px-6 py-4 text-left text-zinc-400 font-medium">
-													Timestamp
-												</th>
-												<th className="px-6 py-4 text-left text-zinc-400 font-medium">
-													IP Address
-												</th>
-												<th className="px-6 py-4 text-left text-zinc-400 font-medium">
-													Details
-												</th>
-											</tr>
-										</thead>
-										<tbody>
-											{paginatedLogs.map((log) => (
-												<tr
-													key={log.id}
-													className="border-t border-zinc-700/50 hover:bg-zinc-800/50"
-												>
-													<td className="px-6 py-4">
-														<div className="flex items-center space-x-3">
-															{getActionIcon(
-																log.action_type
-															)}
-															<div className="flex flex-col">
-																<span className="text-white font-medium">
-																	{formatActionType(
-																		log.action_type
-																	)}
-																</span>
-															</div>
+					{loading ? (
+						<div className="flex justify-center py-12">
+							<Loader />
+						</div>
+					) : error ? (
+						<ErrorScreen
+							title="Error loading audit logs"
+							message={error}
+							onRetry={fetchLogs}
+						/>
+					) : (
+						<>
+							{/* Audit Logs Table */}
+							<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl overflow-hidden">
+								<table className="w-full">
+									<thead className="bg-zinc-800">
+										<tr>
+											<th className="px-6 py-4 text-left text-zinc-400 font-medium">
+												Action
+											</th>
+											<th className="px-6 py-4 text-left text-zinc-400 font-medium">
+												Admin
+											</th>
+											<th className="px-6 py-4 text-left text-zinc-400 font-medium">
+												Target User
+											</th>
+											<th className="px-6 py-4 text-left text-zinc-400 font-medium">
+												Timestamp
+											</th>
+											<th className="px-6 py-4 text-left text-zinc-400 font-medium">
+												IP Address
+											</th>
+											<th className="px-6 py-4 text-left text-zinc-400 font-medium">
+												Details
+											</th>
+										</tr>
+									</thead>
+									<tbody>
+										{paginatedLogs.map((log) => (
+											<tr
+												key={log.id}
+												className="border-t border-zinc-700/50 hover:bg-zinc-800/50"
+											>
+												<td className="px-6 py-4">
+													<div className="flex items-center space-x-3">
+														{getActionIcon(
+															log.action_type
+														)}
+														<div className="flex flex-col">
+															<span className="text-white font-medium">
+																{formatActionType(
+																	log.action_type
+																)}
+															</span>
 														</div>
-													</td>
-													<td className="px-6 py-4 text-zinc-300">
+													</div>
+												</td>
+												<td className="px-6 py-4 text-zinc-300">
+													<div className="flex flex-col">
+														<span className="font-medium">
+															{log.admin_username}
+														</span>
+														<span className="text-xs text-zinc-500">
+															{log.admin_id}
+														</span>
+													</div>
+												</td>
+												<td className="px-6 py-4 text-zinc-300">
+													{log.target_username ? (
 														<div className="flex flex-col">
 															<span className="font-medium">
 																{
-																	log.admin_username
+																	log.target_username
 																}
 															</span>
 															<span className="text-xs text-zinc-500">
-																{log.admin_id}
-															</span>
-														</div>
-													</td>
-													<td className="px-6 py-4 text-zinc-300">
-														{log.target_username ? (
-															<div className="flex flex-col">
-																<span className="font-medium">
-																	{
-																		log.target_username
-																	}
-																</span>
-																<span className="text-xs text-zinc-500">
-																	{
-																		log.target_user_id
-																	}
-																</span>
-															</div>
-														) : (
-															<span className="text-zinc-500">
-																-
-															</span>
-														)}
-													</td>
-													<td className="px-6 py-4 text-zinc-300">
-														<div className="flex items-center space-x-2">
-															<Clock className="w-4 h-4 text-zinc-500" />
-															<span className="text-sm">
-																{formatDate(
-																	log.timestamp
-																)}
-															</span>
-														</div>
-													</td>
-													<td className="px-6 py-4 text-zinc-300">
-														<div className="flex items-center space-x-2">
-															<span
-																className={`font-mono text-sm ${
-																	revealedIPs.has(
-																		log.id
-																	)
-																		? ''
-																		: 'filter blur-sm'
-																}`}
-															>
-																{formatIPAddress(
-																	log.ip_address,
-																	log.id
-																)}
-															</span>
-															<Button
-																size="sm"
-																variant="ghost"
-																onClick={() =>
-																	handleRevealIP(
-																		log.id
-																	)
+																{
+																	log.target_user_id
 																}
-																disabled={
-																	revealingIP ===
-																	log.id
-																}
-																className="p-1"
-															>
-																{revealingIP ===
-																log.id ? (
-																	<div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-																) : revealedIPs.has(
-																		log.id
-																  ) ? (
-																	<EyeOff className="w-4 h-4" />
-																) : (
-																	<Eye className="w-4 h-4" />
-																)}
-															</Button>
+															</span>
 														</div>
-													</td>
-													<td className="px-6 py-4">
+													) : (
+														<span className="text-zinc-500">
+															-
+														</span>
+													)}
+												</td>
+												<td className="px-6 py-4 text-zinc-300">
+													<div className="flex items-center space-x-2">
+														<Clock className="w-4 h-4 text-zinc-500" />
+														<span className="text-sm">
+															{formatDate(
+																log.timestamp
+															)}
+														</span>
+													</div>
+												</td>
+												<td className="px-6 py-4 text-zinc-300">
+													<div className="flex items-center space-x-2">
+														<span
+															className={`font-mono text-sm ${
+																revealedIPs.has(
+																	log.id
+																)
+																	? ''
+																	: 'filter blur-sm'
+															}`}
+														>
+															{formatIPAddress(
+																log.ip_address,
+																log.id
+															)}
+														</span>
 														<Button
 															size="sm"
 															variant="ghost"
 															onClick={() =>
-																handleViewDetails(
-																	log
+																handleRevealIP(
+																	log.id
 																)
 															}
-															className="flex items-center space-x-2"
+															disabled={
+																revealingIP ===
+																log.id
+															}
+															className="p-1"
 														>
-															<Eye className="w-4 h-4" />
-															<span>View</span>
+															{revealingIP ===
+															log.id ? (
+																<div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+															) : revealedIPs.has(
+																	log.id
+															  ) ? (
+																<EyeOff className="w-4 h-4" />
+															) : (
+																<Eye className="w-4 h-4" />
+															)}
 														</Button>
-													</td>
-												</tr>
-											))}
-										</tbody>
-									</table>
-								</div>
-
-								{filteredLogs.length === 0 && (
-									<div className="text-center py-12 text-zinc-400">
-										{logs.length > 0
-											? 'No action logs found. All logs are page navigation events.'
-											: 'No audit logs found with the current filters.'}
-									</div>
-								)}
-
-								{/* Client-side pagination for filtered logs */}
-								<div className="flex justify-center mt-8 space-x-2">
-									<Button
-										onClick={() =>
-											setClientPage(
-												Math.max(1, clientPage - 1)
-											)
-										}
-										disabled={
-											clientPage === 1 ||
-											filteredLogs.length === 0
-										}
-										variant="outline"
-										size="sm"
-									>
-										Previous
-									</Button>
-									<span className="text-zinc-400 py-2">
-										Page{' '}
-										{filteredLogs.length === 0
-											? 0
-											: clientPage}{' '}
-										of{' '}
-										{filteredLogs.length === 0
-											? 0
-											: filteredTotalPages}
-									</span>
-									<Button
-										onClick={() =>
-											setClientPage(
-												Math.min(
-													filteredTotalPages,
-													clientPage + 1
-												)
-											)
-										}
-										disabled={
-											clientPage === filteredTotalPages ||
-											filteredLogs.length === 0
-										}
-										variant="outline"
-										size="sm"
-									>
-										Next
-									</Button>
-								</div>
-							</>
-						)}
-
-						{/* Details Modal */}
-						{showDetails && selectedLog && (
-							<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-								<div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
-									<div className="flex items-center justify-between mb-6">
-										<div className="flex items-center space-x-3">
-											{getActionIcon(
-												selectedLog.action_type
-											)}
-											<h2 className="text-xl font-bold text-white">
-												Audit Log Details
-											</h2>
-										</div>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={closeDetailsModal}
-										>
-											Close
-										</Button>
-									</div>
-
-									<div className="space-y-4">
-										{/* Basic Info */}
-										<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-											<div className="bg-zinc-800 rounded-lg p-4">
-												<h3 className="text-sm font-medium text-zinc-400 mb-2">
-													Action
-												</h3>
-												<p className="text-white">
-													{formatActionType(
-														selectedLog.action_type
-													)}
-												</p>
-											</div>
-											<div className="bg-zinc-800 rounded-lg p-4">
-												<h3 className="text-sm font-medium text-zinc-400 mb-2">
-													Timestamp
-												</h3>
-												<p className="text-white">
-													{formatDate(
-														selectedLog.timestamp
-													)}
-												</p>
-											</div>
-											<div className="bg-zinc-800 rounded-lg p-4">
-												<h3 className="text-sm font-medium text-zinc-400 mb-2">
-													Admin
-												</h3>
-												<p className="text-white">
-													{selectedLog.admin_username}
-												</p>
-												<p className="text-xs text-zinc-500">
-													{selectedLog.admin_id}
-												</p>
-											</div>
-											<div className="bg-zinc-800 rounded-lg p-4">
-												<h3 className="text-sm font-medium text-zinc-400 mb-2">
-													IP Address
-												</h3>
-												<div className="flex items-center space-x-2">
-													<p
-														className={`text-white font-mono ${
-															revealedIPs.has(
-																selectedLog.id
-															)
-																? ''
-																: 'filter blur-sm'
-														}`}
-													>
-														{formatIPAddress(
-															selectedLog.ip_address,
-															selectedLog.id
-														)}
-													</p>
+													</div>
+												</td>
+												<td className="px-6 py-4">
 													<Button
 														size="sm"
 														variant="ghost"
 														onClick={() =>
-															handleRevealIP(
-																selectedLog.id
+															handleViewDetails(
+																log
 															)
 														}
-														disabled={
-															revealingIP ===
-															selectedLog.id
-														}
-														className="p-1"
+														className="flex items-center space-x-2"
 													>
-														{revealingIP ===
-														selectedLog.id ? (
-															<div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-														) : revealedIPs.has(
-																selectedLog.id
-														  ) ? (
-															<EyeOff className="w-4 h-4" />
-														) : (
-															<Eye className="w-4 h-4" />
-														)}
+														<Eye className="w-4 h-4" />
+														<span>View</span>
 													</Button>
-												</div>
-											</div>
-										</div>
+												</td>
+											</tr>
+										))}
+									</tbody>
+								</table>
+							</div>
 
-										{/* Target User */}
-										{selectedLog.target_username && (
-											<div className="bg-zinc-800 rounded-lg p-4">
-												<h3 className="text-sm font-medium text-zinc-400 mb-2">
-													Target User
-												</h3>
-												<p className="text-white">
-													{
-														selectedLog.target_username
-													}
-												</p>
-												<p className="text-xs text-zinc-500">
-													{selectedLog.target_user_id}
-												</p>
-											</div>
-										)}
+							{filteredLogs.length === 0 && (
+								<div className="text-center py-12 text-zinc-400">
+									{logs.length > 0
+										? 'No action logs found. All logs are page navigation events.'
+										: 'No audit logs found with the current filters.'}
+								</div>
+							)}
 
-										{/* User Agent */}
-										{selectedLog.user_agent && (
-											<div className="bg-zinc-800 rounded-lg p-4">
-												<h3 className="text-sm font-medium text-zinc-400 mb-2">
-													User Agent
-												</h3>
-												<p className="text-white text-sm break-all">
-													{selectedLog.user_agent}
-												</p>
-											</div>
-										)}
+							{/* Client-side pagination for filtered logs */}
+							<div className="flex justify-center mt-8 space-x-2">
+								<Button
+									onClick={() =>
+										setClientPage(
+											Math.max(1, clientPage - 1)
+										)
+									}
+									disabled={
+										clientPage === 1 ||
+										filteredLogs.length === 0
+									}
+									variant="outline"
+									size="sm"
+								>
+									Previous
+								</Button>
+								<span className="text-zinc-400 py-2">
+									Page{' '}
+									{filteredLogs.length === 0 ? 0 : clientPage}{' '}
+									of{' '}
+									{filteredLogs.length === 0
+										? 0
+										: filteredTotalPages}
+								</span>
+								<Button
+									onClick={() =>
+										setClientPage(
+											Math.min(
+												filteredTotalPages,
+												clientPage + 1
+											)
+										)
+									}
+									disabled={
+										clientPage === filteredTotalPages ||
+										filteredLogs.length === 0
+									}
+									variant="outline"
+									size="sm"
+								>
+									Next
+								</Button>
+							</div>
+						</>
+					)}
 
-										{/* Details */}
+					{/* Details Modal */}
+					{showDetails && selectedLog && (
+						<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+							<div className="bg-zinc-900 border border-zinc-700 rounded-2xl p-6 max-w-4xl w-full mx-4 max-h-[80vh] overflow-y-auto">
+								<div className="flex items-center justify-between mb-6">
+									<div className="flex items-center space-x-3">
+										{getActionIcon(selectedLog.action_type)}
+										<h2 className="text-xl font-bold text-white">
+											Audit Log Details
+										</h2>
+									</div>
+									<Button
+										variant="outline"
+										size="sm"
+										onClick={closeDetailsModal}
+									>
+										Close
+									</Button>
+								</div>
+
+								<div className="space-y-4">
+									{/* Basic Info */}
+									<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 										<div className="bg-zinc-800 rounded-lg p-4">
 											<h3 className="text-sm font-medium text-zinc-400 mb-2">
-												Additional Details
+												Action
 											</h3>
-											<pre className="text-sm text-zinc-300 whitespace-pre-wrap">
-												{JSON.stringify(
-													selectedLog.details,
-													null,
-													2
+											<p className="text-white">
+												{formatActionType(
+													selectedLog.action_type
 												)}
-											</pre>
+											</p>
 										</div>
+										<div className="bg-zinc-800 rounded-lg p-4">
+											<h3 className="text-sm font-medium text-zinc-400 mb-2">
+												Timestamp
+											</h3>
+											<p className="text-white">
+												{formatDate(
+													selectedLog.timestamp
+												)}
+											</p>
+										</div>
+										<div className="bg-zinc-800 rounded-lg p-4">
+											<h3 className="text-sm font-medium text-zinc-400 mb-2">
+												Admin
+											</h3>
+											<p className="text-white">
+												{selectedLog.admin_username}
+											</p>
+											<p className="text-xs text-zinc-500">
+												{selectedLog.admin_id}
+											</p>
+										</div>
+										<div className="bg-zinc-800 rounded-lg p-4">
+											<h3 className="text-sm font-medium text-zinc-400 mb-2">
+												IP Address
+											</h3>
+											<div className="flex items-center space-x-2">
+												<p
+													className={`text-white font-mono ${
+														revealedIPs.has(
+															selectedLog.id
+														)
+															? ''
+															: 'filter blur-sm'
+													}`}
+												>
+													{formatIPAddress(
+														selectedLog.ip_address,
+														selectedLog.id
+													)}
+												</p>
+												<Button
+													size="sm"
+													variant="ghost"
+													onClick={() =>
+														handleRevealIP(
+															selectedLog.id
+														)
+													}
+													disabled={
+														revealingIP ===
+														selectedLog.id
+													}
+													className="p-1"
+												>
+													{revealingIP ===
+													selectedLog.id ? (
+														<div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
+													) : revealedIPs.has(
+															selectedLog.id
+													  ) ? (
+														<EyeOff className="w-4 h-4" />
+													) : (
+														<Eye className="w-4 h-4" />
+													)}
+												</Button>
+											</div>
+										</div>
+									</div>
+
+									{/* Target User */}
+									{selectedLog.target_username && (
+										<div className="bg-zinc-800 rounded-lg p-4">
+											<h3 className="text-sm font-medium text-zinc-400 mb-2">
+												Target User
+											</h3>
+											<p className="text-white">
+												{selectedLog.target_username}
+											</p>
+											<p className="text-xs text-zinc-500">
+												{selectedLog.target_user_id}
+											</p>
+										</div>
+									)}
+
+									{/* User Agent */}
+									{selectedLog.user_agent && (
+										<div className="bg-zinc-800 rounded-lg p-4">
+											<h3 className="text-sm font-medium text-zinc-400 mb-2">
+												User Agent
+											</h3>
+											<p className="text-white text-sm break-all">
+												{selectedLog.user_agent}
+											</p>
+										</div>
+									)}
+
+									{/* Details */}
+									<div className="bg-zinc-800 rounded-lg p-4">
+										<h3 className="text-sm font-medium text-zinc-400 mb-2">
+											Additional Details
+										</h3>
+										<pre className="text-sm text-zinc-300 whitespace-pre-wrap">
+											{JSON.stringify(
+												selectedLog.details,
+												null,
+												2
+											)}
+										</pre>
 									</div>
 								</div>
 							</div>
-						)}
-					</div>
+						</div>
+					)}
 				</div>
 			</div>
-
 			{/* Toast Notification */}
 			{toast && (
 				<Toast
@@ -815,6 +824,6 @@ export default function AdminAudit() {
 					onClose={() => setToast(null)}
 				/>
 			)}
-		</ProtectedRoute>
+		</div>
 	);
 }

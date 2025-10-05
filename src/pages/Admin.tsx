@@ -21,7 +21,6 @@ import {
 	Filler
 } from 'chart.js';
 import { Line } from 'react-chartjs-2';
-import ProtectedRoute from '../components/ProtectedRoute';
 import {
 	fetchAdminStatistics,
 	type AdminStats,
@@ -238,141 +237,157 @@ export default function Admin() {
 	};
 
 	return (
-		<ProtectedRoute requireAdmin={true}>
-			<div className="min-h-screen bg-black text-white">
-				<Navbar />
+		<div className="min-h-screen bg-black text-white">
+			<Navbar />
 
-				<div className="flex pt-16">
-					<AdminSidebar
-						collapsed={sidebarCollapsed}
-						onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
-					/>
+			<div className="flex pt-16">
+				<AdminSidebar
+					collapsed={sidebarCollapsed}
+					onToggle={() => setSidebarCollapsed(!sidebarCollapsed)}
+				/>
 
-					<div className="flex-1 p-8">
-						{/* Header */}
-						<div className="mb-8">
-							<div className="flex items-center mb-4">
-								<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
-									<LayoutDashboard className="h-8 w-8 text-blue-400" />
-								</div>
-								<div>
-									<h1
-										className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 font-extrabold mb-2"
-										style={{ lineHeight: 1.2 }}
-									>
-										Admin Overview
-									</h1>
-								</div>
+				<div className="flex-1 p-8">
+					{/* Header */}
+					<div className="mb-8">
+						<div className="flex items-center mb-4">
+							<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
+								<LayoutDashboard className="h-8 w-8 text-blue-400" />
 							</div>
-
-							{/* Time Range Selector */}
-							<div className="flex space-x-2 pt-4">
-								{[7, 30, 90].map((days) => (
-									<Button
-										key={days}
-										onClick={() => setTimeRange(days)}
-										variant={
-											timeRange === days
-												? 'primary'
-												: 'outline'
-										}
-										size="sm"
-									>
-										{days} days
-									</Button>
-								))}
+							<div>
+								<h1
+									className="text-5xl text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-blue-600 font-extrabold mb-2"
+									style={{ lineHeight: 1.2 }}
+								>
+									Admin Overview
+								</h1>
 							</div>
 						</div>
 
-						{loading ? (
-							<div className="flex justify-center py-12">
-								<Loader />
+						{/* Time Range Selector */}
+						<div className="flex space-x-2 pt-4">
+							{[7, 30, 90].map((days) => (
+								<Button
+									key={days}
+									onClick={() => setTimeRange(days)}
+									variant={
+										timeRange === days
+											? 'primary'
+											: 'outline'
+									}
+									size="sm"
+								>
+									{days} days
+								</Button>
+							))}
+						</div>
+					</div>
+
+					{loading ? (
+						<div className="flex justify-center py-12">
+							<Loader />
+						</div>
+					) : error ? (
+						<ErrorScreen
+							title="Error loading statistics"
+							message={error}
+							onRetry={fetchStats}
+						/>
+					) : stats ? (
+						<>
+							{/* Stats Cards */}
+							<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+								<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
+									<div className="flex items-center justify-between mb-4">
+										<div className="p-3 bg-blue-500/20 rounded-xl">
+											<Users className="w-6 h-6 text-blue-400" />
+										</div>
+										<TrendingUp className="w-5 h-5 text-green-400" />
+									</div>
+									<h3 className="text-2xl font-bold text-white mb-1">
+										{stats.totals.total_users?.toLocaleString() ||
+											'0'}
+									</h3>
+									<p className="text-zinc-400 text-sm">
+										Total Users
+									</p>
+								</div>
+
+								<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
+									<div className="flex items-center justify-between mb-4">
+										<div className="p-3 bg-green-500/20 rounded-xl">
+											<Activity className="w-6 h-6 text-green-400" />
+										</div>
+										<TrendingUp className="w-5 h-5 text-green-400" />
+									</div>
+									<h3 className="text-2xl font-bold text-white mb-1">
+										{stats.totals.total_sessions?.toLocaleString() ||
+											'0'}
+									</h3>
+									<p className="text-zinc-400 text-sm">
+										Total Sessions
+									</p>
+								</div>
+
+								<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
+									<div className="flex items-center justify-between mb-4">
+										<div className="p-3 bg-purple-500/20 rounded-xl">
+											<Database className="w-6 h-6 text-purple-400" />
+										</div>
+										<TrendingUp className="w-5 h-5 text-green-400" />
+									</div>
+									<h3 className="text-2xl font-bold text-white mb-1">
+										{stats.totals.total_flights?.toLocaleString() ||
+											'0'}
+									</h3>
+									<p className="text-zinc-400 text-sm">
+										Total Flights
+									</p>
+								</div>
+
+								<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
+									<div className="flex items-center justify-between mb-4">
+										<div className="p-3 bg-orange-500/20 rounded-xl">
+											<TrendingUp className="w-6 h-6 text-orange-400" />
+										</div>
+										<TrendingUp className="w-5 h-5 text-green-400" />
+									</div>
+									<h3 className="text-2xl font-bold text-white mb-1">
+										{stats.totals.total_logins?.toLocaleString() ||
+											'0'}
+									</h3>
+									<p className="text-zinc-400 text-sm">
+										Total Logins
+									</p>
+								</div>
 							</div>
-						) : error ? (
-							<ErrorScreen
-								title="Error loading statistics"
-								message={error}
-								onRetry={fetchStats}
-							/>
-						) : stats ? (
-							<>
-								{/* Stats Cards */}
-								<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-									<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
-										<div className="flex items-center justify-between mb-4">
-											<div className="p-3 bg-blue-500/20 rounded-xl">
-												<Users className="w-6 h-6 text-blue-400" />
-											</div>
-											<TrendingUp className="w-5 h-5 text-green-400" />
-										</div>
-										<h3 className="text-2xl font-bold text-white mb-1">
-											{stats.totals.total_users?.toLocaleString() ||
-												'0'}
-										</h3>
-										<p className="text-zinc-400 text-sm">
-											Total Users
-										</p>
-									</div>
 
-									<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
-										<div className="flex items-center justify-between mb-4">
-											<div className="p-3 bg-green-500/20 rounded-xl">
-												<Activity className="w-6 h-6 text-green-400" />
-											</div>
-											<TrendingUp className="w-5 h-5 text-green-400" />
-										</div>
-										<h3 className="text-2xl font-bold text-white mb-1">
-											{stats.totals.total_sessions?.toLocaleString() ||
-												'0'}
-										</h3>
-										<p className="text-zinc-400 text-sm">
-											Total Sessions
-										</p>
-									</div>
-
-									<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
-										<div className="flex items-center justify-between mb-4">
-											<div className="p-3 bg-purple-500/20 rounded-xl">
-												<Database className="w-6 h-6 text-purple-400" />
-											</div>
-											<TrendingUp className="w-5 h-5 text-green-400" />
-										</div>
-										<h3 className="text-2xl font-bold text-white mb-1">
-											{stats.totals.total_flights?.toLocaleString() ||
-												'0'}
-										</h3>
-										<p className="text-zinc-400 text-sm">
-											Total Flights
-										</p>
-									</div>
-
-									<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
-										<div className="flex items-center justify-between mb-4">
-											<div className="p-3 bg-orange-500/20 rounded-xl">
-												<TrendingUp className="w-6 h-6 text-orange-400" />
-											</div>
-											<TrendingUp className="w-5 h-5 text-green-400" />
-										</div>
-										<h3 className="text-2xl font-bold text-white mb-1">
-											{stats.totals.total_logins?.toLocaleString() ||
-												'0'}
-										</h3>
-										<p className="text-zinc-400 text-sm">
-											Total Logins
-										</p>
+							{/* Charts */}
+							<div className="space-y-8">
+								{/* Flights Chart - Full Width */}
+								<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
+									<h3 className="text-xl font-semibold text-white mb-6">
+										Flights
+									</h3>
+									<div className="h-80">
+										<Line
+											data={formatFlightsData(
+												stats.daily
+											)}
+											options={chartOptions}
+										/>
 									</div>
 								</div>
 
-								{/* Charts */}
-								<div className="space-y-8">
-									{/* Flights Chart - Full Width */}
+								{/* Sessions and Logins - Side by Side */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+									{/* Sessions Chart */}
 									<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
 										<h3 className="text-xl font-semibold text-white mb-6">
-											Flights
+											Sessions
 										</h3>
 										<div className="h-80">
 											<Line
-												data={formatFlightsData(
+												data={formatSessionsData(
 													stats.daily
 												)}
 												options={chartOptions}
@@ -380,57 +395,39 @@ export default function Admin() {
 										</div>
 									</div>
 
-									{/* Sessions and Logins - Side by Side */}
-									<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-										{/* Sessions Chart */}
-										<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
-											<h3 className="text-xl font-semibold text-white mb-6">
-												Sessions
-											</h3>
-											<div className="h-80">
-												<Line
-													data={formatSessionsData(
-														stats.daily
-													)}
-													options={chartOptions}
-												/>
-											</div>
-										</div>
-
-										{/* Logins Chart */}
-										<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
-											<h3 className="text-xl font-semibold text-white mb-6">
-												Logins
-											</h3>
-											<div className="h-80">
-												<Line
-													data={formatLoginsData(
-														stats.daily
-													)}
-													options={chartOptions}
-												/>
-											</div>
+									{/* Logins Chart */}
+									<div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">
+										<h3 className="text-xl font-semibold text-white mb-6">
+											Logins
+										</h3>
+										<div className="h-80">
+											<Line
+												data={formatLoginsData(
+													stats.daily
+												)}
+												options={chartOptions}
+											/>
 										</div>
 									</div>
 								</div>
-							</>
-						) : (
-							<div className="text-center py-12 text-zinc-400">
-								No statistics available
 							</div>
-						)}
-					</div>
+						</>
+					) : (
+						<div className="text-center py-12 text-zinc-400">
+							No statistics available
+						</div>
+					)}
 				</div>
-
-				{/* Toast Notification */}
-				{toast && (
-					<Toast
-						message={toast.message}
-						type={toast.type}
-						onClose={() => setToast(null)}
-					/>
-				)}
 			</div>
-		</ProtectedRoute>
+
+			{/* Toast Notification */}
+			{toast && (
+				<Toast
+					message={toast.message}
+					type={toast.type}
+					onClose={() => setToast(null)}
+				/>
+			)}
+		</div>
 	);
 }

@@ -1,0 +1,160 @@
+import express from 'express';
+import { createAuditLogger } from '../../middleware/auditLogger.js';
+import { logAdminAction } from '../../db/audit.js';
+import {
+    getAllTesters,
+    addTester,
+    removeTester,
+    getTesterSettings,
+    updateTesterSetting
+} from '../../db/testers.js';
+import { getUserById } from '../../db/users.js';
+
+const router = express.Router();
+
+// GET: /api/admin/testers - Get all testers with pagination and search
+router.get('/', createAuditLogger('ADMIN_TESTERS_ACCESSED'), async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = parseInt(req.query.limit) || 50;
+        const search = req.query.search || '';
+
+        const result = await getAllTesters(page, limit, search);
+        res.json(result);
+    } catch (error) {
+        console.error('Error fetching testers:', error);
+        res.status(500).json({ error: 'Failed to fetch testers' });
+    }
+});
+
+// POST: /api/admin/testers - Add a new tester
+router.post('/', async (req, res) => {
+    try {
+        const { userId, notes = '' } = req.body;
+
+        if (!userId) {
+            return res.status(400).json({ error: 'User ID is required' });
+        }
+
+        const user = await getUserById(userId);
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        const tester = await addTester(
+            userId,
+            user.username,
+            req.user.userId,
+            req.user.username || 'Admin',
+            notes
+        );
+
+        if (req.user?.userId) {
+            try {
+                await logAdminAction({
+                    adminId: req.user.userId,
+                    adminUsername: req.user.username || 'Unknown',
+                    actionType: 'TESTER_ADDED',
+                    targetUserId: userId,
+                    targetUsername: user.username,
+                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    userAgent: req.get('User-Agent'),
+                    details: {
+                        method: req.method,
+                        url: req.originalUrl,
+                        notes: notes,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            } catch (auditError) {
+                console.error('Failed to log tester added action:', auditError);
+            }
+        }
+
+        res.json(tester);
+    } catch (error) {
+        console.error('Error adding tester:', error);
+        res.status(500).json({ error: 'Failed to add tester' });
+    }
+});
+
+// DELETE: /api/admin/testers/:userId - Remove a tester
+router.delete('/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const user = await getUserById(userId);
+        const removedTester = await removeTester(userId);
+
+        if (!removedTester) {
+            return res.status(404).json({ error: 'Tester not found' });
+        }
+
+        if (req.user?.userId) {
+            try {
+                await logAdminAction({
+                    adminId: req.user.userId,
+                    adminUsername: req.user.username || 'Unknown',
+                    actionType: 'TESTER_REMOVED',
+                    targetUserId: userId,
+                    targetUsername: user?.username || removedTester.username,
+                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    userAgent: req.get('User-Agent'),
+                    details: {
+                        method: req.method,
+                        url: req.originalUrl,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            } catch (auditError) {
+                console.error('Failed to log tester removed action:', auditError);
+            }
+        }
+
+        res.json({ message: 'Tester removed successfully', tester: removedTester });
+    } catch (error) {
+        console.error('Error removing tester:', error);
+        res.status(500).json({ error: 'Failed to remove tester' });
+    }
+});
+
+// PUT: /api/admin/testers/settings - Update tester gate settings
+router.put('/settings', async (req, res) => {
+    try {
+        const { tester_gate_enabled } = req.body;
+
+        if (typeof tester_gate_enabled !== 'boolean') {
+            return res.status(400).json({ error: 'Invalid setting value' });
+        }
+
+        const updated = await updateTesterSetting('tester_gate_enabled', tester_gate_enabled);
+
+        // Log the settings update action
+        if (req.user?.userId) {
+            try {
+                await logAdminAction({
+                    adminId: req.user.userId,
+                    adminUsername: req.user.username || 'Unknown',
+                    actionType: 'TESTER_SETTINGS_UPDATED',
+                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    userAgent: req.get('User-Agent'),
+                    details: {
+                        method: req.method,
+                        url: req.originalUrl,
+                        settingChanged: 'tester_gate_enabled',
+                        newValue: tester_gate_enabled,
+                        timestamp: new Date().toISOString()
+                    }
+                });
+            } catch (auditError) {
+                console.error('Failed to log tester settings update:', auditError);
+            }
+        }
+
+        res.json(updated);
+    } catch (error) {
+        console.error('Error updating tester settings:', error);
+        res.status(500).json({ error: 'Failed to update settings' });
+    }
+});
+
+export default router;

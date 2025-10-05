@@ -196,22 +196,18 @@ export default function Submit() {
 						className="object-cover w-full h-full blur-xs scale-110 opacity-60"
 					/>
 				</div>
-				<div className="absolute bottom-0 left-64 right-0 p-6 md:p-10">
-					<h1 className="text-3xl md:text-5xl font-bold text-white">
-						{session.airportIcao ? (
-							<h2
-								className="text-3xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6"
-								style={{ lineHeight: 1.4 }}
-							>
-								<span className="font-mono">
-									{session.airportIcao}
-								</span>{' '}
-								- Submit Flight Plan
-							</h2>
-						) : (
-							'Submit Flight Plan'
-						)}
-					</h1>
+				<div className="absolute bottom-0 left-0 right-0 flex flex-col items-center p-6 md:p-10">
+					{session.airportIcao ? (
+						<h2
+							className="text-3xl sm:text-5xl font-extrabold text-blue-500 mb-6"
+							style={{ lineHeight: 1.4 }}
+						>
+							<span>{session.airportIcao}</span> - SUBMIT FLIGHT
+							PLAN
+						</h2>
+					) : (
+						'SUBMIT FLIGHT PLAN'
+					)}
 					{session.activeRunway && (
 						<div className="-mt-6 text-blue-400 text-md">
 							Departure Runway:{' '}
@@ -402,7 +398,10 @@ export default function Submit() {
 									<div>
 										<label className="flex items-center mb-2 text-sm font-medium text-gray-300">
 											<Navigation className="h-4 w-4 mr-2 text-gray-400" />
-											Flight Type
+											Flight Type{' '}
+											<span className="text-red-400 ml-1">
+												*
+											</span>
 										</label>
 										<Dropdown
 											value={form.flight_type}
@@ -519,7 +518,7 @@ export default function Submit() {
 							<div className="mt-8">
 								<Button
 									type="submit"
-									className="w-full flex justify-center items-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg transition-colors disabled:opacity-50"
+									className="w-full flex justify-center items-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-full transition-colors disabled:opacity-50"
 									disabled={isSubmitting}
 								>
 									{isSubmitting ? (
@@ -534,19 +533,6 @@ export default function Submit() {
 										</>
 									)}
 								</Button>
-								<p className="text-xs text-gray-500 text-center mt-4">
-									By clicking "Submit Flight Plan", you agree
-									to our{' '}
-									<a
-										href="https://terms.pfconnect.online/#24"
-										className="text-blue-600 hover:underline"
-										target="_blank"
-										rel="noopener noreferrer"
-									>
-										terms and conditions
-									</a>
-									.
-								</p>
 							</div>
 						</form>
 					</div>
