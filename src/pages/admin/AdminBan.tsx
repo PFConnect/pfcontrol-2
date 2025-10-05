@@ -33,14 +33,15 @@ export default function AdminBan() {
 	const [reason, setReason] = useState('');
 	const [expiresAt, setExpiresAt] = useState('');
 	const [loading, setLoading] = useState(false);
-	const [error, setError] = useState<string | null>(null);
-	const [success, setSuccess] = useState(false);
 	const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
 	const [bans, setBans] = useState<BanRecord[]>([]);
 	const [bansLoading, setBansLoading] = useState(true);
 	const [bansError, setBansError] = useState<string | null>(null);
-	const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
+	const [toast, setToast] = useState<{
+		message: string;
+		type: 'success' | 'error' | 'info';
+	} | null>(null);
 
 	useEffect(() => {
 		fetchBans();
@@ -58,7 +59,8 @@ export default function AdminBan() {
 		} catch (err) {
 			setBansError('Failed to load bans');
 			setToast({
-				message: err instanceof Error ? err.message : 'Failed to load bans',
+				message:
+					err instanceof Error ? err.message : 'Failed to load bans',
 				type: 'error'
 			});
 		} finally {
@@ -68,8 +70,6 @@ export default function AdminBan() {
 
 	const handleBan = async () => {
 		setLoading(true);
-		setError(null);
-		setSuccess(false);
 		try {
 			if (banType === 'user' && !userIdInput) {
 				throw new Error('User ID is required');
@@ -85,7 +85,9 @@ export default function AdminBan() {
 				expiresAt
 			});
 			setToast({
-				message: `Successfully banned ${banType === 'user' ? 'user' : 'IP'}`,
+				message: `Successfully banned ${
+					banType === 'user' ? 'user' : 'IP'
+				}`,
 				type: 'success'
 			});
 			setUserIdInput('');

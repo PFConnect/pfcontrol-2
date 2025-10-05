@@ -10,7 +10,6 @@ import {
 	Clock,
 	Ban,
 	X,
-	Activity,
 	Trash2,
 	ExternalLink,
 	Database
@@ -34,24 +33,17 @@ export default function AdminAudit() {
 	const [logs, setLogs] = useState<AuditLog[]>([]);
 	const [loading, setLoading] = useState(true);
 	const [error, setError] = useState<string | null>(null);
-	const [page, setPage] = useState(1);
-	const [limit] = useState(50);
-	const [totalPages, setTotalPages] = useState(1);
-
-	// Filter states
 	const [adminFilter, setAdminFilter] = useState('');
 	const [actionTypeFilter, setActionTypeFilter] = useState('');
 	const [targetUserFilter, setTargetUserFilter] = useState('');
 	const [dateFromFilter, setDateFromFilter] = useState('');
 	const [dateToFilter, setDateToFilter] = useState('');
-	const [hidePageNav, setHidePageNav] = useState(true);
-
-	// Modal state
 	const [selectedLog, setSelectedLog] = useState<AuditLog | null>(null);
 	const [showDetails, setShowDetails] = useState(false);
-	const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' | 'info' } | null>(null);
-
-	// IP reveal state
+	const [toast, setToast] = useState<{
+		message: string;
+		type: 'success' | 'error' | 'info';
+	} | null>(null);
 	const [revealedIPs, setRevealedIPs] = useState<Set<number>>(new Set());
 	const [revealingIP, setRevealingIP] = useState<number | null>(null);
 
@@ -63,7 +55,10 @@ export default function AdminAudit() {
 		{ value: 'ADMIN_SYSTEM_INFO_ACCESSED', label: 'System Info Access' },
 		{ value: 'ADMIN_AUDIT_LOGS_ACCESSED', label: 'Audit Logs Access' },
 		{ value: 'IP_ADDRESS_VIEWED', label: 'IP Address Revealed' },
-		{ value: 'AUDIT_LOG_IP_VIEWED', label: 'Audit Log IP Address Revealed' },
+		{
+			value: 'AUDIT_LOG_IP_VIEWED',
+			label: 'Audit Log IP Address Revealed'
+		},
 		{ value: 'USER_BANNED', label: 'User Banned' },
 		{ value: 'USER_UNBANNED', label: 'User Unbanned' },
 		{ value: 'ADMIN_BANS_ACCESSED', label: 'Bans Page Access' },
@@ -71,20 +66,16 @@ export default function AdminAudit() {
 		{ value: 'SESSION_JOINED', label: 'Session Joined' }
 	];
 
-	// Reset pages when filters or mode changes
 	useEffect(() => {
-		setPage(1);
 		setClientPage(1);
 	}, [
 		adminFilter,
 		actionTypeFilter,
 		targetUserFilter,
 		dateFromFilter,
-		dateToFilter,
-		hidePageNav
+		dateToFilter
 	]);
 
-	// Fetch logs when filters or mode changes
 	useEffect(() => {
 		fetchLogs();
 	}, [
@@ -92,16 +83,8 @@ export default function AdminAudit() {
 		actionTypeFilter,
 		targetUserFilter,
 		dateFromFilter,
-		dateToFilter,
-		hidePageNav
+		dateToFilter
 	]);
-
-	// Fetch logs when page changes (only in server-side mode)
-	useEffect(() => {
-		if (!hidePageNav) {
-			fetchLogs();
-		}
-	}, [page]);
 
 	const fetchLogs = async () => {
 		try {
@@ -116,44 +99,33 @@ export default function AdminAudit() {
 				dateTo: dateToFilter || undefined
 			};
 
-			if (hidePageNav) {
-				// Fetch multiple pages with larger limit to accumulate enough activity logs
-				let allLogs: AuditLog[] = [];
-				let currentPage = 1;
-				let totalPagesFromServer = 1;
-				const bigLimit = 500; // Fetch 500 at a time to reduce requests
+			let allLogs: AuditLog[] = [];
+			let currentPage = 1;
+			let totalPagesFromServer = 1;
+			const bigLimit = 500;
 
-				// Fetch up to 5 pages to get enough activity logs
-				while (currentPage <= Math.min(totalPagesFromServer, 5)) {
-					const data: AuditLogsResponse = await fetchAuditLogs(
-						currentPage,
-						bigLimit,
-						filters
-					);
-					allLogs = [...allLogs, ...data.logs];
-					totalPagesFromServer = data.pagination.pages;
-					currentPage++;
-
-					// Stop if we have enough non-page-nav logs (at least 500)
-					const activityLogs = allLogs.filter(log => !log.action_type.includes('_ACCESSED'));
-					if (activityLogs.length >= 500) break;
-				}
-
-				setLogs(allLogs);
-				setTotalPages(totalPagesFromServer);
-			} else {
+			while (currentPage <= Math.min(totalPagesFromServer, 5)) {
 				const data: AuditLogsResponse = await fetchAuditLogs(
-					page,
-					limit,
+					currentPage,
+					bigLimit,
 					filters
 				);
-				setLogs(data.logs);
-				setTotalPages(data.pagination.pages);
+				allLogs = [...allLogs, ...data.logs];
+				totalPagesFromServer = data.pagination.pages;
+				currentPage++;
+
+				const activityLogs = allLogs.filter(
+					(log) => !log.action_type.includes('_ACCESSED')
+				);
+				if (activityLogs.length >= 500) break;
 			}
+
+			setLogs(allLogs);
 		} catch (err) {
-			const errorMessage = err instanceof Error
-				? err.message
-				: 'Failed to fetch audit logs';
+			const errorMessage =
+				err instanceof Error
+					? err.message
+					: 'Failed to fetch audit logs';
 			setError(errorMessage);
 			setToast({
 				message: errorMessage,
@@ -168,29 +140,24 @@ export default function AdminAudit() {
 		e: React.ChangeEvent<HTMLInputElement>
 	) => {
 		setAdminFilter(e.target.value);
-		setPage(1);
 	};
 
 	const handleTargetUserFilterChange = (
 		e: React.ChangeEvent<HTMLInputElement>
 	) => {
 		setTargetUserFilter(e.target.value);
-		setPage(1);
 	};
 
 	const handleActionTypeChange = (value: string) => {
 		setActionTypeFilter(value);
-		setPage(1);
 	};
 
 	const handleDateFromChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setDateFromFilter(e.target.value);
-		setPage(1);
 	};
 
 	const handleDateToChange = (e: React.ChangeEvent<HTMLInputElement>) => {
 		setDateToFilter(e.target.value);
-		setPage(1);
 	};
 
 	const handleViewDetails = (log: AuditLog) => {
@@ -209,7 +176,6 @@ export default function AdminAudit() {
 		setTargetUserFilter('');
 		setDateFromFilter('');
 		setDateToFilter('');
-		setPage(1);
 	};
 
 	const formatActionType = (actionType: string) => {
@@ -264,7 +230,7 @@ export default function AdminAudit() {
 				return <Trash2 className="w-4 h-4 text-red-400" />;
 			case 'SESSION_JOINED':
 				return <ExternalLink className="w-4 h-4 text-blue-400" />;
-			case 'ADMIN_AUDIT_LOGS_ACCESSED' :
+			case 'ADMIN_AUDIT_LOGS_ACCESSED':
 				return <ShieldAlert className="w-4 h-4 text-orange-400" />;
 			default:
 				return <ShieldAlert className="w-4 h-4 text-zinc-400" />;
@@ -296,11 +262,17 @@ export default function AdminAudit() {
 			setRevealingIP(logId);
 			await revealAuditLogIP(logId);
 			setRevealedIPs((prev) => new Set(prev).add(logId));
-			setToast({ message: 'IP address revealed successfully', type: 'success' });
-		} catch (error) {
-			console.error("Error revealing IP:", error);
 			setToast({
-				message: error instanceof Error ? error.message : 'Failed to reveal IP address',
+				message: 'IP address revealed successfully',
+				type: 'success'
+			});
+		} catch (error) {
+			console.error('Error revealing IP:', error);
+			setToast({
+				message:
+					error instanceof Error
+						? error.message
+						: 'Failed to reveal IP address',
 				type: 'error'
 			});
 		} finally {
@@ -310,31 +282,34 @@ export default function AdminAudit() {
 
 	const formatIPAddress = (ip: string | null | undefined, logId: number) => {
 		if (!ip) {
-			return "***.***.***.**";
+			return '***.***.***.**';
 		}
 		if (revealedIPs.has(logId)) {
 			return ip;
 		}
 
-		const parts = ip.split(".");
+		const parts = ip.split('.');
 		if (parts.length === 4) {
 			return `${parts[0]}.${parts[1]}.***.**`;
 		}
-		return "***.***.***.**";
+		return '***.***.***.**';
 	};
 
 	const isPageNavAction = (actionType: string) => {
 		return actionType.includes('_ACCESSED');
 	};
 
-	const filteredLogs = hidePageNav
-		? logs.filter(log => !isPageNavAction(log.action_type))
-		: logs;
+	const filteredLogs = logs.filter(
+		(log) => !isPageNavAction(log.action_type)
+	);
 
 	// Client-side pagination for filtered logs
 	const [clientPage, setClientPage] = useState(1);
 	const clientLimit = 50;
-	const filteredTotalPages = Math.max(1, Math.ceil(filteredLogs.length / clientLimit));
+	const filteredTotalPages = Math.max(
+		1,
+		Math.ceil(filteredLogs.length / clientLimit)
+	);
 	const paginatedLogs = filteredLogs.slice(
 		(clientPage - 1) * clientLimit,
 		clientPage * clientLimit
@@ -402,7 +377,7 @@ export default function AdminAudit() {
 											value={actionTypeFilter}
 											onChange={handleActionTypeChange}
 											placeholder="Filter by action..."
-											className="pl-10"
+											className="pl-10 h-11"
 										/>
 									</div>
 								</div>
@@ -410,7 +385,7 @@ export default function AdminAudit() {
 								<div className="grid grid-cols-1 md:grid-cols-3 gap-4">
 									{/* Date From */}
 									<div>
-										<label className="block text-zinc-300 mb-2">
+										<label className="block text-zinc-500 text-xs -mt-2 mb-2">
 											From Date
 										</label>
 										<div className="relative">
@@ -427,7 +402,7 @@ export default function AdminAudit() {
 
 									{/* Date To */}
 									<div>
-										<label className="block text-zinc-300 mb-2">
+										<label className="block text-zinc-500 text-xs -mt-2 mb-2">
 											To Date
 										</label>
 										<div className="relative">
@@ -447,18 +422,10 @@ export default function AdminAudit() {
 										<Button
 											onClick={clearFilters}
 											variant="outline"
-											size="sm"
-											className="h-10"
+											size="md"
+											className="h-11 mt-4"
 										>
 											Clear Filters
-										</Button>
-										<Button
-											onClick={() => setHidePageNav(!hidePageNav)}
-											variant={hidePageNav ? 'outline' : 'primary'}
-											size="sm"
-											className="h-10"
-										>
-											{hidePageNav ? 'Show Page Navigation' : 'Hide Page Navigation'}
 										</Button>
 									</div>
 								</div>
@@ -512,12 +479,10 @@ export default function AdminAudit() {
 											</tr>
 										</thead>
 										<tbody>
-											{(hidePageNav ? paginatedLogs : filteredLogs).map((log) => (
+											{paginatedLogs.map((log) => (
 												<tr
 													key={log.id}
-													className={`border-t border-zinc-700/50 hover:bg-zinc-800/50 ${
-														isPageNavAction(log.action_type) ? 'opacity-60' : ''
-													}`}
+													className="border-t border-zinc-700/50 hover:bg-zinc-800/50"
 												>
 													<td className="px-6 py-4">
 														<div className="flex items-center space-x-3">
@@ -530,11 +495,6 @@ export default function AdminAudit() {
 																		log.action_type
 																	)}
 																</span>
-																{isPageNavAction(log.action_type) && (
-																	<span className="text-xs px-2 py-0.5 rounded-full bg-zinc-700/50 text-zinc-400 w-fit mt-1">
-																		Navigation
-																	</span>
-																)}
 															</div>
 														</div>
 													</td>
@@ -584,23 +544,38 @@ export default function AdminAudit() {
 														<div className="flex items-center space-x-2">
 															<span
 																className={`font-mono text-sm ${
-																	revealedIPs.has(log.id)
+																	revealedIPs.has(
+																		log.id
+																	)
 																		? ''
 																		: 'filter blur-sm'
 																}`}
 															>
-																{formatIPAddress(log.ip_address, log.id)}
+																{formatIPAddress(
+																	log.ip_address,
+																	log.id
+																)}
 															</span>
 															<Button
 																size="sm"
 																variant="ghost"
-																onClick={() => handleRevealIP(log.id)}
-																disabled={revealingIP === log.id}
+																onClick={() =>
+																	handleRevealIP(
+																		log.id
+																	)
+																}
+																disabled={
+																	revealingIP ===
+																	log.id
+																}
 																className="p-1"
 															>
-																{revealingIP === log.id ? (
+																{revealingIP ===
+																log.id ? (
 																	<div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-																) : revealedIPs.has(log.id) ? (
+																) : revealedIPs.has(
+																		log.id
+																  ) ? (
 																	<EyeOff className="w-4 h-4" />
 																) : (
 																	<Eye className="w-4 h-4" />
@@ -631,78 +606,58 @@ export default function AdminAudit() {
 
 								{filteredLogs.length === 0 && (
 									<div className="text-center py-12 text-zinc-400">
-										{hidePageNav && logs.length > 0
+										{logs.length > 0
 											? 'No action logs found. All logs are page navigation events.'
 											: 'No audit logs found with the current filters.'}
 									</div>
 								)}
 
-								{/* Pagination - Always visible */}
-								{hidePageNav ? (
-									// Client-side pagination for filtered logs
-									<div className="flex justify-center mt-8 space-x-2">
-										<Button
-											onClick={() =>
-												setClientPage(Math.max(1, clientPage - 1))
-											}
-											disabled={clientPage === 1 || filteredLogs.length === 0}
-											variant="outline"
-											size="sm"
-										>
-											Previous
-										</Button>
-										<span className="text-zinc-400 py-2">
-											Page {filteredLogs.length === 0 ? 0 : clientPage} of {filteredLogs.length === 0 ? 0 : filteredTotalPages}
-										</span>
-										<Button
-											onClick={() =>
-												setClientPage(
-													Math.min(
-														filteredTotalPages,
-														clientPage + 1
-													)
+								{/* Client-side pagination for filtered logs */}
+								<div className="flex justify-center mt-8 space-x-2">
+									<Button
+										onClick={() =>
+											setClientPage(
+												Math.max(1, clientPage - 1)
+											)
+										}
+										disabled={
+											clientPage === 1 ||
+											filteredLogs.length === 0
+										}
+										variant="outline"
+										size="sm"
+									>
+										Previous
+									</Button>
+									<span className="text-zinc-400 py-2">
+										Page{' '}
+										{filteredLogs.length === 0
+											? 0
+											: clientPage}{' '}
+										of{' '}
+										{filteredLogs.length === 0
+											? 0
+											: filteredTotalPages}
+									</span>
+									<Button
+										onClick={() =>
+											setClientPage(
+												Math.min(
+													filteredTotalPages,
+													clientPage + 1
 												)
-											}
-											disabled={clientPage === filteredTotalPages || filteredLogs.length === 0}
-											variant="outline"
-											size="sm"
-										>
-											Next
-										</Button>
-									</div>
-								) : (
-									// Server-side pagination
-									<div className="flex justify-center mt-8 space-x-2">
-										<Button
-											onClick={() =>
-												setPage(Math.max(1, page - 1))
-											}
-											disabled={page === 1 || logs.length === 0}
-											variant="outline"
-											size="sm"
-										>
-											Previous
-										</Button>
-										<span className="text-zinc-400 py-2">
-											Page {logs.length === 0 ? 0 : page} of {logs.length === 0 ? 0 : totalPages}
-										</span>
-										<Button
-											onClick={() =>
-												setPage(
-													Math.min(
-														totalPages,
-														page + 1
-													)
-												)
-											}
-											disabled={page === totalPages || logs.length === 0}
-											variant="outline"
-											size="sm"
-										>
-											Next
-										</Button>
-									</div>
-								)}
+											)
+										}
+										disabled={
+											clientPage === filteredTotalPages ||
+											filteredLogs.length === 0
+										}
+										variant="outline"
+										size="sm"
+									>
+										Next
+									</Button>
+								</div>
 							</>
 						)}
 
@@ -767,23 +722,40 @@ export default function AdminAudit() {
 													IP Address
 												</h3>
 												<div className="flex items-center space-x-2">
-													<p className={`text-white font-mono ${
-														revealedIPs.has(selectedLog.id)
-															? ''
-															: 'filter blur-sm'
-													}`}>
-														{formatIPAddress(selectedLog.ip_address, selectedLog.id)}
+													<p
+														className={`text-white font-mono ${
+															revealedIPs.has(
+																selectedLog.id
+															)
+																? ''
+																: 'filter blur-sm'
+														}`}
+													>
+														{formatIPAddress(
+															selectedLog.ip_address,
+															selectedLog.id
+														)}
 													</p>
 													<Button
 														size="sm"
 														variant="ghost"
-														onClick={() => handleRevealIP(selectedLog.id)}
-														disabled={revealingIP === selectedLog.id}
+														onClick={() =>
+															handleRevealIP(
+																selectedLog.id
+															)
+														}
+														disabled={
+															revealingIP ===
+															selectedLog.id
+														}
 														className="p-1"
 													>
-														{revealingIP === selectedLog.id ? (
+														{revealingIP ===
+														selectedLog.id ? (
 															<div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
-														) : revealedIPs.has(selectedLog.id) ? (
+														) : revealedIPs.has(
+																selectedLog.id
+														  ) ? (
 															<EyeOff className="w-4 h-4" />
 														) : (
 															<Eye className="w-4 h-4" />
