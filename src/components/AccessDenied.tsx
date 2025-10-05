@@ -1,5 +1,4 @@
 import Navbar from './Navbar';
-import { ArrowLeft } from 'lucide-react';
 import { FaDiscord } from 'react-icons/fa';
 import { Link } from 'react-router-dom';
 
@@ -84,7 +83,7 @@ export default function AccessDenied({
 					</p>
 					{errorType == 'tester-required' && (
 						<Link
-							to="https://discord.gg/tN3K4Ek2dE"
+							to="https://pfconnect.online/discord"
 							className={`inline-flex items-center px-8 py-4 rounded-full ${
 								'bg-[#4f62a5] hover:bg-[#384366]'
 							} text-white text-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl`}
@@ -95,7 +94,7 @@ export default function AccessDenied({
 					)}
 					{errorType !== 'tester-required' && (
 						<Link
-							to="https://discord.gg/tN3K4Ek2dE"
+							to="https://pfconnect.online/discord"
 							className={`inline-flex items-center px-8 py-4 rounded-full ${
 								errorType === 'invalid-session'
 									? 'bg-gradient-to-r from-yellow-600 to-yellow-700 hover:from-yellow-700 hover:to-yellow-800'
