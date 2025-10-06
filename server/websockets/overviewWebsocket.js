@@ -9,7 +9,7 @@ export function setupOverviewWebsocket(httpServer, sessionUsersIO) {
     io = new SocketServer(httpServer, {
         path: '/sockets/overview',
         cors: {
-            origin: ['http://localhost:5173', 'http://localhost:5000', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
+            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
             credentials: true
         }
     });

@@ -7,7 +7,11 @@
     "dev": "set NODE_ENV=development && concurrently \"vite\" \"nodemon server/server.js\"",
     "prod": "cross-env NODE_ENV=production node server/server.js",
     "build": "vite build --mode production",
-    "build:dev": "vite build --mode development"
+    "build:dev": "vite build --mode development",
+    "docker:build": "docker build -t pfcontrol-v2 .",
+    "docker:run": "docker run -p 9900:9900 --env-file .env.production pfcontrol-v2",
+    "docker:dev": "docker-compose -f docker-compose.dev.yml up --build",
+    "docker:prod": "docker-compose up --build -d"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.13",

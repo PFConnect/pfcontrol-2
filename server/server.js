@@ -14,11 +14,17 @@ import { setupOverviewWebsocket } from './websockets/overviewWebsocket.js';
 import { setupArrivalsWebsocket } from './websockets/arrivalsWebsocket.js';
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
-const cors_origin = process.env.NODE_ENV === 'production' ? ['https://control.pfconnect.online', 'https://test.pfconnect.online'] : ['http://localhost:5000', 'http://localhost:5173', 'https://control.pfconnect.online'];
+const cors_origin = process.env.NODE_ENV === 'production'
+    ? ['https://control.pfconnect.online', 'https://test.pfconnect.online']
+    : ['http://localhost:9901', 'http://localhost:5173', 'https://control.pfconnect.online'];
 dotenv.config({ path: envFile });
 console.log('NODE_ENV:', process.env.NODE_ENV);
 
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || (process.env.NODE_ENV === 'production' ? 9900 : 9901);
+if (!PORT || PORT === '' || PORT == undefined) {
+    console.error('PORT is not defined');
+    process.exit(1);
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
