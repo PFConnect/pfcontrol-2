@@ -83,19 +83,21 @@ export async function getAllTesters(page = 1, limit = 50, search = '') {
         let queryParams = [];
 
         if (search && search.trim()) {
-            whereClause = 'WHERE username ILIKE $1 OR user_id = $2';
+            whereClause = 'WHERE t.username ILIKE $1 OR t.user_id = $2';
             queryParams = [`%${search.trim()}%`, search.trim()];
         }
 
         const result = await pool.query(`
-            SELECT * FROM testers
+            SELECT t.*, u.avatar
+            FROM testers t
+            LEFT JOIN users u ON t.user_id = u.id
             ${whereClause}
-            ORDER BY created_at DESC
+            ORDER BY t.created_at DESC
             LIMIT $${queryParams.length + 1} OFFSET $${queryParams.length + 2}
         `, [...queryParams, limit, offset]);
 
         const countResult = await pool.query(`
-            SELECT COUNT(*) FROM testers ${whereClause}
+            SELECT COUNT(*) FROM testers t ${whereClause.replace('t.username', 'username').replace('t.user_id', 'user_id')}
         `, queryParams);
 
         const total = parseInt(countResult.rows[0].count);

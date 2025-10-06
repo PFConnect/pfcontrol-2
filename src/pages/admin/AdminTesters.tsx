@@ -366,9 +366,17 @@ export default function AdminTesters() {
 												>
 													<td className="px-6 py-4">
 														<div className="flex items-center">
-															<div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center mr-3">
-																<User className="w-5 h-5 text-zinc-400" />
-															</div>
+															{tester.avatar ? (
+																<img
+																	src={`https://cdn.discordapp.com/avatars/${tester.user_id}/${tester.avatar}.png`}
+																	alt={tester.username}
+																	className="w-10 h-10 rounded-full mr-3"
+																/>
+															) : (
+																<div className="w-10 h-10 bg-zinc-700 rounded-full flex items-center justify-center mr-3">
+																	<User className="w-5 h-5 text-zinc-400" />
+																</div>
+															)}
 															<div>
 																<span className="text-white font-medium">
 																	{

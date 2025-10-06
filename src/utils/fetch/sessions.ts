@@ -77,3 +77,20 @@ export async function deleteSession(sessionId: string): Promise<{ message: strin
     if (!res.ok) throw new Error('Failed to delete session');
     return res.json();
 }
+
+export async function deleteOldestSession(): Promise<{ message: string; sessionId: string; airportIcao: string; createdAt: string }> {
+    const response = await fetch(`${API_BASE_URL}/api/sessions/delete-oldest`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    });
+
+    if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || 'Failed to delete oldest session');
+    }
+
+    return await response.json();
+}

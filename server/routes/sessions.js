@@ -13,8 +13,9 @@ import {
 import { addSessionToUser } from '../db/users.js';
 import { generateSessionId, generateAccessId } from '../tools/ids.js';
 import { recordNewSession } from '../db/statistics.js';
-import requireAuth from '../middleware/isAuthenticated.js';
 import { requireSessionAccess, requireSessionOwnership } from '../middleware/sessionAccess.js';
+import { getSessionsByUser } from '../db/sessions.js';
+import requireAuth from '../middleware/isAuthenticated.js';
 
 const router = express.Router();
 initializeSessionsTable();
@@ -26,6 +27,17 @@ router.post('/create', requireAuth, async (req, res) => {
         if (!airportIcao || !createdBy) {
             return res.status(400).json({ error: 'Airport ICAO and creator ID are required' });
         }
+
+        const userSessions = await getSessionsByUser(createdBy);
+        if (userSessions.length >= 10) {
+            return res.status(400).json({
+                error: 'Session limit reached',
+                message: 'You can only have 10 active sessions. Please delete an old session first.',
+                sessionCount: userSessions.length,
+                maxSessions: 10
+            });
+        }
+
         const sessionId = generateSessionId();
         const accessId = generateAccessId();
 
@@ -182,6 +194,37 @@ router.post('/delete', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Error deleting session:', error);
         res.status(500).json({ error: 'Internal server error', message: 'Failed to delete session' });
+    }
+});
+
+// POST: /api/sessions/delete-oldest - Delete user's oldest session
+router.post('/delete-oldest', requireAuth, async (req, res) => {
+    try {
+        const userId = req.user.userId;
+        const userSessions = await getSessionsByUser(userId);
+
+        if (userSessions.length === 0) {
+            return res.status(404).json({ error: 'No sessions found' });
+        }
+
+        const oldestSession = userSessions.sort((a, b) =>
+            new Date(a.created_at) - new Date(b.created_at)
+        )[0];
+
+        const deleted = await deleteSession(oldestSession.session_id);
+        if (!deleted) {
+            return res.status(404).json({ error: 'Failed to delete oldest session' });
+        }
+
+        res.json({
+            message: 'Oldest session deleted successfully',
+            sessionId: oldestSession.session_id,
+            airportIcao: oldestSession.airport_icao,
+            createdAt: oldestSession.created_at
+        });
+    } catch (error) {
+        console.error('Error deleting oldest session:', error);
+        res.status(500).json({ error: 'Internal server error', message: 'Failed to delete oldest session' });
     }
 });
 

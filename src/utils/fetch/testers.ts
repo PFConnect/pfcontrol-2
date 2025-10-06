@@ -4,6 +4,7 @@ export interface Tester {
     id: number;
     user_id: string;
     username: string;
+    avatar: string | null;
     added_by: string;
     added_by_username: string;
     notes: string;
