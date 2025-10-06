@@ -80,6 +80,7 @@ export default function AdminAudit() {
         { value: 'NOTIFICATION_ADDED', label: 'Notification Added' },
         { value: 'NOTIFICATION_UPDATED', label: 'Notification Updated' },
         { value: 'NOTIFICATION_DELETED', label: 'Notification Deleted' },
+        { value: 'ADMIN_VERSION_UPDATED', label: 'Version Updated' },
     ];
 
     useEffect(() => {
@@ -242,6 +243,8 @@ export default function AdminAudit() {
                 return 'Notification Updated';
             case 'NOTIFICATION_DELETED':
                 return 'Notification Deleted';
+            case 'ADMIN_VERSION_UPDATED':
+                return 'Version Updated';
             default:
                 return actionType;
         }
@@ -292,6 +295,8 @@ export default function AdminAudit() {
                 return <Edit className="w-4 h-4 text-cyan-400" />;
             case 'NOTIFICATION_DELETED':
                 return <Trash2 className="w-4 h-4 text-red-400" />;
+            case 'ADMIN_VERSION_UPDATED':
+                return <Settings className="w-4 h-4 text-teal-500" />;
             default:
                 return <ShieldAlert className="w-4 h-4 text-zinc-400" />;
         }
