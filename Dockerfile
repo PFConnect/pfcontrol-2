@@ -13,6 +13,9 @@ RUN npm ci && npm cache clean --force
 # Copy source code
 COPY . .
 
+# Copy frontend env for Vite build
+COPY .env.vite.production .env.production
+
 # Build the application
 RUN npm run build
 
