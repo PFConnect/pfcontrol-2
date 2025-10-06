@@ -517,18 +517,18 @@ export default function AdminUsers() {
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        {users.map((user) => (
+                                        {users.map((tableUser) => (
                                             <tr
-                                                key={user.id}
+                                                key={tableUser.id}
                                                 className="border-t border-zinc-700/50 hover:bg-zinc-800/50"
                                             >
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center space-x-3">
-                                                        {user.avatar ? (
+                                                        {tableUser.avatar ? (
                                                             <img
-                                                                src={`https://cdn.discordapp.com/avatars/${user.id}/${user.avatar}.png`}
+                                                                src={`https://cdn.discordapp.com/avatars/${tableUser.id}/${tableUser.avatar}.png`}
                                                                 alt={
-                                                                    user.username
+                                                                    tableUser.username
                                                                 }
                                                                 className="w-8 h-8 rounded-full"
                                                             />
@@ -539,34 +539,36 @@ export default function AdminUsers() {
                                                         )}
                                                         <div className="flex flex-col">
                                                             <span className="text-white font-medium">
-                                                                {user.username}
+                                                                {
+                                                                    tableUser.username
+                                                                }
                                                             </span>
                                                             <span className="text-zinc-400 text-xs">
-                                                                {user.id}
+                                                                {tableUser.id}
                                                             </span>
                                                         </div>
                                                     </div>
                                                 </td>
                                                 <td className="px-6 py-4 text-zinc-300">
                                                     {new Date(
-                                                        user.last_login
+                                                        tableUser.last_login
                                                     ).toLocaleDateString()}
                                                 </td>
-                                                {user?.is_admin && (
+                                                {user?.isAdmin && (
                                                     <td className="px-6 py-4 text-zinc-300">
                                                         <div className="flex items-center space-x-2">
                                                             <span
                                                                 className={
                                                                     revealedIPs.has(
-                                                                        user.id
+                                                                        tableUser.id
                                                                     )
                                                                         ? ''
                                                                         : 'filter blur-sm'
                                                                 }
                                                             >
                                                                 {formatIPAddress(
-                                                                    user.ip_address,
-                                                                    user.id
+                                                                    tableUser.ip_address,
+                                                                    tableUser.id
                                                                 )}
                                                             </span>
                                                             <Button
@@ -574,20 +576,20 @@ export default function AdminUsers() {
                                                                 variant="ghost"
                                                                 onClick={() =>
                                                                     handleRevealIP(
-                                                                        user.id
+                                                                        tableUser.id
                                                                     )
                                                                 }
                                                                 disabled={
                                                                     revealingIP ===
-                                                                    user.id
+                                                                    tableUser.id
                                                                 }
                                                                 className="p-1"
                                                             >
                                                                 {revealingIP ===
-                                                                user.id ? (
+                                                                tableUser.id ? (
                                                                     <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
                                                                 ) : revealedIPs.has(
-                                                                      user.id
+                                                                      tableUser.id
                                                                   ) ? (
                                                                     <EyeOff className="w-4 h-4" />
                                                                 ) : (
@@ -600,29 +602,31 @@ export default function AdminUsers() {
                                                 <td className="px-6 py-4">
                                                     <span
                                                         className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                            user.is_vpn
+                                                            tableUser.is_vpn
                                                                 ? 'bg-red-500/20 text-red-400 border border-red-500/30'
                                                                 : 'bg-green-500/20 text-green-400 border border-green-500/30'
                                                         }`}
                                                     >
-                                                        {user.is_vpn
+                                                        {tableUser.is_vpn
                                                             ? 'Yes'
                                                             : 'No'}
                                                     </span>
                                                 </td>
                                                 <td className="px-6 py-4 text-zinc-300">
-                                                    {user.total_sessions_created ||
+                                                    {tableUser.total_sessions_created ||
                                                         0}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col space-y-1">
-                                                        {user.is_admin ? (
+                                                        {tableUser.is_admin ? (
                                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 w-fit">
                                                                 Super Admin
                                                             </span>
-                                                        ) : user.roleName ? (
+                                                        ) : tableUser.roleName ? (
                                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-rose-500/20 text-rose-400 border border-rose-500/30 w-fit">
-                                                                {user.roleName}
+                                                                {
+                                                                    tableUser.roleName
+                                                                }
                                                             </span>
                                                         ) : (
                                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-zinc-600/20 text-zinc-400 border border-zinc-600/30 w-fit">
@@ -638,20 +642,20 @@ export default function AdminUsers() {
                                                             variant="outline"
                                                             onClick={() =>
                                                                 handleViewSettings(
-                                                                    user
+                                                                    tableUser
                                                                 )
                                                             }
                                                             className="p-2"
                                                         >
                                                             <Settings className="w-4 h-4" />
                                                         </Button>
-                                                        {!user.is_admin && (
+                                                        {!tableUser.is_admin && (
                                                             <Button
                                                                 size="sm"
                                                                 variant="secondary"
                                                                 onClick={() =>
                                                                     handleManageRole(
-                                                                        user
+                                                                        tableUser
                                                                     )
                                                                 }
                                                                 className="p-2 bg-rose-500/20 border-rose-500/30 hover:bg-rose-500/30"
@@ -659,28 +663,28 @@ export default function AdminUsers() {
                                                                 <ShieldUser className="w-4 h-4" />
                                                             </Button>
                                                         )}
-                                                        {(user.total_sessions_created ||
+                                                        {(tableUser.total_sessions_created ||
                                                             0) >= 1 && (
                                                             <Button
                                                                 size="sm"
                                                                 variant="secondary"
                                                                 onClick={() =>
-                                                                    (window.location.href = `/admin/sessions?userId=${user.id}`)
+                                                                    (window.location.href = `/admin/sessions?userId=${tableUser.id}`)
                                                                 }
                                                                 className="p-2 bg-yellow-500/20 border-yellow-500/30 hover:bg-yellow-500/30"
                                                             >
                                                                 <Database className="w-4 h-4" />
                                                             </Button>
                                                         )}
-                                                        {!user.is_admin && (
+                                                        {!tableUser.is_admin && (
                                                             <Button
                                                                 size="sm"
                                                                 variant="danger"
                                                                 onClick={() =>
                                                                     (window.location.href = `/admin/bans?userId=${
-                                                                        user.id
+                                                                        tableUser.id
                                                                     }&username=${encodeURIComponent(
-                                                                        user.username
+                                                                        tableUser.username
                                                                     )}`)
                                                                 }
                                                                 className="flex items-center space-x-2"

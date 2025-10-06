@@ -32,18 +32,11 @@ If you need values for secrets or database URLs, please contact Banana or Linuss
 
 ### 3. Start Development Environment with Docker
 
-Start the development environment using Docker Compose:
+Start the development environment:
 
 ```
-npm run docker:dev
+npm run dev
 ```
-
-This will:
-
--   Build and start the backend server and frontend (Vite) in development mode
--   Expose ports `9901` (backend) and `5173` (frontend) by default
-
----
 
 ## Accessing the App
 
