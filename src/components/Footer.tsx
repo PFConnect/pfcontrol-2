@@ -13,10 +13,30 @@ import {
 import { FaDiscord, FaYoutube } from 'react-icons/fa';
 import { SiGithub } from 'react-icons/si';
 import { useAuth } from '../hooks/auth/useAuth';
+import { useState, useEffect } from 'react';
 
 export default function Footer() {
     const { user } = useAuth();
     const year = new Date().getFullYear();
+    const [version, setVersion] = useState('2.0.0.3');
+
+    useEffect(() => {
+        const fetchVersion = async () => {
+            try {
+                const response = await fetch(
+                    `${import.meta.env.VITE_SERVER_URL || ''}/api/version`
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    setVersion(data.version || '2.0.0.3');
+                }
+            } catch (error) {
+                console.error('Failed to fetch version:', error);
+            }
+        };
+
+        fetchVersion();
+    }, []);
 
     const quickLinks = [
         { href: '/', label: 'Home', icon: Home },
@@ -216,7 +236,7 @@ export default function Footer() {
                         </p>
                     </div>
                     <div className="flex items-center space-x-2 text-gray-500 text-sm">
-                        <span>Version 2.0.0.1</span>
+                        <span>Version {version}</span>
                     </div>
                 </div>
             </div>

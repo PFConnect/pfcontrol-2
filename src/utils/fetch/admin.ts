@@ -180,6 +180,12 @@ export interface UserWithRole extends AdminUser {
     role_permissions?: Record<string, boolean>;
 }
 
+export interface AppVersion {
+    version: string;
+    updated_at: string;
+    updated_by: string;
+}
+
 async function makeAdminRequest(endpoint: string, options?: RequestInit) {
     const response = await fetch(`${API_BASE_URL}/api/admin${endpoint}`, {
         credentials: 'include',
@@ -377,4 +383,15 @@ export async function removeRoleFromUser(userId: string): Promise<void> {
 
 export async function fetchUsersWithRoles(): Promise<UserWithRole[]> {
     return makeAdminRequest('/roles/users');
+}
+
+export async function fetchAppVersion(): Promise<AppVersion> {
+    return makeAdminRequest('/version');
+}
+
+export async function updateAppVersion(version: string): Promise<AppVersion> {
+    return makeAdminRequest('/version', {
+        method: 'PUT',
+        body: JSON.stringify({ version }),
+    });
 }

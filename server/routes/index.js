@@ -1,4 +1,5 @@
 import express from "express";
+import { getAppVersion } from '../db/version.js';
 
 import dataRouter from "./data.js";
 import sessionRouter from "./sessions.js";
@@ -21,5 +22,15 @@ router.use('/metar', metarRoutes);
 router.use('/atis', atisRouter);
 router.use('/uploads', uploadsRouter);
 router.use('/admin', adminRouter);
+
+router.get('/version', async (req, res) => {
+    try {
+        const version = await getAppVersion();
+        res.json({ version: version.version });
+    } catch (error) {
+        console.error('Error fetching version:', error);
+        res.json({ version: '2.0.0.3' });
+    }
+});
 
 export default router;
