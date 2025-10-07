@@ -11,9 +11,10 @@ jobs:
     steps:
       - name: Send commit to Discord
         uses: ilshidur/action-discord@master
+        env:
+          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
         with:
           args: >
-            ${{ secrets.DISCORD_WEBHOOK }}
             "Neuer Commit auf **${{ github.repository }}**:
             ${{ github.actor }} hat gepusht:
             ${{ github.event.head_commit.message }}"
