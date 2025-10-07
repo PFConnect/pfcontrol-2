@@ -8,6 +8,7 @@ import {
     updateNotification,
     deleteNotification
 } from '../../db/notifications.js';
+import { getClientIp } from '../../tools/getIpAddress.js';
 
 const router = express.Router();
 
@@ -38,7 +39,7 @@ router.post('/', async (req, res) => {
                 adminId: req.user.userId,
                 adminUsername: req.user.username || 'Unknown',
                 actionType: 'NOTIFICATION_ADDED',
-                ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                ipAddress: getClientIp(req),
                 userAgent: req.get('User-Agent'),
                 details: { type, text, show, customColor, notificationId: notification.id }
             });
@@ -64,7 +65,7 @@ router.put('/:id', async (req, res) => {
                 adminId: req.user.userId,
                 adminUsername: req.user.username || 'Unknown',
                 actionType: 'NOTIFICATION_UPDATED',
-                ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                ipAddress: getClientIp(req),
                 userAgent: req.get('User-Agent'),
                 details: { notificationId: id, type, text, show, customColor }
             });
@@ -88,7 +89,7 @@ router.delete('/:id', async (req, res) => {
                 adminId: req.user.userId,
                 adminUsername: req.user.username || 'Unknown',
                 actionType: 'NOTIFICATION_DELETED',
-                ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                ipAddress: getClientIp(req),
                 userAgent: req.get('User-Agent'),
                 details: { notificationId: id }
             });

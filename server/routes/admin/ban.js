@@ -5,6 +5,7 @@ import { banUser, unbanUser, getAllBans } from '../../db/ban.js';
 import { logAdminAction } from '../../db/audit.js';
 import { isAdmin } from '../../middleware/isAdmin.js';
 import pool from '../../db/connections/connection.js';
+import { getClientIp } from '../../tools/getIpAddress.js';
 
 const router = express.Router();
 
@@ -40,7 +41,7 @@ router.post('/ban', async (req, res) => {
         actionType: 'USER_BANNED',
         targetUserId: userId || null,
         targetUsername: ip || username || null,
-        ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+        ipAddress: getClientIp(req),
         userAgent: req.get('User-Agent'),
         details: {
             reason,
@@ -71,7 +72,7 @@ router.post('/unban', async (req, res) => {
         actionType: 'USER_UNBANNED',
         targetUserId: null,
         targetUsername: username,
-        ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+        ipAddress: getClientIp(req),
         userAgent: req.get('User-Agent'),
         details: {
             method: req.method,

@@ -9,6 +9,7 @@ import {
     updateTesterSetting
 } from '../../db/testers.js';
 import { getUserById } from '../../db/users.js';
+import { getClientIp } from '../../tools/getIpAddress.js';
 
 const router = express.Router();
 
@@ -57,7 +58,7 @@ router.post('/', async (req, res) => {
                     actionType: 'TESTER_ADDED',
                     targetUserId: userId,
                     targetUsername: user.username,
-                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    ipAddress: getClientIp(req),
                     userAgent: req.get('User-Agent'),
                     details: {
                         method: req.method,
@@ -97,7 +98,7 @@ router.delete('/:userId', async (req, res) => {
                     actionType: 'TESTER_REMOVED',
                     targetUserId: userId,
                     targetUsername: user?.username || removedTester.username,
-                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    ipAddress: getClientIp(req),
                     userAgent: req.get('User-Agent'),
                     details: {
                         method: req.method,
@@ -135,7 +136,7 @@ router.put('/settings', async (req, res) => {
                     adminId: req.user.userId,
                     adminUsername: req.user.username || 'Unknown',
                     actionType: 'TESTER_SETTINGS_UPDATED',
-                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    ipAddress: getClientIp(req),
                     userAgent: req.get('User-Agent'),
                     details: {
                         method: req.method,

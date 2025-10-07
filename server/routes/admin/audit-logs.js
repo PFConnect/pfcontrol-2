@@ -2,6 +2,7 @@ import express from 'express';
 import { createAuditLogger, logIPAccess } from '../../middleware/auditLogger.js';
 import { requirePermission } from '../../middleware/rolePermissions.js';
 import { getAuditLogs, getAuditLogById } from '../../db/audit.js';
+import { getClientIp } from '../../tools/getIpAddress.js';
 
 const router = express.Router();
 
@@ -46,7 +47,7 @@ router.post('/:logId/reveal-ip', async (req, res) => {
                     actionType: 'AUDIT_LOG_IP_VIEWED',
                     targetUserId: log.admin_id,
                     targetUsername: log.admin_username,
-                    ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                    ipAddress: getClientIp(req),
                     userAgent: req.get('User-Agent'),
                     details: {
                         method: req.method,

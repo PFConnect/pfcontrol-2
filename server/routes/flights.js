@@ -3,6 +3,7 @@ import requireAuth from '../middleware/isAuthenticated.js';
 import { getFlightsBySession, addFlight, updateFlight, deleteFlight } from '../db/flights.js';
 import { broadcastFlightEvent } from '../websockets/flightsWebsocket.js';
 import { recordNewFlight } from '../db/statistics.js';
+import { getClientIp } from '../tools/getIpAddress.js';
 
 const router = express.Router();
 
@@ -23,7 +24,7 @@ router.post('/:sessionId', async (req, res) => {
         const flightData = {
             ...req.body,
             user_id: req.user?.userId,
-            ip_address: req.ip || req.connection.remoteAddress || req.socket.remoteAddress
+            ip_address: getClientIp(req)
         };
 
         const flight = await addFlight(req.params.sessionId, flightData);

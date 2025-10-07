@@ -5,6 +5,7 @@ import { getAllUsers, syncUserSessionCounts } from '../../db/admin.js';
 import { getUserById } from '../../db/users.js';
 import { logAdminAction } from '../../db/audit.js';
 import { isAdmin } from '../../middleware/isAdmin.js';
+import { getClientIp } from '../../tools/getIpAddress.js';
 
 const router = express.Router();
 
@@ -47,7 +48,7 @@ router.post('/:userId/reveal-ip', async (req, res) => {
                 actionType: 'IP_REVEALED',
                 targetUserId: userId,
                 targetUsername: user.username,
-                ipAddress: req.ip || req.connection.remoteAddress || req.socket.remoteAddress,
+                ipAddress: getClientIp(req),
                 userAgent: req.get('User-Agent'),
                 details: {
                     revealedIP: user.ipAddress,
