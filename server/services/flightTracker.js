@@ -71,16 +71,18 @@ class FlightTracker {
         this.protobufRoot = null;
         this.planesType = null;
         this.isConnected = false;
-        this.flightData = new Map(); // roblox_username -> previous data (for phase detection)
-        this.lastTelemetryTime = new Map(); // roblox_username -> last telemetry timestamp
+        this.flightData = new Map();
+        this.lastTelemetryTime = new Map();
         this.reconnectAttempts = 0;
         this.maxReconnectAttempts = 5;
         this.connectionFailed = false;
-        this.lastPlaneCountLog = 0; // For debug logging
+        this.lastPlaneCountLog = 0;
+        this.flightNotFoundTimeout = 30000;
 
-        // Proxy configuration
         this.proxies = this.loadProxies();
         this.currentProxyIndex = 0;
+
+        this.startFlightMonitoring();
     }
 
     loadProxies() {
@@ -785,6 +787,55 @@ class FlightTracker {
         if (rate < 600) return 80 - ((rate - 300) / 15);  // Acceptable
         if (rate < 1000) return 60 - ((rate - 600) / 10); // Hard
         return Math.max(0, 20 - ((rate - 1000) / 50));    // Very hard
+    }
+
+    startFlightMonitoring() {
+        setInterval(async () => {
+            await this.checkForMissingFlights();
+        }, 15000);
+    }
+
+    async checkForMissingFlights() {
+        try {
+            const activeFlights = await pool.query(`
+                SELECT laf.*, lf.callsign, lf.user_id, lf.flight_status
+                FROM logbook_active_flights laf
+                JOIN logbook_flights lf ON laf.flight_id = lf.id
+                WHERE lf.flight_status IN ('pending', 'active')
+            `);
+
+            const now = Date.now();
+
+            for (const flight of activeFlights.rows) {
+                const lastTelemetry = this.lastTelemetryTime.get(flight.roblox_username);
+
+                if (lastTelemetry && (now - lastTelemetry) > this.flightNotFoundTimeout) {
+
+                    // Delete active tracking first (due to foreign key constraint)
+                    await removeActiveFlightTracking(flight.roblox_username);
+
+                    // Then delete the flight
+                    await pool.query(`DELETE FROM logbook_flights WHERE id = $1`, [flight.flight_id]);
+
+                    // Send notification
+                    await pool.query(`
+                        INSERT INTO user_notifications (user_id, type, title, message, created_at)
+                        VALUES ($1, 'error', 'Flight Not Found', $2, NOW())
+                    `, [
+                        flight.user_id,
+                        `We couldn't find your flight in the public ATC server. Make sure you're connected to the PFATC server. Your flight log entry for "${flight.callsign}" has been deleted.`
+                    ]);
+
+                    // Clean up memory
+                    this.lastTelemetryTime.delete(flight.roblox_username);
+                    this.flightData.delete(flight.roblox_username);
+                } else if (!lastTelemetry) {
+                    this.lastTelemetryTime.set(flight.roblox_username, now);
+                }
+            }
+        } catch (error) {
+            console.error('[Flight Tracker] Error checking for missing flights:', error);
+        }
     }
 
     disconnect() {

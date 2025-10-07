@@ -7,7 +7,6 @@ export default function AccountSettings() {
     const { user, refreshUser } = useAuth();
 
     const handleLinkRoblox = () => {
-        // Redirect to Roblox OAuth
         window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/roblox`;
     };
 

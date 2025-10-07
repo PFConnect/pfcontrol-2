@@ -575,7 +575,7 @@ export default function FlightDetail() {
 							<div className="bg-gradient-to-br from-gray-900/80 to-gray-900/40 rounded-xl p-4 border-2 border-gray-700/50 hover:border-gray-600/70 transition-all">
 								<p className="text-xs text-gray-400 mb-2">Current Phase</p>
 								<div className={`inline-block px-3 py-1.5 rounded-lg font-semibold text-sm capitalize ${getPhaseColor(flight.current_phase)}`}>
-									{flight.current_phase?.replace(/_/g, ' ') || 'Unknown'}
+									{flight.current_phase?.replace(/_/g, ' ') || 'Pending'}
 								</div>
 							</div>
 							<div className="bg-gradient-to-br from-gray-900/80 to-gray-900/40 rounded-xl p-4 border-2 border-gray-700/50 hover:border-gray-600/70 transition-all">

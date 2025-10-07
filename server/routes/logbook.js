@@ -13,6 +13,12 @@ import {
     getActiveFlightByUsername,
     updateUserStatsCache
 } from '../db/logbook.js';
+import {
+    getUserNotifications,
+    markNotificationAsRead,
+    markAllNotificationsAsRead,
+    deleteNotification
+} from '../db/userNotifications.js';
 import pool from '../db/connections/connection.js';
 
 const router = express.Router();
@@ -335,6 +341,47 @@ router.post('/debug/export-data', requireAdmin, async (req, res) => {
     } catch (error) {
         console.error('Error exporting data:', error);
         res.status(500).json({ error: 'Failed to export data' });
+    }
+});
+
+router.get('/notifications', async (req, res) => {
+    try {
+        const { unreadOnly } = req.query;
+        const notifications = await getUserNotifications(req.user.userId, unreadOnly === 'true');
+        res.json(notifications);
+    } catch (error) {
+        console.error('Error fetching notifications:', error);
+        res.status(500).json({ error: 'Failed to fetch notifications' });
+    }
+});
+
+router.post('/notifications/:id/read', async (req, res) => {
+    try {
+        await markNotificationAsRead(parseInt(req.params.id), req.user.userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error marking notification as read:', error);
+        res.status(500).json({ error: 'Failed to mark notification as read' });
+    }
+});
+
+router.post('/notifications/read-all', async (req, res) => {
+    try {
+        await markAllNotificationsAsRead(req.user.userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error marking all notifications as read:', error);
+        res.status(500).json({ error: 'Failed to mark all notifications as read' });
+    }
+});
+
+router.delete('/notifications/:id', async (req, res) => {
+    try {
+        await deleteNotification(parseInt(req.params.id), req.user.userId);
+        res.json({ success: true });
+    } catch (error) {
+        console.error('Error deleting notification:', error);
+        res.status(500).json({ error: 'Failed to delete notification' });
     }
 });
 

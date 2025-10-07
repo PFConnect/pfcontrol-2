@@ -360,7 +360,6 @@ export async function addSessionToUser(userId, sessionId) {
     }
 }
 
-// Update Roblox account info
 export async function updateRobloxAccount(userId, { robloxUserId, robloxUsername, accessToken, refreshToken }) {
     try {
         await pool.query(`
@@ -380,7 +379,6 @@ export async function updateRobloxAccount(userId, { robloxUserId, robloxUsername
     }
 }
 
-// Unlink Roblox account
 export async function unlinkRobloxAccount(userId) {
     try {
         await pool.query(`

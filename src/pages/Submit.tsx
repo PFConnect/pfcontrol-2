@@ -70,7 +70,6 @@ export default function Submit() {
 	> | null>(null);
 	const [initialLoadComplete, setInitialLoadComplete] = useState(false);
 
-	// Check if logbook should be disabled (test gate on AND not a tester/admin)
 	const isLogbookDisabled = testerGateEnabled && !user?.isTester && !user?.isAdmin;
 	const hasRobloxLinked = !!user?.robloxUsername;
 
@@ -79,7 +78,6 @@ export default function Submit() {
 
 		setLoading(true);
 
-		// Fetch session data and tester gate settings in parallel
 		Promise.all([
 			fetch(`${import.meta.env.VITE_SERVER_URL}/api/sessions/${sessionId}/submit`)
 				.then((res) => (res.ok ? res.json() : Promise.reject(res))),
@@ -142,7 +140,6 @@ export default function Submit() {
 			return;
 		}
 
-		// If logbook is enabled, start tracking the flight
 		if (logWithLogbook && hasRobloxLinked && !isLogbookDisabled) {
 			try {
 				await fetch(`${import.meta.env.VITE_SERVER_URL}/api/logbook/flights/start`, {
@@ -160,7 +157,6 @@ export default function Submit() {
 				});
 			} catch (error) {
 				console.error('Failed to start logbook tracking:', error);
-				// Don't block flight submission if logbook fails
 			}
 		}
 
@@ -260,30 +256,58 @@ export default function Submit() {
 				</div>
 				{/* Success Message */}
 				{success && submittedFlight && (
-					<div className="bg-green-900/30 border border-green-700 rounded-xl mb-8 overflow-hidden">
-						<div className="bg-green-900/50 p-4 border-b border-green-700 flex items-center">
-							<div className="bg-green-700 rounded-full p-2 mr-3">
-								<Check className="h-6 w-6 text-green-200" />
+					<>
+						{logWithLogbook && (
+							<div className="bg-blue-900/30 border border-blue-700 rounded-xl mb-4 overflow-hidden">
+								<div className="p-5 flex items-start justify-between">
+									<div className="flex items-start flex-1">
+										<div className="bg-blue-600 rounded-full p-2 mr-3 flex-shrink-0">
+											<BookOpen className="h-5 w-5 text-white" />
+										</div>
+										<div className="flex-1">
+											<h3 className="text-base font-semibold text-blue-200 mb-1">
+												Flight Tracking Active
+											</h3>
+											<p className="text-blue-300 text-sm mb-3">
+												Your flight is now being tracked in your logbook. View real-time telemetry, altitude, speed, and more!
+											</p>
+											<a
+												href="/logbook"
+												className="inline-flex items-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors"
+											>
+												<BookOpen className="h-4 w-4 mr-2" />
+												View Live Flight
+											</a>
+										</div>
+									</div>
+								</div>
 							</div>
-							<div className="flex-1">
-								<h3 className="text-lg font-semibold text-green-200">
-									Flight Plan Submitted Successfully!
-								</h3>
-								<p className="text-green-300 text-sm">
-									Your flight plan has been submitted to ATC
-									and is awaiting clearance.
-								</p>
+						)}
+
+						<div className="bg-green-900/30 border border-green-700 rounded-xl mb-8 overflow-hidden">
+							<div className="bg-green-900/50 p-4 border-b border-green-700 flex items-center">
+								<div className="bg-green-700 rounded-full p-2 mr-3">
+									<Check className="h-6 w-6 text-green-200" />
+								</div>
+								<div className="flex-1">
+									<h3 className="text-lg font-semibold text-green-200">
+										Flight Plan Submitted Successfully!
+									</h3>
+									<p className="text-green-300 text-sm">
+										Your flight plan has been submitted to ATC
+										and is awaiting clearance.
+									</p>
+								</div>
+								<button
+									onClick={() => {
+										setSuccess(false);
+										setSubmittedFlight(null);
+									}}
+									className="text-green-300 hover:text-green-100 ml-4"
+								>
+									<X className="h-5 w-5" />
+								</button>
 							</div>
-							<button
-								onClick={() => {
-									setSuccess(false);
-									setSubmittedFlight(null);
-								}}
-								className="text-green-300 hover:text-green-100 ml-4"
-							>
-								<X className="h-5 w-5" />
-							</button>
-						</div>
 						<div className="p-6">
 							<div className="flex items-center mb-4">
 								<ClipboardList className="h-5 w-5 text-green-400 mr-2" />
@@ -378,6 +402,7 @@ export default function Submit() {
 							</div>
 						</div>
 					</div>
+					</>
 				)}
 
 				{/* Form */}

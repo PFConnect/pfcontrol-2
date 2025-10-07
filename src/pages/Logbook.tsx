@@ -23,7 +23,9 @@ import {
 	Download,
 	Terminal,
 	RotateCw,
-	Trash
+	Trash,
+	X,
+	AlertTriangle
 } from 'lucide-react';
 
 interface Flight {
@@ -54,6 +56,15 @@ interface Stats {
 	average_landing_score: number | null;
 }
 
+interface Notification {
+	id: number;
+	type: 'info' | 'warning' | 'success' | 'error';
+	title: string;
+	message: string;
+	read: boolean;
+	created_at: string;
+}
+
 export default function Logbook() {
 	const navigate = useNavigate();
 	const { user } = useAuth();
@@ -65,6 +76,7 @@ export default function Logbook() {
 	const [page, setPage] = useState(1);
 	const [hasMore, setHasMore] = useState(true);
 	const [isRefreshing, setIsRefreshing] = useState(false);
+	const [notifications, setNotifications] = useState<Notification[]>([]);
 
 	// Debug state
 	const [showDebug, setShowDebug] = useState(false);
@@ -75,7 +87,17 @@ export default function Logbook() {
 		fetchStats();
 		fetchActiveFlights();
 		fetchFlights();
+		fetchNotifications();
 	}, [page]);
+
+	// Auto-refresh notifications every 10 seconds
+	useEffect(() => {
+		const interval = setInterval(() => {
+			fetchNotifications();
+		}, 10000);
+
+		return () => clearInterval(interval);
+	}, []);
 
 	// Auto-refresh active flights every 5 seconds
 	useEffect(() => {
@@ -153,6 +175,36 @@ export default function Logbook() {
 			setError('Failed to load flights');
 		} finally {
 			setLoading(false);
+		}
+	};
+
+	const fetchNotifications = async () => {
+		try {
+			const res = await fetch(
+				`${import.meta.env.VITE_SERVER_URL}/api/logbook/notifications?unreadOnly=true`,
+				{ credentials: 'include' }
+			);
+			if (res.ok) {
+				const data = await res.json();
+				setNotifications(data);
+			}
+		} catch (err) {
+			console.error('Failed to fetch notifications:', err);
+		}
+	};
+
+	const dismissNotification = async (notificationId: number) => {
+		try {
+			await fetch(
+				`${import.meta.env.VITE_SERVER_URL}/api/logbook/notifications/${notificationId}/read`,
+				{
+					method: 'POST',
+					credentials: 'include'
+				}
+			);
+			setNotifications(prev => prev.filter(n => n.id !== notificationId));
+		} catch (err) {
+			console.error('Failed to dismiss notification:', err);
 		}
 	};
 
@@ -493,9 +545,9 @@ export default function Logbook() {
 	return (
 		<div className="min-h-screen bg-gray-950 text-white">
 			<Navbar />
-
 			{/* Modern Hero Header */}
 			<div className="relative w-full bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-gray-900/40 border-b border-blue-800/30 py-6">
+			
 				<div className="absolute inset-0 bg-[url('/assets/app/backgrounds/mdpc_01.png')] bg-cover bg-center opacity-10"></div>
 				<div className="relative container mx-auto max-w-7xl px-4 py-12 md:py-16">
 					<div className="flex items-center">
@@ -513,6 +565,72 @@ export default function Logbook() {
 					</div>
 				</div>
 			</div>
+						{/* Persistent Notifications - Sticky below navbar */}
+						{notifications.length > 0 && (
+				<div className="sticky top-16 z-40 w-full">
+					<div className="container mx-auto max-w-7xl px-4 py-4">
+						<div className="space-y-3">
+							{notifications.map((notification) => {
+								const notificationStyles = {
+									error: {
+										bg: 'bg-red-900/50',
+										border: 'border-red-700',
+										icon: 'text-red-400',
+										text: 'text-red-200'
+									},
+									warning: {
+										bg: 'bg-yellow-900/50',
+										border: 'border-yellow-700',
+										icon: 'text-yellow-400',
+										text: 'text-yellow-200'
+									},
+									info: {
+										bg: 'bg-blue-900/50',
+										border: 'border-blue-700',
+										icon: 'text-blue-400',
+										text: 'text-blue-200'
+									},
+									success: {
+										bg: 'bg-green-900/50',
+										border: 'border-green-700',
+										icon: 'text-green-400',
+										text: 'text-green-200'
+									}
+								};
+
+								const style = notificationStyles[notification.type];
+
+								return (
+									<div
+										key={notification.id}
+										className={`${style.bg} border-2 ${style.border} rounded-xl p-4 flex items-start justify-between gap-4`}
+									>
+										<div className="flex items-start gap-3 flex-1">
+											<AlertTriangle className={`h-5 w-5 ${style.icon} flex-shrink-0 mt-0.5`} />
+											<div className="flex-1">
+												<h3 className={`font-semibold ${style.text} mb-1`}>
+													{notification.title}
+												</h3>
+												<p className={`text-sm ${style.text} opacity-90`}>
+													{notification.message}
+												</p>
+											</div>
+										</div>
+										<button
+											onClick={() => dismissNotification(notification.id)}
+											className={`p-1 hover:bg-white/10 rounded-lg transition-colors ${style.icon}`}
+											title="Dismiss"
+										>
+											<X className="h-4 w-4" />
+										</button>
+									</div>
+								);
+							})}
+						</div>
+					</div>
+				</div>
+			)}
+
 
 			<div className="container mx-auto max-w-7xl px-4 py-8">
 				{error && (
@@ -521,6 +639,7 @@ export default function Logbook() {
 						<p className="text-red-200">{error}</p>
 					</div>
 				)}
+				
 
 				{/* Enhanced Stats Grid */}
 				{stats && (
@@ -587,9 +706,9 @@ export default function Logbook() {
 								</div>
 								<div className="text-right">
 									<div className="text-2xl font-bold text-white">
-									-{stats.best_landing_rate ? `${Math.abs(stats.best_landing_rate)}` : '---'}
+									-{stats.best_landing_rate ? `${Math.abs(stats.best_landing_rate)} fpm` : '---'}
 									</div>
-									<div className="text-xs text-yellow-300">Best Landing (fpm)</div>
+									<div className="text-xs text-yellow-300">Best Landing</div>
 								</div>
 							</div>
 							<div className="h-1 bg-gray-800 rounded-full overflow-hidden">

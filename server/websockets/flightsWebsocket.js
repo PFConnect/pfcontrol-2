@@ -3,6 +3,7 @@ import { addFlight, updateFlight, deleteFlight } from '../db/flights.js';
 import { validateSessionAccess } from '../middleware/sessionAccess.js';
 import { updateSession, getAllSessions, getSessionById } from '../db/sessions.js';
 import { getArrivalsIO } from './arrivalsWebsocket.js';
+import { handleFlightStatusChange } from '../services/logbookStatusHandler.js';
 
 let io;
 const updateTimers = new Map();

@@ -12,6 +12,8 @@ import { setupSessionUsersWebsocket } from './websockets/sessionUsersWebsocket.j
 import { setupFlightsWebsocket } from './websockets/flightsWebsocket.js';
 import { setupOverviewWebsocket } from './websockets/overviewWebsocket.js';
 import { setupArrivalsWebsocket } from './websockets/arrivalsWebsocket.js';
+import './db/userNotifications.js';
+import flightTracker from './services/flightTracker.js';
 
 const envFile = process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development';
 const cors_origin = process.env.NODE_ENV === 'production'
@@ -57,7 +59,6 @@ app.use('/api', apiRoutes);
 
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Only serve built frontend in production
 if (process.env.NODE_ENV === 'production') {
     app.use(
         express.static(path.join(__dirname, "..", "dist"), {
@@ -83,4 +84,7 @@ setupArrivalsWebsocket(server);
 
 server.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`);
+
+    // Initialize flight tracker
+    flightTracker.initialize();
 });

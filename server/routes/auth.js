@@ -119,7 +119,6 @@ router.get('/discord/callback', authLimiter, async (req, res) => {
 router.get('/roblox', requireAuth, (req, res) => {
     const state = jwt.sign({ userId: req.user.userId }, JWT_SECRET, { expiresIn: '15m' });
 
-    // Build params properly
     const params = new URLSearchParams({
         client_id: ROBLOX_CLIENT_ID,
         redirect_uri: ROBLOX_REDIRECT_URI,
@@ -141,11 +140,9 @@ router.get('/roblox/callback', authLimiter, async (req, res) => {
     }
 
     try {
-        // Verify state token
         const decoded = jwt.verify(state, JWT_SECRET);
         const userId = decoded.userId;
 
-        // Exchange code for tokens
         const tokenResponse = await axios.post('https://apis.roblox.com/oauth/v1/token',
             new URLSearchParams({
                 client_id: ROBLOX_CLIENT_ID,
@@ -162,7 +159,6 @@ router.get('/roblox/callback', authLimiter, async (req, res) => {
 
         const { access_token, refresh_token } = tokenResponse.data;
 
-        // Get user info
         const userResponse = await axios.get('https://apis.roblox.com/oauth/v1/userinfo', {
             headers: {
                 Authorization: `Bearer ${access_token}`,
@@ -171,7 +167,6 @@ router.get('/roblox/callback', authLimiter, async (req, res) => {
 
         const robloxUser = userResponse.data;
 
-        // Update user with Roblox info
         await updateRobloxAccount(userId, {
             robloxUserId: robloxUser.sub,
             robloxUsername: robloxUser.preferred_username || robloxUser.name,
