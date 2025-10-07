@@ -1,20 +1,53 @@
 name: Discord Commit Notification
 
 on:
-  push:
-    branches:
-      - main
+    push:
+        branches:
+            - main
 
 jobs:
-  notify:
-    runs-on: ubuntu-latest
-    steps:
-      - name: Send commit to Discord
-        uses: ilshidur/action-discord@master
-        env:
-          DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
-        with:
-          args: >
-            "Neuer Commit auf **${{ github.repository }}**:
-            ${{ github.actor }} hat gepusht:
-            ${{ github.event.head_commit.message }}"
+    notify:
+        runs-on: ubuntu-latest
+        steps:
+            - name: Send commit to Discord
+              uses: ilshidur/action-discord@master
+              env:
+                  DISCORD_WEBHOOK: ${{ secrets.DISCORD_WEBHOOK }}
+              with:
+                  args: >
+                      {
+                        "embeds": [
+                          {
+                            "title": "New Commit on **${{ github.repository }}**",
+                            "description": "A new commit was pushed!",
+                            "color": 0x000000,
+                            "thumbnail": {
+                              "url": "https://pfconnect.online/pictures/pfconnect-new.png"
+                            },
+                            "fields": [
+                              {
+                                "name": "Author",
+                                "value": "${{ github.actor }}",
+                                "inline": true
+                              },
+                              {
+                                "name": "Branch",
+                                "value": "${{ github.ref_name }}",
+                                "inline": true
+                              },
+                              {
+                                "name": "Commit Message",
+                                "value": "${{ github.event.head_commit.message }}"
+                              },
+                              {
+                                "name": "Commit URL",
+                                "value": "${{ github.event.head_commit.url }}"
+                              }
+                            ],
+                            "timestamp": "${{ github.event.head_commit.timestamp }}",
+                            "footer": {
+                              "text": "GitHub Commit Notification"
+                            }
+                          }
+                        ]
+                      }
