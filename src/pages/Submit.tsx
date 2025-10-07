@@ -69,6 +69,8 @@ export default function Submit() {
 	const [pdcReceived, setPdcReceived] = useState(false);
 	const [pdcContent, setPdcContent] = useState<string | null>(null);
 	const [flightId, setFlightId] = useState<string | null>(null);
+	const [pdcRequestFlash, setPdcRequestFlash] = useState(false);
+
 	// keep a ref to submittedFlight to avoid effect re-creation / stale closures
 	const submittedFlightRef = React.useRef<Flight | null>(null);
 	useEffect(() => {
@@ -105,7 +107,7 @@ export default function Submit() {
 				() => { },
 				(flight: Flight) => {
 					setSubmittedFlight(flight);
-					setFlightId(String(flight.id)); // <-- store id for matching
+					setFlightId(String(flight.id)); // store id for matching
 					setSuccess(true);
 					setIsSubmitting(false);
 				},
@@ -129,55 +131,58 @@ export default function Submit() {
 			const listener = createFlightsSocket(
 				sessionId,
 				'',
-				 // onFlightUpdated
-				 (flight: Flight) => {
-                     const sf = submittedFlightRef.current;
-                     if (!sf) return;
-                     const matches =
-                         flight.id === sf.id ||
-                         (flight.callsign === sf.callsign &&
-                             flight.departure === sf.departure &&
-                             flight.arrival === sf.arrival);
-                     if (!matches) return;
-                     const pdcText =
-                         (flight as any).pdc_remarks ??
-                         (flight as any).pdc_text ??
-                         (flight as any).pdc ??
-                         null;
-                     if (pdcText) {
-                         setSubmittedFlight(flight);
-                         setPdcContent(typeof pdcText === 'string' ? pdcText : String(pdcText));
-                         setPdcReceived(true);
-                     }
-                 },
-                 // onFlightAdded
-                 (flight: Flight) => {
-                     // if pilot submitted via REST and server returns flight with PDC already attached, handle it
-+					setFlightId(String(flight.id)); // <-- store id when flight is added via socket
-                     const pdcText =
-                         (flight as any).pdc_remarks ??
-                         (flight as any).pdc_text ??
-                         (flight as any).pdc ??
-                         null;
-                     if (pdcText) {
-                         setSubmittedFlight(flight);
-                         setPdcContent(typeof pdcText === 'string' ? pdcText : String(pdcText));
-                         setPdcReceived(true);
-                     }
-                 },
-                 () => { },
-                 (error) => {
-                     console.debug('PDC listener socket error (Submit):', error);
-                 }
-             );
+				// onFlightUpdated
+				(flight: Flight) => {
+					const sf = submittedFlightRef.current;
+					if (!sf) return;
+					const matches =
+						flight.id === sf.id ||
+						(flight.callsign === sf.callsign &&
+							flight.departure === sf.departure &&
+							flight.arrival === sf.arrival);
+					if (!matches) return;
+					const pdcText =
+						(flight as any).pdc_remarks ??
+						(flight as any).pdc_text ??
+						(flight as any).pdc ??
+						null;
+					if (pdcText) {
+						setSubmittedFlight(flight);
+						setPdcContent(typeof pdcText === 'string' ? pdcText : String(pdcText));
+						setPdcReceived(true);
+					}
+				},
+				// onFlightAdded
+				(flight: Flight) => {
+					// if pilot submitted via REST and server returns flight with PDC already attached, handle it
+					setFlightId(String(flight.id)); // store id when flight is added via socket
+					const pdcText =
+						(flight as any).pdc_remarks ??
+						(flight as any).pdc_text ??
+						(flight as any).pdc ??
+						null;
+					if (pdcText) {
+						setSubmittedFlight(flight);
+						setPdcContent(typeof pdcText === 'string' ? pdcText : String(pdcText));
+						setPdcReceived(true);
+					}
+				},
+				() => { },
+				(error) => {
+					console.debug('PDC listener socket error (Submit):', error);
+				}
+			);
+
+			// store listener so we can emit requestPDC from this page even when no accessId
+			setFlightsSocket(listener);
 
 			// also listen for dedicated pdcIssued events
 			try {
 				listener.socket.on('pdcIssued', (payload: { flightId?: string | number; pdcText?: string; updatedFlight?: Flight }) => {
-					const { flightId, pdcText, updatedFlight } = payload || {};
+					const { flightId: payloadFId, pdcText, updatedFlight } = payload || {};
 					const sf = submittedFlightRef.current;
 					let matches = false;
-					if (sf && flightId !== undefined) matches = flightId === sf.id;
+					if (sf && payloadFId !== undefined) matches = String(payloadFId) === String(sf.id);
 					if (!matches && sf && updatedFlight) {
 						matches =
 							updatedFlight.callsign === sf.callsign &&
@@ -271,6 +276,21 @@ export default function Submit() {
 			flight_type: 'IFR',
 			cruisingFL: ''
 		});
+	};
+
+	// Request PDC: emit requestPDC and flash the 'C' indicator
+	const handleRequestPDC = () => {
+		const id = submittedFlight?.id ?? flightId;
+		if (!id) return;
+		try {
+			if (flightsSocket?.socket) {
+				flightsSocket.socket.emit('requestPDC', { flightId: id, callsign: submittedFlight?.callsign ?? form.callsign });
+			}
+		} catch (e) {
+			console.debug('requestPDC emit failed', e);
+		}
+		setPdcRequestFlash(true);
+		setTimeout(() => setPdcRequestFlash(false), 3000);
 	};
 
 	if (loading) {
