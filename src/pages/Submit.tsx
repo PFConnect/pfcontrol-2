@@ -384,9 +384,26 @@ export default function Submit() {
 										<span className="text-sm font-medium text-gray-400">
 											Callsign:
 										</span>
-										<p className="text-white font-semibold">
-											{submittedFlight.callsign}
-										</p>
+										<div className="flex items-center gap-3">
+											<p className="text-white font-semibold">
+												{submittedFlight.callsign}
+											</p>
+
+											{/* C checkbox indicator */}
+											<button
+												type="button"
+												className={`ml-2 inline-flex items-center justify-center w-6 h-6 rounded border ${pdcRequestFlash ? 'ring-2 ring-blue-400 animate-pulse' : 'border-gray-600'}`}
+												aria-label="PDC requested"
+												title="PDC requested indicator"
+											>
+												<span className="text-xs font-bold text-white">C</span>
+											</button>
+
+											{/* Request PDC button */}
+											<Button onClick={handleRequestPDC} className="ml-3 px-3 py-1 text-sm">
+												Request PDC
+											</Button>
+										</div>
 									</div>
 									<div>
 										<span className="text-sm font-medium text-gray-400">

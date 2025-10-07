@@ -53,6 +53,10 @@ export default function App() {
                                         element={<Flights />}
                                     />
                                     <Route
+                                    path="acars/:sessionId"
+                                    element={<ACARS />}
+                                    />
+                                    <Route
                                         path="settings"
                                         element={<Settings />}
                                     />
