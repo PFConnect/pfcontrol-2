@@ -1,8 +1,13 @@
 import axios from 'axios';
 
-export async function detectVPN(ip) {
+export async function detectVPN(ip, req) {
     try {
-        // Skip localhost/private IPs (handle both IPv4 and IPv6)
+        if (ip === '127.0.0.1' && req) {
+            ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
+            console.log(`IP extrahiert aus Header: ${ip}`);
+        }
+
+        // Skip localhost/private IPs
         if (ip === '127.0.0.1' || ip === '::1' || ip.startsWith('192.168.') || ip.startsWith('10.') || ip.startsWith('172.') || ip.startsWith('fc00::') || ip.startsWith('fe80::')) {
             console.log(`VPN detection skipped for localhost/private IP: ${ip}`);
             return false;
