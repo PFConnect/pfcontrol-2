@@ -8,6 +8,7 @@ import {
     LayoutDashboard,
     BookOpen,
 } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../../hooks/auth/useAuth';
 import ProtectedRoute from '../ProtectedRoute';
 
@@ -80,7 +81,11 @@ export default function CustomUserButton({
     if (isMobile) {
         return (
             <div className={`w-full space-y-3 ${className}`}>
-                <div className="flex items-center space-x-3 px-4 py-3 bg-zinc-800/60 rounded-xl border border-zinc-700/50">
+                <Link
+                    to={`/pilot/${user.username}`}
+                    onClick={() => handleAction()}
+                    className="flex items-center space-x-3 px-4 py-3 bg-zinc-800/60 rounded-xl border border-zinc-700/50 hover:bg-zinc-700/60 transition-colors"
+                >
                     {user.avatar ? (
                         <img
                             src={user.avatar}
@@ -102,7 +107,7 @@ export default function CustomUserButton({
                             </span>
                         )}
                     </div>
-                </div>
+                </Link>
 
                 <div className="space-y-2">
                     <button
@@ -199,7 +204,11 @@ export default function CustomUserButton({
 
             {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-800 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-1 duration-200">
-                    <div className="px-4 py-3 border-b border-gray-700/50">
+                    <Link
+                        to={`/pilots/${user.username}`}
+                        onClick={() => setIsDropdownOpen(false)}
+                        className="px-4 py-3 border-b border-gray-700/50 block hover:bg-zinc-800/50 transition-colors"
+                    >
                         <div className="flex items-center space-x-3">
                             {user.avatar ? (
                                 <img
@@ -223,7 +232,7 @@ export default function CustomUserButton({
                                 )}
                             </div>
                         </div>
-                    </div>
+                    </Link>
 
                     <div className="py-1">
                         <button

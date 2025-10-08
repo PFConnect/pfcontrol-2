@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import {
     Users,
     Search,
@@ -11,6 +12,10 @@ import {
     Loader2,
     Database,
     ShieldUser,
+    Braces,
+    ExternalLink,
+    User,
+    Check,
 } from 'lucide-react';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
@@ -150,10 +155,10 @@ export default function AdminUsers() {
                     type: 'success',
                 });
             } else {
-                await removeRoleFromUser(selectedUserForRole.id);
+                // Note: With multiple roles, use AdminRoles page to manage role removal
                 setToast({
-                    message: 'Role removed successfully',
-                    type: 'success',
+                    message: 'Please use the Admin Roles page to remove roles',
+                    type: 'info',
                 });
             }
 
@@ -589,8 +594,8 @@ export default function AdminUsers() {
                                                                 tableUser.id ? (
                                                                     <div className="w-4 h-4 border-2 border-zinc-400 border-t-transparent rounded-full animate-spin" />
                                                                 ) : revealedIPs.has(
-                                                                      tableUser.id
-                                                                  ) ? (
+                                                                    tableUser.id
+                                                                ) ? (
                                                                     <EyeOff className="w-4 h-4" />
                                                                 ) : (
                                                                     <Eye className="w-4 h-4" />
@@ -617,18 +622,19 @@ export default function AdminUsers() {
                                                         0}
                                                 </td>
                                                 <td className="px-6 py-4">
-                                                    <div className="flex flex-col space-y-1">
-                                                        {tableUser.is_admin ? (
-                                                            <span className="px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 w-fit">
-                                                                Super Admin
+                                                    <div className="flex flex-wrap gap-2">
+                                                        {tableUser.is_admin && (
+                                                            <span className="inline-flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium bg-blue-500/20 text-blue-400 border border-blue-500/30 w-fit">
+                                                                <Braces className="w-3 h-3" />
+                                                                Developer
                                                             </span>
-                                                        ) : tableUser.roleName ? (
+                                                        )}
+                                                        {!tableUser.is_admin && tableUser.roleName && (
                                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-rose-500/20 text-rose-400 border border-rose-500/30 w-fit">
-                                                                {
-                                                                    tableUser.roleName
-                                                                }
+                                                                {tableUser.roleName}
                                                             </span>
-                                                        ) : (
+                                                        )}
+                                                        {!tableUser.is_admin && !tableUser.roleName && (
                                                             <span className="px-2 py-1 rounded-full text-xs font-medium bg-zinc-600/20 text-zinc-400 border border-zinc-600/30 w-fit">
                                                                 No Role
                                                             </span>
@@ -915,6 +921,52 @@ export default function AdminUsers() {
                                         Close
                                     </Button>
                                 </div>
+
+                                {/* Account Information Section */}
+                                <div className="bg-zinc-800/50 border-2 border-zinc-700/50 rounded-lg p-4 space-y-3 mb-6">
+                                    <h3 className="text-sm font-semibold text-zinc-300 uppercase tracking-wide mb-3">
+                                        Account Information
+                                    </h3>
+
+                                    {/* Roblox Account Status */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <Database className="w-4 h-4 text-zinc-400" />
+                                            <span className="text-zinc-300 text-sm">Roblox Account</span>
+                                        </div>
+                                        {selectedUser.roblox_username ? (
+                                            <div className="flex items-center gap-2">
+                                                <Check className="w-4 h-4 text-green-400" />
+                                                <span className="text-green-400 text-sm font-medium">
+                                                    {selectedUser.roblox_username}
+                                                </span>
+                                            </div>
+                                        ) : (
+                                            <div className="flex items-center gap-2">
+                                                <X className="w-4 h-4 text-red-400" />
+                                                <span className="text-red-400 text-sm">Not Linked</span>
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* Public Profile Link */}
+                                    <div className="flex items-center justify-between">
+                                        <div className="flex items-center gap-2">
+                                            <User className="w-4 h-4 text-zinc-400" />
+                                            <span className="text-zinc-300 text-sm">Public Profile</span>
+                                        </div>
+                                        <Link
+                                            to={`/pilots/${selectedUser.username}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="flex items-center gap-2 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/50 rounded-lg text-blue-400 hover:text-blue-300 text-sm font-medium transition-all"
+                                        >
+                                            View Profile
+                                            <ExternalLink className="w-3.5 h-3.5" />
+                                        </Link>
+                                    </div>
+                                </div>
+
                                 <div className="space-y-6">
                                     {selectedUser.settings ? (
                                         <>

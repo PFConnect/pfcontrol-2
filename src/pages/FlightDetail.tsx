@@ -18,7 +18,9 @@ import {
 	Download,
 	Terminal,
 	Trash,
-	RefreshCw
+	RefreshCw,
+	Share2,
+	Check
 } from 'lucide-react';
 import { Line as ChartLine } from 'react-chartjs-2';
 import {
@@ -96,6 +98,11 @@ export default function FlightDetail() {
 	const [error, setError] = useState('');
 	const [liveDuration, setLiveDuration] = useState<number | null>(null);
 	const [lastFetchTime, setLastFetchTime] = useState<number>(Date.now());
+
+	// Share state
+	const [shareUrl, setShareUrl] = useState<string>('');
+	const [shareLoading, setShareLoading] = useState(false);
+	const [shareCopied, setShareCopied] = useState(false);
 
 	// Debug state
 	const [showDebug, setShowDebug] = useState(false);
@@ -191,6 +198,35 @@ export default function FlightDetail() {
 		}
 	};
 
+	const handleShare = async () => {
+		setShareLoading(true);
+		try {
+			const res = await fetch(
+				`${import.meta.env.VITE_SERVER_URL}/api/logbook/flights/${flightId}/share`,
+				{
+					method: 'POST',
+					credentials: 'include'
+				}
+			);
+
+			if (res.ok) {
+				const data = await res.json();
+				setShareUrl(data.shareUrl);
+
+				// Copy to clipboard
+				await navigator.clipboard.writeText(data.shareUrl);
+				setShareCopied(true);
+
+				// Reset copied state after 3 seconds
+				setTimeout(() => setShareCopied(false), 3000);
+			}
+		} catch (err) {
+			console.error('Failed to generate share link:', err);
+		} finally {
+			setShareLoading(false);
+		}
+	};
+
 	const formatDuration = (minutes: number | null, isLive: boolean = false) => {
 		if (minutes === null || minutes === undefined) return 'N/A';
 		if (minutes < 1 && !isLive) return 'N/A';
@@ -201,40 +237,50 @@ export default function FlightDetail() {
 		return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 	};
 
-	const getLandingGrade = (score: number | null) => {
-		if (!score) return {
+	const getLandingGrade = (fpm: number | null) => {
+		if (!fpm) return {
 			text: 'N/A',
 			color: 'text-gray-400',
 			bg: 'bg-gradient-to-br from-gray-800/50 to-gray-900/50',
 			border: 'border-gray-600/50',
 			glow: 'shadow-gray-500/0'
 		};
-		if (score >= 90) return {
+
+		const rate = Math.abs(fpm);
+
+		if (rate < 100) return {
 			text: 'Butter',
-			color: 'text-green-300',
-			bg: 'bg-gradient-to-br from-green-500/30 to-emerald-600/20',
-			border: 'border-green-400/60',
+			color: 'text-yellow-400',
+			bg: 'bg-gradient-to-br from-yellow-900/30 to-orange-900/30',
+			border: 'border-yellow-500/50',
+			glow: 'shadow-lg shadow-yellow-500/20'
+		};
+		if (rate < 300) return {
+			text: 'Smooth',
+			color: 'text-green-400',
+			bg: 'bg-gradient-to-br from-green-900/30 to-emerald-900/30',
+			border: 'border-green-500/50',
 			glow: 'shadow-lg shadow-green-500/20'
 		};
-		if (score >= 70) return {
-			text: 'Good',
-			color: 'text-blue-300',
-			bg: 'bg-gradient-to-br from-blue-500/30 to-cyan-600/20',
-			border: 'border-blue-400/60',
+		if (rate < 600) return {
+			text: 'Firm',
+			color: 'text-blue-400',
+			bg: 'bg-gradient-to-br from-blue-900/30 to-cyan-900/30',
+			border: 'border-blue-500/50',
 			glow: 'shadow-lg shadow-blue-500/20'
 		};
-		if (score >= 50) return {
-			text: 'Firm',
-			color: 'text-orange-300',
-			bg: 'bg-gradient-to-br from-orange-500/30 to-yellow-600/20',
-			border: 'border-orange-400/60',
+		if (rate < 1000) return {
+			text: 'Hard',
+			color: 'text-orange-400',
+			bg: 'bg-gradient-to-br from-orange-900/30 to-red-900/30',
+			border: 'border-orange-500/50',
 			glow: 'shadow-lg shadow-orange-500/20'
 		};
 		return {
-			text: 'Hard',
-			color: 'text-red-300',
-			bg: 'bg-gradient-to-br from-red-500/30 to-rose-600/20',
-			border: 'border-red-400/60',
+			text: 'Crash',
+			color: 'text-red-400',
+			bg: 'bg-gradient-to-br from-red-900/30 to-rose-900/30',
+			border: 'border-red-500/50',
 			glow: 'shadow-lg shadow-red-500/20'
 		};
 	};
@@ -450,7 +496,7 @@ export default function FlightDetail() {
 		);
 	}
 
-	const landingGrade = getLandingGrade(flight.landing_score);
+	const landingGrade = getLandingGrade(flight.landing_rate_fpm);
 	const isActive = flight.is_active && (flight.flight_status === 'active' || flight.flight_status === 'pending');
 
 	const getPhaseColor = (phase: string | null | undefined) => {
@@ -478,17 +524,39 @@ export default function FlightDetail() {
 			<Navbar />
 
 			{/* Modern Hero Header */}
-			<div className="relative w-full bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-gray-900/40 border-b-2 border-blue-800/30 py-6">
+			<div className="relative w-full bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-gray-900/40 border-b-2 border-blue-800/30 py-8">
 				<div className="absolute inset-0 bg-[url('/assets/app/backgrounds/mdpc_01.png')] bg-cover bg-center opacity-10"></div>
 				<div className="relative container mx-auto max-w-6xl px-4 py-8">
-					{/* Back Button */}
-					<button
-						onClick={() => navigate('/logbook')}
-						className="flex items-center text-blue-300 hover:text-blue-200 mb-6 transition-colors group"
-					>
-						<ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-						Back to Logbook
-					</button>
+					{/* Navigation Bar */}
+					<div className="flex items-center justify-between mb-6">
+						<button
+							onClick={() => navigate('/logbook')}
+							className="flex items-center text-blue-300 hover:text-blue-200 transition-colors group"
+						>
+							<ArrowLeft className="h-4 w-4 mr-2 group-hover:-translate-x-1 transition-transform" />
+							Back to Logbook
+						</button>
+
+						<button
+							onClick={handleShare}
+							disabled={shareLoading}
+							className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-500/30 border-2 border-blue-500/50 rounded-lg transition-all text-blue-300 hover:text-blue-200 disabled:opacity-50 disabled:cursor-not-allowed"
+						>
+							{shareCopied ? (
+								<>
+									<Check className="h-4 w-4" />
+									<span className="text-sm font-medium">Copied!</span>
+								</>
+							) : (
+								<>
+									<Share2 className="h-4 w-4" />
+									<span className="text-sm font-medium">
+										{shareLoading ? 'Generating...' : 'Share Flight'}
+									</span>
+								</>
+							)}
+						</button>
+					</div>
 
 					{/* Flight Header */}
 					<div className="flex items-start justify-between">
@@ -548,7 +616,7 @@ export default function FlightDetail() {
 							</div>
 						</div>
 						{/* Show landing grade for completed flights */}
-						{flight.landing_score !== null && !isActive && (
+						{flight.landing_rate_fpm !== null && !isActive && (
 							<div className={`${landingGrade.bg} ${landingGrade.glow} border-2 ${landingGrade.border} rounded-xl px-8 py-5 backdrop-blur-sm transition-all hover:scale-105`}>
 								<p className={`text-4xl font-bold ${landingGrade.color} mb-2 tracking-tight`}>
 									{landingGrade.text}
@@ -559,13 +627,16 @@ export default function FlightDetail() {
 							</div>
 						)}
 
-						{/* Show landing rate (fpm only) for active flights when controller has set destination status */}
+						{/* Show landing rate for active flights when controller has set destination status */}
 						{isActive && flight.landing_rate_fpm !== null && flight.controller_status &&
 						 ['destination_runway', 'destination_taxi', 'gate'].includes(flight.controller_status.toLowerCase()) && (
-							<div className="bg-gradient-to-br from-green-900/20 to-blue-900/20 border-2 border-green-700/40 rounded-xl px-8 py-5 backdrop-blur-sm">
-								<p className="text-sm text-gray-400 mb-1 text-center">Landing Rate</p>
-								<p className="text-3xl font-bold text-green-400 tracking-tight text-center">
+							<div className={`${landingGrade.bg} border-2 ${landingGrade.border} rounded-xl px-8 py-5 backdrop-blur-sm text-center ${landingGrade.glow}`}>
+								<p className="text-sm text-gray-400 mb-1">Landing Rate</p>
+								<p className={`text-3xl font-bold ${landingGrade.color} tracking-tight`}>
 									{flight.landing_rate_fpm} fpm
+								</p>
+								<p className={`text-lg font-semibold ${landingGrade.color} mt-2`}>
+									{landingGrade.text}
 								</p>
 							</div>
 						)}

@@ -10,6 +10,8 @@ import Settings from './pages/Settings';
 import PFATCFlights from './pages/PFATCFlights';
 import Logbook from './pages/Logbook';
 import FlightDetail from './pages/FlightDetail';
+import PublicFlightView from './pages/PublicFlightView';
+import PilotProfile from './pages/PilotProfile';
 
 import Login from './pages/Login';
 import NotFound from './pages/NotFound';
@@ -78,6 +80,8 @@ export default function App() {
 
                     <Route path="/submit/:sessionId" element={<Submit />} />
                     <Route path="/login" element={<Login />} />
+                    <Route path="/flight/:shareToken" element={<PublicFlightView />} />
+                    <Route path="/pilots/:username" element={<PilotProfile />} />
 
                     <Route
                         path="/admin/*"

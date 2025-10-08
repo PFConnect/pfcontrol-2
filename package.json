@@ -20,12 +20,16 @@
     "docker:status": "docker-compose ps"
   },
   "dependencies": {
+    "@dnd-kit/core": "^6.3.1",
+    "@dnd-kit/sortable": "^10.0.0",
+    "@dnd-kit/utilities": "^3.2.2",
     "@tailwindcss/vite": "^4.1.13",
     "axios": "^1.12.2",
     "chart.js": "^4.5.0",
     "concurrently": "^9.2.1",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
+    "dnd-kit": "^0.0.2",
     "dotenv": "^17.2.2",
     "express-rate-limit": "^8.1.0",
     "form-data": "^4.0.4",

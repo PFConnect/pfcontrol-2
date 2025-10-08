@@ -46,6 +46,7 @@ export interface AdminUser {
     created_at: string;
     is_admin: boolean;
     settings?: Settings;
+    roblox_username?: string;
     roleId?: number;
     roleName?: string;
     rolePermissions?: Record<string, boolean>;
@@ -169,6 +170,9 @@ export interface Role {
     name: string;
     description: string;
     permissions: Record<string, boolean>;
+    color: string;
+    icon: string;
+    priority: number;
     user_count?: number;
     created_at: string;
     updated_at: string;
@@ -178,6 +182,7 @@ export interface UserWithRole extends AdminUser {
     role_id?: number;
     role_name?: string;
     role_permissions?: Record<string, boolean>;
+    roles?: Role[];
 }
 
 export interface AppVersion {
@@ -343,6 +348,9 @@ export async function createRole(roleData: {
     name: string;
     description: string;
     permissions: Record<string, boolean>;
+    color?: string;
+    icon?: string;
+    priority?: number;
 }): Promise<Role> {
     return makeAdminRequest('/roles', {
         method: 'POST',
@@ -354,10 +362,20 @@ export async function updateRole(id: number, roleData: {
     name?: string;
     description?: string;
     permissions?: Record<string, boolean>;
+    color?: string;
+    icon?: string;
+    priority?: number;
 }): Promise<Role> {
     return makeAdminRequest(`/roles/${id}`, {
         method: 'PUT',
         body: JSON.stringify(roleData)
+    });
+}
+
+export async function updateRolePriorities(rolePriorities: Array<{ id: number; priority: number }>): Promise<boolean> {
+    return makeAdminRequest('/roles/priorities', {
+        method: 'PUT',
+        body: JSON.stringify({ rolePriorities })
     });
 }
 
@@ -374,10 +392,10 @@ export async function assignRoleToUser(userId: string, roleId: number): Promise<
     });
 }
 
-export async function removeRoleFromUser(userId: string): Promise<void> {
+export async function removeRoleFromUser(userId: string, roleId: number): Promise<void> {
     return makeAdminRequest(`/roles/remove`, {
         method: 'POST',
-        body: JSON.stringify({ userId })
+        body: JSON.stringify({ userId, roleId })
     });
 }
 

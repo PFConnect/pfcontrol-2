@@ -25,7 +25,8 @@ import {
 	RotateCw,
 	Trash,
 	X,
-	AlertTriangle
+	AlertTriangle,
+	User
 } from 'lucide-react';
 
 interface Flight {
@@ -550,18 +551,30 @@ export default function Logbook() {
 			
 				<div className="absolute inset-0 bg-[url('/assets/app/backgrounds/mdpc_01.png')] bg-cover bg-center opacity-10"></div>
 				<div className="relative container mx-auto max-w-7xl px-4 py-12 md:py-16">
-					<div className="flex items-center">
-						<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
-							<BookOpen className="h-8 w-8 text-blue-400" />
+					<div className="flex items-center justify-between">
+						<div className="flex items-center">
+							<div className="p-3 bg-blue-500/20 rounded-xl mr-4">
+								<BookOpen className="h-8 w-8 text-blue-400" />
+							</div>
+							<div>
+								<h1 className="text-4xl md:text-5xl font-bold text-white mb-1">
+									Flight Logbook
+								</h1>
+								<p className="text-blue-300/80 text-sm md:text-base">
+									Your complete flight history and statistics
+								</p>
+							</div>
 						</div>
-						<div>
-							<h1 className="text-4xl md:text-5xl font-bold text-white mb-1">
-								Flight Logbook
-							</h1>
-							<p className="text-blue-300/80 text-sm md:text-base">
-								Your complete flight history and statistics
-							</p>
-						</div>
+						<button
+							onClick={() => navigate(`/pilots/${user?.username}`)}
+							className="flex items-center gap-2 px-4 py-2 bg-blue-500/20 hover:bg-blue-600/30 border border-blue-500/50 rounded-lg transition-all hover:scale-105"
+							title="View public profile"
+						>
+							<User className="w-4 h-4 text-blue-400" />
+							<span className="text-blue-400 font-medium text-sm">
+								Public Profile
+							</span>
+						</button>
 					</div>
 				</div>
 			</div>
@@ -788,7 +801,6 @@ export default function Logbook() {
 						<div className="grid grid-cols-1 gap-4">
 							{activeFlights.map((flight) => {
 								const statusBadge = getStatusBadge(flight);
-								const landingGrade = getLandingGrade(flight.landing_score);
 								return (
 									<div
 										key={flight.id}

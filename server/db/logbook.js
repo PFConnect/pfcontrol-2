@@ -1,4 +1,5 @@
 import pool from './connections/connection.js';
+import { isAdmin } from '../middleware/isAdmin.js';
 
 // Initialize all logbook tables
 export async function initializeLogbookTables() {
@@ -60,6 +61,9 @@ export async function initializeLogbookTables() {
                 landed_runway VARCHAR(10),
                 landed_airport VARCHAR(4),
                 waypoint_landing_rate INTEGER,
+
+                -- Sharing
+                share_token VARCHAR(64) UNIQUE,
 
                 created_at TIMESTAMP DEFAULT NOW()
             )
@@ -178,7 +182,8 @@ export async function initializeLogbookTables() {
             { name: 'controller_managed', type: 'BOOLEAN DEFAULT false' },
             { name: 'activated_at', type: 'TIMESTAMP' },
             { name: 'landed_at', type: 'TIMESTAMP' },
-            { name: 'controller_status', type: 'VARCHAR(50)' }
+            { name: 'controller_status', type: 'VARCHAR(50)' },
+            { name: 'share_token', type: 'VARCHAR(64) UNIQUE' }
         ];
 
         for (const col of columnsToAdd) {
@@ -1051,6 +1056,158 @@ export async function getUserStats(userId) {
     }
 
     return result.rows[0];
+}
+
+// Generate or retrieve share token for a flight
+export async function generateShareToken(flightId, userId) {
+    // Verify flight belongs to user
+    const flight = await pool.query(`
+        SELECT share_token, user_id FROM logbook_flights WHERE id = $1
+    `, [flightId]);
+
+    if (!flight.rows[0]) {
+        throw new Error('Flight not found');
+    }
+
+    if (flight.rows[0].user_id !== userId) {
+        throw new Error('Not authorized');
+    }
+
+    // If already has a share token, return it
+    if (flight.rows[0].share_token) {
+        return flight.rows[0].share_token;
+    }
+
+    // Generate new share token (64 char random string)
+    const crypto = await import('crypto');
+    const shareToken = crypto.randomBytes(32).toString('hex');
+
+    // Update flight with share token
+    await pool.query(`
+        UPDATE logbook_flights
+        SET share_token = $1
+        WHERE id = $2
+    `, [shareToken, flightId]);
+
+    return shareToken;
+}
+
+// Get flight by share token (public, no auth required)
+export async function getFlightByShareToken(shareToken) {
+    const result = await pool.query(`
+        SELECT
+            f.*,
+            u.username as discord_username,
+            u.discriminator as discord_discriminator
+        FROM logbook_flights f
+        LEFT JOIN users u ON f.user_id = u.id
+        WHERE f.share_token = $1
+    `, [shareToken]);
+
+    if (!result.rows[0]) {
+        return null;
+    }
+
+    const flight = result.rows[0];
+
+    // If active, get real-time data
+    if (flight.flight_status === 'active' || flight.flight_status === 'pending') {
+        const activeData = await getActiveFlightData(flight.id);
+        // Add Discord username to active data
+        return {
+            ...activeData,
+            discord_username: flight.discord_username,
+            discord_discriminator: flight.discord_discriminator
+        };
+    }
+
+    return flight;
+}
+
+// Get public pilot profile by username
+export async function getPublicPilotProfile(username) {
+    // Get user info
+    const userResult = await pool.query(`
+        SELECT
+            u.id,
+            u.username,
+            u.discriminator,
+            u.avatar,
+            u.roblox_username,
+            u.created_at
+        FROM users u
+        WHERE LOWER(u.username) = LOWER($1)
+    `, [username]);
+
+    if (!userResult.rows[0]) {
+        return null;
+    }
+
+    const user = userResult.rows[0];
+
+    // Get all roles for this user
+    const rolesResult = await pool.query(`
+        SELECT r.id, r.name, r.description, r.color, r.icon, r.priority
+        FROM roles r
+        JOIN user_roles ur ON ur.role_id = r.id
+        WHERE ur.user_id = $1
+        ORDER BY r.priority DESC, r.created_at DESC
+    `, [user.id]);
+
+    // Get user stats
+    const stats = await getUserStats(user.id);
+
+    // Get recent flights (last 10 completed)
+    const recentFlights = await pool.query(`
+        SELECT
+            id,
+            callsign,
+            aircraft_model,
+            aircraft_icao,
+            departure_icao,
+            arrival_icao,
+            duration_minutes,
+            total_distance_nm,
+            landing_rate_fpm,
+            created_at,
+            flight_end
+        FROM logbook_flights
+        WHERE user_id = $1 AND flight_status = 'completed'
+        ORDER BY flight_end DESC
+        LIMIT 10
+    `, [user.id]);
+
+    // Get flight activity by month (last 12 months)
+    const activityData = await pool.query(`
+        SELECT
+            DATE_TRUNC('month', flight_end) as month,
+            COUNT(*) as flight_count,
+            COALESCE(SUM(duration_minutes), 0) as total_minutes
+        FROM logbook_flights
+        WHERE user_id = $1 AND flight_status = 'completed'
+            AND flight_end >= NOW() - INTERVAL '12 months'
+        GROUP BY DATE_TRUNC('month', flight_end)
+        ORDER BY month DESC
+    `, [user.id]);
+
+    return {
+        user: {
+            id: user.id,
+            username: user.username,
+            discriminator: user.discriminator,
+            avatar: user.avatar,
+            roblox_username: user.roblox_username,
+            member_since: user.created_at,
+            is_admin: isAdmin(user.id),
+            roles: rolesResult.rows,
+            // Legacy support
+            role_name: rolesResult.rows[0]?.name || null,
+            role_description: rolesResult.rows[0]?.description || null
+        },
+        stats,
+        recentFlights: recentFlights.rows,
+        activityData: activityData.rows
+    };
 }
 
 // Update user stats cache

@@ -484,7 +484,7 @@ export default function Admin() {
                                     </div>
                                 </div>
                             </div>
-                            {/* Super Admin Controls */}
+                            {/* Developer Controls */}
                             {user?.isAdmin && (
                                 <div className="mt-8">
                                     <div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl p-6">

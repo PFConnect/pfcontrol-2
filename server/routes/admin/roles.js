@@ -9,7 +9,8 @@ import {
     deleteRole,
     assignRoleToUser,
     removeRoleFromUser,
-    getUsersWithRoles
+    getUsersWithRoles,
+    updateRolePriorities
 } from '../../db/roles.js';
 
 const router = express.Router();
@@ -39,13 +40,13 @@ router.get('/users', requirePermission('users'), createAuditLogger('ADMIN_ROLE_U
 // POST: /api/admin/roles - Create new role (requires roles permission)
 router.post('/', requirePermission('roles'), createAuditLogger('ROLE_CREATED'), async (req, res) => {
     try {
-        const { name, description, permissions } = req.body;
+        const { name, description, permissions, color, icon, priority } = req.body;
 
         if (!name || !permissions) {
             return res.status(400).json({ error: 'Name and permissions are required' });
         }
 
-        const role = await createRole({ name, description, permissions });
+        const role = await createRole({ name, description, permissions, color, icon, priority });
         res.status(201).json(role);
     } catch (error) {
         console.error('Error creating role:', error);
@@ -57,18 +58,50 @@ router.post('/', requirePermission('roles'), createAuditLogger('ROLE_CREATED'), 
     }
 });
 
+// PUT: /api/admin/roles/priorities - Update role priorities (requires roles permission)
+// IMPORTANT: This must come BEFORE /:id route
+router.put('/priorities', requirePermission('roles'), createAuditLogger('ROLE_PRIORITIES_UPDATED'), async (req, res) => {
+    try {
+        const { rolePriorities } = req.body;
+
+        if (!rolePriorities || !Array.isArray(rolePriorities)) {
+            return res.status(400).json({ error: 'Role priorities array is required' });
+        }
+
+        // Validate each priority object has valid id and priority
+        const invalidEntries = rolePriorities.filter(
+            item => !item.id || isNaN(parseInt(item.id)) || item.priority === undefined || isNaN(parseInt(item.priority))
+        );
+
+        if (invalidEntries.length > 0) {
+            return res.status(400).json({ error: 'Invalid role priority data' });
+        }
+
+        await updateRolePriorities(rolePriorities);
+        res.json({ success: true, message: 'Role priorities updated successfully' });
+    } catch (error) {
+        console.error('Error updating role priorities:', error);
+        res.status(500).json({ error: 'Failed to update role priorities' });
+    }
+});
+
 // PUT: /api/admin/roles/:id - Update role (requires roles permission)
 router.put('/:id', requirePermission('roles'), createAuditLogger('ROLE_UPDATED'), async (req, res) => {
     try {
         const { id } = req.params;
-        const { name, description, permissions } = req.body;
+        const { name, description, permissions, color, icon, priority } = req.body;
 
-        const existingRole = await getRoleById(parseInt(id));
+        const roleId = parseInt(id);
+        if (isNaN(roleId)) {
+            return res.status(400).json({ error: 'Invalid role ID' });
+        }
+
+        const existingRole = await getRoleById(roleId);
         if (!existingRole) {
             return res.status(404).json({ error: 'Role not found' });
         }
 
-        const updatedRole = await updateRole(parseInt(id), { name, description, permissions });
+        const updatedRole = await updateRole(roleId, { name, description, permissions, color, icon, priority });
         res.json(updatedRole);
     } catch (error) {
         console.error('Error updating role:', error);
@@ -118,13 +151,13 @@ router.post('/assign', requirePermission('roles'), createAuditLogger('ROLE_ASSIG
 // POST: /api/admin/roles/remove - Remove role from user (requires roles permission)
 router.post('/remove', requirePermission('roles'), createAuditLogger('ROLE_REMOVED'), async (req, res) => {
     try {
-        const { userId } = req.body;
+        const { userId, roleId } = req.body;
 
-        if (!userId) {
-            return res.status(400).json({ error: 'User ID is required' });
+        if (!userId || !roleId) {
+            return res.status(400).json({ error: 'User ID and Role ID are required' });
         }
 
-        const result = await removeRoleFromUser(userId);
+        const result = await removeRoleFromUser(userId, roleId);
         res.json(result);
     } catch (error) {
         console.error('Error removing role:', error);

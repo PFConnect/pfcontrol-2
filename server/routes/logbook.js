@@ -12,7 +12,10 @@ import {
     deleteFlightById,
     getActiveFlightByUsername,
     updateUserStatsCache,
-    completeFlightByCallsign
+    completeFlightByCallsign,
+    generateShareToken,
+    getFlightByShareToken,
+    getPublicPilotProfile
 } from '../db/logbook.js';
 import {
     getUserNotifications,
@@ -24,7 +27,56 @@ import pool from '../db/connections/connection.js';
 
 const router = express.Router();
 
-// All routes require authentication
+// Public route - must be before requireAuth middleware
+router.get('/public/:shareToken', async (req, res) => {
+    try {
+        const flight = await getFlightByShareToken(req.params.shareToken);
+
+        if (!flight) {
+            return res.status(404).json({ error: 'Flight not found' });
+        }
+
+        res.json(flight);
+    } catch (error) {
+        console.error('Error fetching shared flight:', error);
+        res.status(500).json({ error: 'Failed to fetch flight' });
+    }
+});
+
+// Public route for telemetry - must be before requireAuth
+router.get('/public/:shareToken/telemetry', async (req, res) => {
+    try {
+        const flight = await getFlightByShareToken(req.params.shareToken);
+
+        if (!flight) {
+            return res.status(404).json({ error: 'Flight not found' });
+        }
+
+        const telemetry = await getFlightTelemetry(flight.id);
+        res.json(telemetry);
+    } catch (error) {
+        console.error('Error fetching shared flight telemetry:', error);
+        res.status(500).json({ error: 'Failed to fetch telemetry' });
+    }
+});
+
+// Public route for pilot profile - must be before requireAuth
+router.get('/pilot/:username', async (req, res) => {
+    try {
+        const profile = await getPublicPilotProfile(req.params.username);
+
+        if (!profile) {
+            return res.status(404).json({ error: 'Pilot not found' });
+        }
+
+        res.json(profile);
+    } catch (error) {
+        console.error('Error fetching pilot profile:', error);
+        res.status(500).json({ error: 'Failed to fetch pilot profile' });
+    }
+});
+
+// All routes below require authentication
 router.use(requireAuth);
 
 // GET: /api/logbook/flights - Get user's flights with pagination and filters
@@ -417,6 +469,33 @@ router.post('/flights/:id/complete', async (req, res) => {
     } catch (error) {
         console.error('Error completing flight:', error);
         res.status(500).json({ error: 'Failed to complete flight' });
+    }
+});
+
+// POST: /api/logbook/flights/:id/share - Generate or retrieve share token
+router.post('/flights/:id/share', async (req, res) => {
+    try {
+        const flightId = parseInt(req.params.id);
+        const shareToken = await generateShareToken(flightId, req.user.userId);
+
+        const shareUrl = `${process.env.FRONTEND_URL}/flight/${shareToken}`;
+
+        res.json({
+            success: true,
+            shareToken,
+            shareUrl
+        });
+    } catch (error) {
+        console.error('Error generating share token:', error);
+
+        if (error.message === 'Flight not found') {
+            return res.status(404).json({ error: 'Flight not found' });
+        }
+        if (error.message === 'Not authorized') {
+            return res.status(403).json({ error: 'Not authorized to share this flight' });
+        }
+
+        res.status(500).json({ error: 'Failed to generate share link' });
     }
 });
 

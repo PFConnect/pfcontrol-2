@@ -10,8 +10,34 @@ import {
 } from '../../db/testers.js';
 import { getUserById } from '../../db/users.js';
 import { getClientIp } from '../../tools/getIpAddress.js';
+import { getAllRoles, createRole, assignRoleToUser, removeRoleFromUser } from '../../db/roles.js';
 
 const router = express.Router();
+
+// Helper function to ensure Tester role exists
+async function ensureTesterRole() {
+    try {
+        const roles = await getAllRoles();
+        let testerRole = roles.find(r => r.name === 'Tester');
+
+        if (!testerRole) {
+            // Create Tester role with yellow color and flask icon
+            testerRole = await createRole({
+                name: 'Tester',
+                description: 'Beta tester with early access to new features',
+                permissions: {},
+                color: '#EAB308', // Yellow
+                icon: 'FlaskConical',
+                priority: 5
+            });
+        }
+
+        return testerRole;
+    } catch (error) {
+        console.error('Error ensuring Tester role exists:', error);
+        throw error;
+    }
+}
 
 // GET: /api/admin/testers - Get all testers with pagination and search
 router.get('/', createAuditLogger('ADMIN_TESTERS_ACCESSED'), async (req, res) => {
@@ -49,6 +75,15 @@ router.post('/', async (req, res) => {
             req.user.username || 'Admin',
             notes
         );
+
+        // Auto-assign Tester role
+        try {
+            const testerRole = await ensureTesterRole();
+            await assignRoleToUser(userId, testerRole.id);
+        } catch (roleError) {
+            console.error('Failed to assign Tester role:', roleError);
+            // Don't fail the whole request if role assignment fails
+        }
 
         if (req.user?.userId) {
             try {
@@ -88,6 +123,15 @@ router.delete('/:userId', async (req, res) => {
 
         if (!removedTester) {
             return res.status(404).json({ error: 'Tester not found' });
+        }
+
+        // Auto-remove Tester role
+        try {
+            const testerRole = await ensureTesterRole();
+            await removeRoleFromUser(userId, testerRole.id);
+        } catch (roleError) {
+            console.error('Failed to remove Tester role:', roleError);
+            // Don't fail the whole request if role removal fails
         }
 
         if (req.user?.userId) {

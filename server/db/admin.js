@@ -177,7 +177,7 @@ export async function getAllUsers(page = 1, limit = 50, search = '', filterAdmin
             SELECT
                 u.id, u.username, u.discriminator, u.avatar, u.last_login,
                 u.ip_address, u.is_vpn, u.total_sessions_created,
-                u.total_minutes, u.created_at, u.settings,
+                u.total_minutes, u.created_at, u.settings, u.roblox_username,
                 u.role_id, r.name as role_name, r.permissions as role_permissions
             FROM users u
             LEFT JOIN roles r ON u.role_id = r.id
