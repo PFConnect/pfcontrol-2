@@ -3,6 +3,7 @@ import { updateFlight, getFlightsBySessionWithTime } from '../db/flights.js';
 import { validateSessionAccess } from '../middleware/sessionAccess.js';
 import { getSessionById, getAllSessions } from '../db/sessions.js';
 import { getFlightsIO } from './flightsWebsocket.js';
+import { handleFlightStatusChange } from '../services/logbookStatusHandler.js';
 
 let io;
 const updateTimers = new Map();
@@ -43,6 +44,11 @@ export function setupArrivalsWebsocket(httpServer) {
 
         socket.on('updateArrival', async ({ flightId, updates }) => {
             try {
+                // Log all arrival updates to see what's being received
+                if (updates.status) {
+                    console.log(`[ArrivalWS] Received update for ${flightId}:`, JSON.stringify(updates));
+                }
+
                 const sourceSessionId = await findFlightSourceSession(flightId, session.airport_icao);
 
                 if (!sourceSessionId) {
@@ -67,6 +73,14 @@ export function setupArrivalsWebsocket(httpServer) {
                 const updatedFlight = await updateFlight(sourceSessionId, flightId, filteredUpdates);
 
                 if (updatedFlight) {
+                    // Handle logbook status changes
+                    if (filteredUpdates.status && updatedFlight.callsign) {
+                        console.log(`[ArrivalWS] Detected status change: ${updatedFlight.callsign} -> ${filteredUpdates.status}`);
+                        // Get session's airport to determine origin vs destination
+                        const controllerAirport = session?.airport_icao || null;
+                        await handleFlightStatusChange(updatedFlight.callsign, filteredUpdates.status, controllerAirport);
+                    }
+
                     const flightsIO = getFlightsIO();
                     if (flightsIO) {
                         flightsIO.to(sourceSessionId).emit('flightUpdated', updatedFlight);
