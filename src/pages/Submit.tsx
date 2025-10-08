@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useParams, useSearchParams } from 'react-router-dom';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import WindDisplay from '../components/tools/WindDisplay';
 import Button from '../components/common/Button';
@@ -40,10 +40,11 @@ interface SessionData {
 }
 
 export default function Submit() {
-	const { sessionId } = useParams<{ sessionId: string }>();
-	const [searchParams] = useSearchParams();
-	const accessId = searchParams.get('accessId') ?? undefined;
-	const { user } = useAuth();
+    const { sessionId } = useParams<{ sessionId: string }>();
+    const [searchParams] = useSearchParams();
+    const accessId = searchParams.get('accessId') ?? undefined;
+    const { user } = useAuth();
+	const navigate = useNavigate();
 
 	const [session, setSession] = useState<SessionData | null>(null);
 	const [loading, setLoading] = useState(true);
@@ -69,6 +70,92 @@ export default function Submit() {
 		typeof createFlightsSocket
 	> | null>(null);
 	const [initialLoadComplete, setInitialLoadComplete] = useState(false);
+
+	// NEW: ACARS/PDC UI state — non intrusive, does not modify submission flow
+	const [pdcReceived, setPdcReceived] = useState(false);
+	const [pdcContent, setPdcContent] = useState<string | null>(null);
+	// keep a stable ref so the listener can match the latest submitted flight without re-creating socket
+	const submittedFlightRef = React.useRef<Flight | null>(null);
+	useEffect(() => {
+		// keep ref in sync with state
+		submittedFlightRef.current = submittedFlight;
+	}, [submittedFlight]);
+
+	// Lightweight read-only listener for pdcIssued — created only when session loaded.
+	// This listener does NOT replace or modify the existing flightsSocket used for submission.
+	useEffect(() => {
+		if (!sessionId || !initialLoadComplete) return;
+
+		let listenerWrapper: any | null = null;
+		try {
+			// createFlightsSocket returns an object exposing .socket — we pass undefined for accessId so
+			// this is a read/listen-only connection for pilots (does not change submission flow).
+			listenerWrapper = createFlightsSocket(sessionId, '', () => {}, () => {}, () => {}, () => {});
+		} catch (err) {
+			// defensive: if socket creation fails, do not break Submit page
+			console.debug('PDC listener creation failed', err);
+			return;
+		}
+
+		const handlePdcIssued = (payload: any) => {
+			try {
+				const ptext =
+					payload?.pdcText ??
+					payload?.updatedFlight?.pdc_remarks ??
+					payload?.updatedFlight?.pdc_text ??
+					null;
+				if (!ptext) return;
+
+				const sf = submittedFlightRef.current;
+				let matches = false;
+
+				// match by id if available
+				if (sf && payload?.flightId !== undefined && payload?.flightId !== null) {
+					matches = String(payload.flightId) === String(sf.id);
+				}
+
+				// fallback: match by updatedFlight callsign/departure/arrival
+				if (!matches && sf && payload?.updatedFlight) {
+					const uf = payload.updatedFlight;
+					if (uf.callsign === sf.callsign && uf.departure === sf.departure && uf.arrival === sf.arrival) {
+						matches = true;
+					}
+				}
+
+				// if pilot submitted via REST and we don't yet have submittedFlight, try matching to form values
+				if (!matches && payload?.updatedFlight) {
+					const uf = payload.updatedFlight;
+					if (uf.callsign === form.callsign && uf.departure === form.departure && uf.arrival === form.arrival) {
+						matches = true;
+					}
+				}
+
+				if (matches) {
+					setPdcContent(String(ptext));
+					setPdcReceived(true);
+				}
+			} catch (err) {
+				console.error('Error handling pdcIssued in Submit listener', err);
+			}
+		};
+
+		try {
+			if (listenerWrapper && listenerWrapper.socket) {
+				listenerWrapper.socket.on('pdcIssued', handlePdcIssued);
+			}
+		} catch (err) {
+			console.debug('Could not attach pdcIssued handler', err);
+		}
+
+		return () => {
+			try {
+				if (listenerWrapper && listenerWrapper.socket) {
+					listenerWrapper.socket.off('pdcIssued', handlePdcIssued);
+					listenerWrapper.socket.disconnect();
+				}
+			} catch (e) {}
+		};
+	}, [sessionId, initialLoadComplete, form]);
 
 	const isLogbookDisabled = testerGateEnabled && !user?.isTester && !user?.isAdmin;
 	const hasRobloxLinked = !!user?.robloxUsername;
@@ -391,14 +478,63 @@ export default function Submit() {
 									</p>
 								</div>
 							)}
+
+							{/* NEW: lightweight PDC display for pilots (non-intrusive) */}
+							{pdcReceived && pdcContent && (
+								<div className="mt-6 p-4 bg-blue-900/20 border border-blue-700 rounded-md">
+									<h4 className="text-sm font-semibold text-blue-200 mb-2">
+										Pre-Departure Clearance (PDC) received
+									</h4>
+									<pre className="bg-transparent text-xs text-white font-mono whitespace-pre-wrap">
+										{pdcContent}
+									</pre>
+									<div className="mt-3 flex gap-2">
+										<Button
+											onClick={() =>
+												navigator.clipboard?.writeText(pdcContent || '')
+											}
+											variant="outline"
+											size="sm"
+										>
+											Copy PDC
+										</Button>
+										<Button
+											onClick={() => {
+												setPdcReceived(false);
+												setPdcContent(null);
+											}}
+											size="sm"
+										>
+											Dismiss
+										</Button>
+									</div>
+								</div>
+							)}
 							<div className="mt-6 pt-4 border-t border-green-800">
-								<Button
-									onClick={handleCreateAnother}
-									className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg transition-colors"
-								>
-									<PlusCircle className="h-5 w-5 mr-2" />
-									Create Another Flight Plan
-								</Button>
+								<div className="flex gap-3">
+									<Button
+										onClick={handleCreateAnother}
+										className="flex items-center justify-center bg-blue-600 hover:bg-blue-700 text-white py-3 px-6 rounded-lg transition-colors"
+									>
+										<PlusCircle className="h-5 w-5 mr-2" />
+										Create Another Flight Plan
+									</Button>
+
+									{/* Open ACARS (opens ACARS page for this session; passes flightId as query) */}
+									<Button
+										onClick={() =>
+											navigate(
+												`/acars/${sessionId}?flightId=${encodeURIComponent(
+													String(submittedFlight.id)
+												)}`
+											)
+										}
+										variant="outline"
+										className="flex items-center justify-center text-white py-3 px-4 rounded-lg transition-colors"
+									>
+										Open ACARS
+									</Button>
+								</div>
 							</div>
 						</div>
 					</div>

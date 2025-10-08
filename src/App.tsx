@@ -16,7 +16,7 @@ import NotFound from './pages/NotFound';
 
 import ProtectedRoute from './components/ProtectedRoute';
 import AccessDenied from './components/AccessDenied';
-
+import ACARS from './pages/ACARS';
 import Admin from './pages/Admin';
 import AdminUsers from './pages/admin/AdminUsers';
 import AdminAudit from './pages/admin/AdminAudit';
@@ -53,6 +53,10 @@ export default function App() {
                                     <Route
                                         path="view/:sessionId"
                                         element={<Flights />}
+                                    />
+                                    <Route
+                                    path="acars/:sessionId"
+                                    element={<ACARS />}
                                     />
                                     <Route
                                         path="settings"
