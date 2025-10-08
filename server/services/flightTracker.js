@@ -216,7 +216,8 @@ class FlightTracker {
 
         this.socket.on('open', () => {
             const proxyInfo = proxyUrl ? ` (proxy ${this.currentProxyIndex}/${this.proxies.length})` : '';
-            console.log('\x1b[32m%s\x1b[0m', `[Flight Tracker] WebSocket connected to PFATC server${proxyInfo}`);
+            console.log('\x1b[32m%s\x1b[0m', `✅ [Flight Tracker] WebSocket connected to PFATC server${proxyInfo}`);
+            console.log('📡 [Flight Tracker] Ready to receive plane data and track active flights');
             this.isConnected = true;
             this.reconnectAttempts = 0; // Reset on successful connection
         });
@@ -260,6 +261,13 @@ class FlightTracker {
             // Filter for PFATC server planes
             const pfatcPlanes = object.planes.filter(plane => plane.server_id === PFATC_SERVER_ID);
 
+            // Log plane count every 30 seconds (avoid spam)
+            const now = Date.now();
+            if (!this.lastPlaneCountLog || (now - this.lastPlaneCountLog) >= 30000) {
+                console.log(`📡 [Flight Tracker] Received data: ${pfatcPlanes.length} plane(s) in PFATC server`);
+                this.lastPlaneCountLog = now;
+            }
+
             for (const plane of pfatcPlanes) {
                 await this.processPlane(plane);
             }
@@ -274,6 +282,11 @@ class FlightTracker {
             const activeFlight = await getActiveFlightByUsername(plane.roblox_username);
             if (!activeFlight) return;
 
+            // Log when we find a tracked flight (only once per flight)
+            if (!this.flightData.has(plane.roblox_username)) {
+                console.log(`✈️  [Flight Tracker] Now tracking ${plane.roblox_username} (${activeFlight.callsign}) - alt: ${Math.round(plane.altitude)}ft, spd: ${Math.round(plane.speed)}kts`);
+            }
+
             const currentData = {
                 x: plane.x,
                 y: plane.y,
@@ -287,12 +300,13 @@ class FlightTracker {
 
             const previousData = this.flightData.get(plane.roblox_username);
 
-            // Get controller status and arrival airport from database
+            // Get controller status, arrival airport, and flight status from database
             const flightResult = await pool.query(`
-                SELECT controller_status, arrival_icao FROM logbook_flights WHERE id = $1
+                SELECT controller_status, arrival_icao, flight_status FROM logbook_flights WHERE id = $1
             `, [activeFlight.flight_id]);
             let controllerStatus = flightResult.rows[0]?.controller_status;
             const arrivalIcao = flightResult.rows[0]?.arrival_icao;
+            const flightStatus = flightResult.rows[0]?.flight_status;
 
             // Clear controller status if aircraft is cruising (above 1,000 ft and level)
             // This allows frontend to show telemetry-based phase instead of stale controller status
@@ -311,7 +325,7 @@ class FlightTracker {
 
             // Detect flight phase (hybrid: controller status + telemetry)
             const phase = previousData
-                ? this.detectHybridPhase(currentData, previousData, controllerStatus, arrivalIcao)
+                ? this.detectHybridPhase(currentData, previousData, controllerStatus, arrivalIcao, flightStatus)
                 : 'unknown';
 
             // Store telemetry point (sample every 5 seconds)
@@ -395,7 +409,7 @@ class FlightTracker {
         }
     }
 
-    detectHybridPhase(current, previous, controllerStatus, arrivalIcao = null) {
+    detectHybridPhase(current, previous, controllerStatus, arrivalIcao = null, flightStatus = null) {
         const alt = current.altitude;
         const speed = current.speed;
 
@@ -410,6 +424,12 @@ class FlightTracker {
         }
 
         const status = controllerStatus?.toLowerCase();
+
+        // === PENDING FLIGHT - AWAITING CLEARANCE ===
+        // Show "awaiting_clearance" for pending flights on the ground with low/no speed
+        if (flightStatus === 'pending' && isAtGroundLevel(alt, arrivalIcao) && speed <= 12) {
+            return 'awaiting_clearance';
+        }
 
         // === GROUND PHASES ===
 
@@ -462,14 +482,18 @@ class FlightTracker {
 
         // === TELEMETRY-BASED DETECTION (when no controller status) ===
 
-        // On ground - only detect taxi by speed, never auto-detect "parked"
-        // (prevents false "parked" during ground holding)
+        // On ground - detect taxi, or show "taxi" if at destination airport (even when stationary)
         if (isAtGroundLevel(alt, arrivalIcao)) {
+            // If moving, definitely taxi
             if (speed > 12) {
                 return 'taxi';
             }
-            // If on ground but not moving fast enough, keep previous phase or return unknown
-            // This prevents incorrectly showing "parked" during holding
+            // If stationary but at destination airport (active flight that has landed), show taxi
+            // This prevents "unknown" when there's no destination controller
+            if (flightStatus === 'active' && arrivalIcao && isAtGroundLevel(alt, arrivalIcao)) {
+                return 'taxi';
+            }
+            // Otherwise unknown (prevents false "parked" at origin during holding)
             return 'unknown';
         }
 
@@ -593,26 +617,40 @@ class FlightTracker {
                             UPDATE logbook_active_flights
                             SET stationary_since = NOW(),
                                 stationary_position_x = $1,
-                                stationary_position_y = $2
+                                stationary_position_y = $2,
+                                stationary_notification_sent = false
                             WHERE roblox_username = $3
                         `, [currentData.x, currentData.y, activeFlight.roblox_username]);
                     } else {
-                        // Check if stationary long enough
+                        // Check if stationary long enough to send notification (30 seconds)
                         const stationaryDuration = (new Date() - new Date(activeFlight.stationary_since)) / 1000;
 
-                        if (stationaryDuration >= STATE_THRESHOLDS.STATIONARY_TIME) {
-                            // Flight is complete - arrived at gate
-                            await pool.query(`
-                                UPDATE logbook_flights
-                                SET arrival_position_x = $1,
-                                    arrival_position_y = $2
-                                WHERE id = $3
-                            `, [currentData.x, currentData.y, activeFlight.flight_id]);
+                        if (stationaryDuration >= 30 && !activeFlight.stationary_notification_sent) {
+                            // Send notification to user prompting them to end the flight
+                            const userResult = await pool.query(`
+                                SELECT user_id FROM logbook_flights WHERE id = $1
+                            `, [activeFlight.flight_id]);
 
-                            // Complete the flight
-                            await this.handleFlightCompletion(activeFlight, activeFlight.roblox_username);
-                            console.log(`🛬 [Flight Tracker] Flight ${activeFlight.callsign} completed - arrived at gate`);
+                            if (userResult.rows[0]) {
+                                await pool.query(`
+                                    INSERT INTO user_notifications (user_id, type, title, message, created_at)
+                                    VALUES ($1, 'info', 'Flight Ready to Complete', $2, NOW())
+                                `, [
+                                    userResult.rows[0].user_id,
+                                    `Your flight ${activeFlight.callsign} has arrived at the gate. You can end your flight from the logbook page, or it will automatically complete if you disconnect.`
+                                ]);
+
+                                // Mark notification as sent
+                                await pool.query(`
+                                    UPDATE logbook_active_flights
+                                    SET stationary_notification_sent = true
+                                    WHERE roblox_username = $1
+                                `, [activeFlight.roblox_username]);
+                            }
                         }
+
+                        // Don't auto-complete while user is still connected
+                        // The checkForMissingFlights() function will auto-complete when user disconnects
                     }
                 } else if (currentData.speed > STATE_THRESHOLDS.STATIONARY_SPEED) {
                     // Reset stationary timer if aircraft starts moving again
@@ -621,7 +659,8 @@ class FlightTracker {
                             UPDATE logbook_active_flights
                             SET stationary_since = NULL,
                                 stationary_position_x = NULL,
-                                stationary_position_y = NULL
+                                stationary_position_y = NULL,
+                                stationary_notification_sent = false
                             WHERE roblox_username = $1
                         `, [activeFlight.roblox_username]);
                     }
@@ -811,20 +850,38 @@ class FlightTracker {
 
                 if (lastTelemetry && (now - lastTelemetry) > this.flightNotFoundTimeout) {
 
-                    // Delete active tracking first (due to foreign key constraint)
-                    await removeActiveFlightTracking(flight.roblox_username);
+                    // If flight has landed, complete it instead of deleting
+                    if (flight.landing_detected) {
+                        // Store arrival position
+                        if (flight.stationary_position_x && flight.stationary_position_y) {
+                            await pool.query(`
+                                UPDATE logbook_flights
+                                SET arrival_position_x = $1,
+                                    arrival_position_y = $2
+                                WHERE id = $3
+                            `, [flight.stationary_position_x, flight.stationary_position_y, flight.flight_id]);
+                        }
 
-                    // Then delete the flight
-                    await pool.query(`DELETE FROM logbook_flights WHERE id = $1`, [flight.flight_id]);
+                        // Complete the flight
+                        await this.handleFlightCompletion(flight, flight.roblox_username);
+                    } else {
+                        // Flight hasn't landed yet - delete it and notify user
 
-                    // Send notification
-                    await pool.query(`
-                        INSERT INTO user_notifications (user_id, type, title, message, created_at)
-                        VALUES ($1, 'error', 'Flight Not Found', $2, NOW())
-                    `, [
-                        flight.user_id,
-                        `We couldn't find your flight in the public ATC server. Make sure you're connected to the PFATC server. Your flight log entry for "${flight.callsign}" has been deleted.`
-                    ]);
+                        // Delete active tracking first (due to foreign key constraint)
+                        await removeActiveFlightTracking(flight.roblox_username);
+
+                        // Then delete the flight
+                        await pool.query(`DELETE FROM logbook_flights WHERE id = $1`, [flight.flight_id]);
+
+                        // Send notification
+                        await pool.query(`
+                            INSERT INTO user_notifications (user_id, type, title, message, created_at)
+                            VALUES ($1, 'error', 'Flight Not Found', $2, NOW())
+                        `, [
+                            flight.user_id,
+                            `We couldn't find your flight in the public ATC server. Make sure you're connected to the PFATC server. Your flight log entry for "${flight.callsign}" has been deleted.`
+                        ]);
+                    }
 
                     // Clean up memory
                     this.lastTelemetryTime.delete(flight.roblox_username);

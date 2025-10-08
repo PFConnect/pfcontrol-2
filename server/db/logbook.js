@@ -121,6 +121,7 @@ export async function initializeLogbookTables() {
                 stationary_since TIMESTAMP,
                 stationary_position_x DOUBLE PRECISION,
                 stationary_position_y DOUBLE PRECISION,
+                stationary_notification_sent BOOLEAN DEFAULT false,
 
                 -- For landing rate calculation
                 approach_altitudes INTEGER[],
@@ -206,7 +207,8 @@ export async function initializeLogbookTables() {
             { name: 'movement_start_time', type: 'TIMESTAMP' },
             { name: 'stationary_since', type: 'TIMESTAMP' },
             { name: 'stationary_position_x', type: 'DOUBLE PRECISION' },
-            { name: 'stationary_position_y', type: 'DOUBLE PRECISION' }
+            { name: 'stationary_position_y', type: 'DOUBLE PRECISION' },
+            { name: 'stationary_notification_sent', type: 'BOOLEAN DEFAULT false' }
         ];
 
         for (const col of activeFlightColumnsToAdd) {
@@ -281,6 +283,8 @@ export async function startActiveFlightTracking(robloxUsername, callsign, flight
         ON CONFLICT (roblox_username)
         DO UPDATE SET callsign = $2, flight_id = $3, created_at = NOW()
     `, [robloxUsername, callsign, flightId]);
+
+    console.log(`🎯 [Logbook] Started tracking: ${callsign} (${robloxUsername}) - Flight tracker will look for this Roblox username in PFATC server`);
 }
 
 // Get active flight by Roblox username
@@ -305,7 +309,7 @@ export async function storeTelemetryPoint(flightId, { x, y, altitude, speed, hea
 
 // Update active flight state
 export async function updateActiveFlightState(robloxUsername, { altitude, speed, heading, x, y, phase }) {
-    await pool.query(`
+    const result = await pool.query(`
         UPDATE logbook_active_flights
         SET last_update = NOW(),
             last_altitude = $2,
@@ -315,7 +319,19 @@ export async function updateActiveFlightState(robloxUsername, { altitude, speed,
             last_y = $6,
             current_phase = $7
         WHERE roblox_username = $1
+        RETURNING flight_id
     `, [robloxUsername, altitude, speed, heading, x, y, phase]);
+
+    // Log every 10th update to avoid spam (but show initial update)
+    if (!updateActiveFlightState.updateCount) updateActiveFlightState.updateCount = {};
+    if (!updateActiveFlightState.updateCount[robloxUsername]) {
+        updateActiveFlightState.updateCount[robloxUsername] = 0;
+    }
+    updateActiveFlightState.updateCount[robloxUsername]++;
+
+    if (updateActiveFlightState.updateCount[robloxUsername] === 1 || updateActiveFlightState.updateCount[robloxUsername] % 10 === 0) {
+        console.log(`📊 [Logbook] Updated state for ${robloxUsername}: alt=${altitude}ft, spd=${speed}kts, hdg=${heading}°, phase=${phase}`);
+    }
 }
 
 // Add altitude reading to approach array
@@ -918,6 +934,61 @@ export async function getActiveFlightData(flightId) {
 
     const stats = statsResult.rows[0];
 
+    // Calculate distance from telemetry
+    const distanceResult = await pool.query(`
+        WITH telemetry_points AS (
+            SELECT x, y, timestamp,
+                   LAG(x) OVER (ORDER BY timestamp) as prev_x,
+                   LAG(y) OVER (ORDER BY timestamp) as prev_y
+            FROM logbook_telemetry
+            WHERE flight_id = $1
+            ORDER BY timestamp ASC
+        )
+        SELECT SUM(
+            CASE
+                WHEN prev_x IS NOT NULL AND prev_y IS NOT NULL
+                THEN SQRT(POWER(x - prev_x, 2) + POWER(y - prev_y, 2)) / 1852
+                ELSE 0
+            END
+        ) as total_distance
+        FROM telemetry_points
+    `, [flightId]);
+
+    const totalDistanceNm = distanceResult.rows[0]?.total_distance ?
+        Math.round(distanceResult.rows[0].total_distance) : null;
+
+    // Calculate smoothness score from telemetry
+    const telemetryResult = await pool.query(`
+        SELECT speed_kts, altitude_ft
+        FROM logbook_telemetry
+        WHERE flight_id = $1
+        ORDER BY timestamp ASC
+    `, [flightId]);
+
+    const telemetry = telemetryResult.rows;
+    let smoothnessScore = null;
+
+    if (telemetry.length > 1) {
+        let score = 100;
+        for (let i = 1; i < telemetry.length; i++) {
+            const speedDelta = Math.abs((telemetry[i].speed_kts || 0) - (telemetry[i - 1].speed_kts || 0));
+            const altDelta = Math.abs((telemetry[i].altitude_ft || 0) - (telemetry[i - 1].altitude_ft || 0));
+
+            // Penalize sudden speed changes > 20kts
+            if (speedDelta > 20) score -= 2;
+
+            // Penalize sudden altitude changes > 500ft
+            if (altDelta > 500) score -= 3;
+        }
+        smoothnessScore = Math.max(0, Math.min(100, score));
+    }
+
+    // Calculate landing rate if landing has been detected
+    let landingRate = null;
+    if (activeData?.landing_detected && activeData?.roblox_username) {
+        landingRate = await calculateLandingRate(activeData.roblox_username);
+    }
+
     // Calculate duration so far
     const durationMs = new Date() - new Date(flight.created_at);
     const durationMinutes = Math.round(durationMs / 60000);
@@ -938,6 +1009,9 @@ export async function getActiveFlightData(flightId) {
         max_altitude_ft: stats.max_altitude_ft || null,
         max_speed_kts: stats.max_speed_kts || null,
         average_speed_kts: stats.avg_speed_kts ? Math.round(stats.avg_speed_kts) : null,
+        total_distance_nm: totalDistanceNm,
+        smoothness_score: smoothnessScore,
+        landing_rate_fpm: landingRate,
         telemetry_count: parseInt(stats.telemetry_count) || 0,
 
         // Flag to indicate this is live data

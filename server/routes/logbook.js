@@ -11,7 +11,8 @@ import {
     startActiveFlightTracking,
     deleteFlightById,
     getActiveFlightByUsername,
-    updateUserStatsCache
+    updateUserStatsCache,
+    completeFlightByCallsign
 } from '../db/logbook.js';
 import {
     getUserNotifications,
@@ -382,6 +383,40 @@ router.delete('/notifications/:id', async (req, res) => {
     } catch (error) {
         console.error('Error deleting notification:', error);
         res.status(500).json({ error: 'Failed to delete notification' });
+    }
+});
+
+// POST: /api/logbook/flights/:id/complete - Manually complete an active flight
+router.post('/flights/:id/complete', async (req, res) => {
+    try {
+        const flightId = parseInt(req.params.id);
+
+        // Verify flight belongs to user and is active
+        const flight = await pool.query(`
+            SELECT callsign, user_id, flight_status
+            FROM logbook_flights
+            WHERE id = $1
+        `, [flightId]);
+
+        if (!flight.rows[0]) {
+            return res.status(404).json({ error: 'Flight not found' });
+        }
+
+        if (flight.rows[0].user_id !== req.user.userId) {
+            return res.status(403).json({ error: 'Not authorized to complete this flight' });
+        }
+
+        if (flight.rows[0].flight_status !== 'active') {
+            return res.status(400).json({ error: 'Flight is not active' });
+        }
+
+        // Complete the flight
+        await completeFlightByCallsign(flight.rows[0].callsign);
+
+        res.json({ success: true, message: 'Flight completed successfully' });
+    } catch (error) {
+        console.error('Error completing flight:', error);
+        res.status(500).json({ error: 'Failed to complete flight' });
     }
 });
 

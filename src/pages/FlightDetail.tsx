@@ -55,6 +55,7 @@ interface Flight {
 	livery: string | null;
 	route: string | null;
 	flight_status: string;
+	controller_status?: string | null;
 	duration_minutes: number | null;
 	total_distance_nm: number | null;
 	max_altitude_ft: number | null;
@@ -194,8 +195,9 @@ export default function FlightDetail() {
 		if (minutes === null || minutes === undefined) return 'N/A';
 		if (minutes < 1 && !isLive) return 'N/A';
 		if (minutes < 1) return '0m';
-		const hours = Math.floor(minutes / 60);
-		const mins = minutes % 60;
+		const totalMinutes = Math.floor(minutes);
+		const hours = Math.floor(totalMinutes / 60);
+		const mins = totalMinutes % 60;
 		return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
 	};
 
@@ -453,6 +455,7 @@ export default function FlightDetail() {
 
 	const getPhaseColor = (phase: string | null | undefined) => {
 		const colors: Record<string, string> = {
+			awaiting_clearance: 'text-cyan-400 bg-cyan-900/30',
 			origin_taxi: 'text-gray-400 bg-gray-900/50',
 			destination_taxi: 'text-gray-400 bg-gray-900/50',
 			taxi: 'text-gray-400 bg-gray-900/50',
@@ -544,12 +547,24 @@ export default function FlightDetail() {
 								)}
 							</div>
 						</div>
+						{/* Show landing grade for completed flights */}
 						{flight.landing_score !== null && !isActive && (
 							<div className={`${landingGrade.bg} ${landingGrade.glow} border-2 ${landingGrade.border} rounded-xl px-8 py-5 backdrop-blur-sm transition-all hover:scale-105`}>
 								<p className={`text-4xl font-bold ${landingGrade.color} mb-2 tracking-tight`}>
 									{landingGrade.text}
 								</p>
 								<p className="text-sm text-gray-300 text-center font-semibold">
+									{flight.landing_rate_fpm} fpm
+								</p>
+							</div>
+						)}
+
+						{/* Show landing rate (fpm only) for active flights when controller has set destination status */}
+						{isActive && flight.landing_rate_fpm !== null && flight.controller_status &&
+						 ['destination_runway', 'destination_taxi', 'gate'].includes(flight.controller_status.toLowerCase()) && (
+							<div className="bg-gradient-to-br from-green-900/20 to-blue-900/20 border-2 border-green-700/40 rounded-xl px-8 py-5 backdrop-blur-sm">
+								<p className="text-sm text-gray-400 mb-1 text-center">Landing Rate</p>
+								<p className="text-3xl font-bold text-green-400 tracking-tight text-center">
 									{flight.landing_rate_fpm} fpm
 								</p>
 							</div>
@@ -776,6 +791,7 @@ export default function FlightDetail() {
 										new Date(t.timestamp).toLocaleTimeString('en-US', {
 											hour: '2-digit',
 											minute: '2-digit',
+											second: '2-digit',
 											timeZone: 'UTC'
 										}) + " UTC"
 									),
