@@ -65,10 +65,6 @@ export default function App() {
                                         element={<Logbook />}
                                     />
                                     <Route
-                                        path="acars/:sessionId"
-                                        element={<ACARS />}
-                                    />
-                                    <Route
                                         path="logbook/:flightId"
                                         element={<FlightDetail />}
                                     />
@@ -80,6 +76,10 @@ export default function App() {
 
                     <Route path="/login" element={<Login />} />
                     <Route path="/submit/:sessionId" element={<Submit />} />
+                    <Route
+                        path="acars/:sessionId"
+                        element={<ACARS />}
+                    />
                     <Route
                         path="/flight/:shareToken"
                         element={<PublicFlightView />}
