@@ -37,7 +37,7 @@ interface SessionData {
     airportIcao: string;
     activeRunway?: string;
     atis?: unknown;
-	isPFATC?: boolean;
+    isPFATC?: boolean;
 }
 
 export default function Submit() {
@@ -96,14 +96,26 @@ export default function Submit() {
             return;
         }
 
-        const handlePdcIssued = (payload: any) => {
+        type PdcIssuedPayload = {
+            pdcText?: string;
+            flightId?: string | number;
+            updatedFlight?: {
+                pdc_remarks?: string;
+                pdc_text?: string;
+                callsign?: string;
+                departure?: string;
+                arrival?: string;
+            };
+        };
+
+        const handlePdcIssued = (payload: PdcIssuedPayload) => {
             try {
-                const ptext =
+                const pdcText =
                     payload?.pdcText ??
                     payload?.updatedFlight?.pdc_remarks ??
                     payload?.updatedFlight?.pdc_text ??
                     null;
-                if (!ptext) return;
+                if (!pdcText) return;
 
                 const sf = submittedFlightRef.current;
                 let matches = false;
@@ -139,7 +151,7 @@ export default function Submit() {
                 }
 
                 if (matches) {
-                    setPdcContent(String(ptext));
+                    setPdcContent(String(pdcText));
                     setPdcReceived(true);
                 }
             } catch (err) {
@@ -211,11 +223,13 @@ export default function Submit() {
             () => {},
             (flight: Flight) => {
                 setSubmittedFlight(flight);
-				if (session?.isPFATC){
-					navigate(`/acars/${sessionId}/${flight.id}?accessId=${flight.acars_token}`);
-				} else {
-					setSuccess(true);
-				}
+                if (session?.isPFATC) {
+                    navigate(
+                        `/acars/${sessionId}/${flight.id}?accessId=${flight.acars_token}`
+                    );
+                } else {
+                    setSuccess(true);
+                }
                 setIsSubmitting(false);
             },
             () => {},
@@ -293,11 +307,13 @@ export default function Submit() {
                     status: 'PENDING',
                 });
                 setSubmittedFlight(flight);
-                if(session?.isPFATC){
-					navigate(`/acars/${sessionId}/${flight.id}/?accessId=${flight.acars_token}`);
-				} else {
-					setSuccess(true);
-				}
+                if (session?.isPFATC) {
+                    navigate(
+                        `/acars/${sessionId}/${flight.id}/?accessId=${flight.acars_token}`
+                    );
+                } else {
+                    setSuccess(true);
+                }
             } catch {
                 setError('Failed to submit flight.');
             } finally {

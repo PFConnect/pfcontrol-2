@@ -1,15 +1,15 @@
-import { useEffect, useState, useRef } from "react";
-import { useParams, useSearchParams, useNavigate } from "react-router-dom";
-import{Terminal, User, Radio} from "lucide-react";
-import Navbar from "../components/Navbar";
-import Loader from "../components/common/Loader";
-import Button from "../components/common/Button";
-import { createFlightsSocket } from "../sockets/flightsSocket";
-import { createOverviewSocket } from "../sockets/overviewSocket";
-import { useData } from "../hooks/data/useData";
-import { parseCallsign, getAirportName } from "../utils/callsignParser";
-import type { Flight } from "../types/flight";
-import type { OverviewSession } from "../sockets/overviewSocket";
+import { useEffect, useState, useRef } from 'react';
+import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
+import { Terminal, User, Radio } from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Loader from '../components/common/Loader';
+import Button from '../components/common/Button';
+import { createFlightsSocket } from '../sockets/flightsSocket';
+import { createOverviewSocket } from '../sockets/overviewSocket';
+import { useData } from '../hooks/data/useData';
+import { parseCallsign, getAirportName } from '../utils/callsignParser';
+import type { Flight } from '../types/flight';
+import type { OverviewSession } from '../sockets/overviewSocket';
 
 interface AcarsMessage {
     id: string;
@@ -24,7 +24,10 @@ interface AcarsMessage {
 }
 
 export default function ACARS() {
-    const { sessionId, flightId } = useParams<{ sessionId: string; flightId: string }>();
+    const { sessionId, flightId } = useParams<{
+        sessionId: string;
+        flightId: string;
+    }>();
     const [searchParams] = useSearchParams();
     const accessId = searchParams.get('accessId');
     const navigate = useNavigate();
@@ -38,19 +41,29 @@ export default function ACARS() {
 
     const audioRef = useRef<HTMLAudioElement | null>(null);
     const chatPopRef = useRef<HTMLAudioElement | null>(null);
-    const socketRef = useRef<ReturnType<typeof createFlightsSocket> | null>(null);
+    const socketRef = useRef<ReturnType<typeof createFlightsSocket> | null>(
+        null
+    );
     const initializedRef = useRef(false);
     const messagesEndRef = useRef<HTMLDivElement | null>(null);
 
     const formatTimestamp = (isoTimestamp: string): string => {
-        return new Date(isoTimestamp).getUTCHours().toString().padStart(2, '0') + ':' + new Date(isoTimestamp).getUTCMinutes().toString().padStart(2, '0') + 'Z';
+        return (
+            new Date(isoTimestamp).getUTCHours().toString().padStart(2, '0') +
+            ':' +
+            new Date(isoTimestamp).getUTCMinutes().toString().padStart(2, '0') +
+            'Z'
+        );
     };
 
     const playNotificationSound = (messageType: AcarsMessage['type']) => {
-        if (messageType === 'warning' || messageType === 'pdc' || messageType === 'contact') {
+        if (
+            messageType === 'warning' ||
+            messageType === 'pdc' ||
+            messageType === 'contact'
+        ) {
             audioRef.current?.play().catch(() => {});
-        }
-        else if (messageType === 'system' || messageType === 'atis') {
+        } else if (messageType === 'system' || messageType === 'atis') {
             chatPopRef.current?.play().catch(() => {});
         }
     };
@@ -90,7 +103,9 @@ export default function ACARS() {
                 }
 
                 const flights: Flight[] = await flightResponse.json();
-                const currentFlight = flights.find(f => String(f.id) === String(flightId));
+                const currentFlight = flights.find(
+                    (f) => String(f.id) === String(flightId)
+                );
 
                 if (!currentFlight) {
                     throw new Error('Flight not found');
@@ -99,12 +114,19 @@ export default function ACARS() {
                 setFlight(currentFlight);
                 setLoading(false);
 
-                await fetch(`${import.meta.env.VITE_SERVER_URL}/api/flights/acars/active`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    credentials: 'include',
-                    body: JSON.stringify({ sessionId, flightId, acarsToken: accessId })
-                });
+                await fetch(
+                    `${import.meta.env.VITE_SERVER_URL}/api/flights/acars/active`,
+                    {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        credentials: 'include',
+                        body: JSON.stringify({
+                            sessionId,
+                            flightId,
+                            acarsToken: accessId,
+                        }),
+                    }
+                );
             } catch (err) {
                 setError(err instanceof Error ? err.message : 'Access denied');
                 setLoading(false);
@@ -118,11 +140,14 @@ export default function ACARS() {
         if (!sessionId || !flightId) return;
 
         const handleUnload = async () => {
-            await fetch(`${import.meta.env.VITE_SERVER_URL}/api/flights/acars/active/${sessionId}/${flightId}`, {
-                method: 'DELETE',
-                credentials: 'include',
-                keepalive: true
-            });
+            await fetch(
+                `${import.meta.env.VITE_SERVER_URL}/api/flights/acars/active/${sessionId}/${flightId}`,
+                {
+                    method: 'DELETE',
+                    credentials: 'include',
+                    keepalive: true,
+                }
+            );
         };
 
         window.addEventListener('beforeunload', handleUnload);
@@ -142,7 +167,7 @@ export default function ACARS() {
                 timestamp: new Date().toISOString(),
                 station: 'SYSTEM',
                 text: 'DO NOT CLOSE THIS WINDOW, CONTROLLERS MAY SEND PRE DEPARTURE CLEARANCES THROUGH THE ACARS TERMINAL',
-                type: 'warning'
+                type: 'warning',
             };
 
             const successMsg: AcarsMessage = {
@@ -150,7 +175,7 @@ export default function ACARS() {
                 timestamp: new Date().toISOString(),
                 station: 'SYSTEM',
                 text: `FLIGHT PLAN: ${flight.callsign} SUBMITTED SUCCESSFULLY`,
-                type: 'Success'
+                type: 'Success',
             };
 
             const formattedCallsign = parseCallsign(flight.callsign, airlines);
@@ -161,8 +186,8 @@ export default function ACARS() {
                 id: `${Date.now()}-details`,
                 timestamp: new Date().toISOString(),
                 station: 'SYSTEM',
-                text: `FLIGHT PLAN DETAILS,\nCALLSIGN: ${flight.callsign} (${formattedCallsign}), \nTYPE: ${flight.aircraft},\nRULES: ${flight.flight_type},\nSTAND: ${flight.stand ||'N/A'},\nDEPARTING: ${departureAirport},\nARRIVING: ${arrivalAirport}`,
-                type: 'system'
+                text: `FLIGHT PLAN DETAILS,\nCALLSIGN: ${flight.callsign} (${formattedCallsign}), \nTYPE: ${flight.aircraft},\nRULES: ${flight.flight_type},\nSTAND: ${flight.stand || 'N/A'},\nDEPARTING: ${departureAirport},\nARRIVING: ${arrivalAirport}`,
+                type: 'system',
             };
 
             const initialMessages = [warningMsg, detailsMsg, successMsg];
@@ -173,7 +198,7 @@ export default function ACARS() {
                     timestamp: new Date().toISOString(),
                     station: `${flight.departure}_DEL`,
                     text: flight.pdc_remarks,
-                    type: 'pdc'
+                    type: 'pdc',
                 };
                 initialMessages.push(pdcMsg);
             }
@@ -194,13 +219,14 @@ export default function ACARS() {
                                 type: 'pdc',
                                 link: {
                                     text: 'HERE',
-                                    url: `${window.location.origin}/flight/${trackingData.shareToken}`
-                                }
+                                    url: `${window.location.origin}/flight/${trackingData.shareToken}`,
+                                },
                             };
                             initialMessages.push(logbookMsg);
                         }
                     }
-                } catch (error) {
+                } catch {
+                    // Ignore errors
                 }
             }
 
@@ -240,27 +266,40 @@ export default function ACARS() {
 
         socketRef.current = socket;
 
-        socket.socket.on('pdcIssued', (payload: any) => {
-            const pdcText = payload?.pdcText ?? payload?.updatedFlight?.pdc_remarks;
-            if (pdcText && String(payload.flightId) === String(flightId)) {
-                addPDCMessage(pdcText);
-                playNotificationSound('pdc');
+        socket.socket.on(
+            'pdcIssued',
+            (payload: {
+                pdcText?: string;
+                updatedFlight?: { pdc_remarks?: string };
+                flightId: string | number;
+            }) => {
+                const pdcText =
+                    payload?.pdcText ?? payload?.updatedFlight?.pdc_remarks;
+                if (pdcText && String(payload.flightId) === String(flightId)) {
+                    addPDCMessage(pdcText);
+                    playNotificationSound('pdc');
+                }
             }
-        });
+        );
 
-        socket.socket.on('contactMe', (payload: any) => {
-            if (String(payload.flightId) === String(flightId)) {
-                const contactMsg: AcarsMessage = {
-                    id: `${Date.now()}-contact`,
-                    timestamp: new Date().toISOString(),
-                    station: `${flight?.departure}_TWR`,
-                    text: payload.message || 'CONTACT CONTROLLER ON FREQUENCY',
-                    type: 'contact'
-                };
-                setMessages(prev => [...prev, contactMsg]);
-                playNotificationSound('contact');
+        socket.socket.on(
+            'contactMe',
+            (payload: { flightId: string | number; message?: string }) => {
+                if (String(payload.flightId) === String(flightId)) {
+                    const contactMsg: AcarsMessage = {
+                        id: `${Date.now()}-contact`,
+                        timestamp: new Date().toISOString(),
+                        station: `${flight?.departure}_TWR`,
+                        text:
+                            payload.message ||
+                            'CONTACT CONTROLLER ON FREQUENCY',
+                        type: 'contact',
+                    };
+                    setMessages((prev) => [...prev, contactMsg]);
+                    playNotificationSound('contact');
+                }
             }
-        });
+        );
 
         return () => {
             socket.socket.disconnect();
@@ -269,11 +308,9 @@ export default function ACARS() {
     }, [sessionId, flightId, loading]);
 
     useEffect(() => {
-        const overviewSocket = createOverviewSocket(
-            (data) => {
-                setActiveSessions(data.activeSessions);
-            }
-        );
+        const overviewSocket = createOverviewSocket((data) => {
+            setActiveSessions(data.activeSessions);
+        });
 
         return () => {
             overviewSocket.disconnect();
@@ -286,9 +323,9 @@ export default function ACARS() {
             timestamp: new Date().toISOString(),
             station: `${flight?.departure}_DEL`,
             text,
-            type: 'pdc'
+            type: 'pdc',
         };
-        setMessages(prev => [...prev, message]);
+        setMessages((prev) => [...prev, message]);
     };
 
     const handleRequestPDC = () => {
@@ -297,7 +334,7 @@ export default function ACARS() {
         socketRef.current.socket.emit('requestPDC', {
             flightId: flight.id,
             callsign: flight.callsign,
-            note: 'PDC requested via ACARS terminal'
+            note: 'PDC requested via ACARS terminal',
         });
 
         const confirmMsg: AcarsMessage = {
@@ -305,9 +342,9 @@ export default function ACARS() {
             timestamp: new Date().toISOString(),
             station: 'SYSTEM',
             text: 'PDC REQUEST SENT TO CONTROLLERS',
-            type: 'Success'
+            type: 'Success',
         };
-        setMessages(prev => [...prev, confirmMsg]);
+        setMessages((prev) => [...prev, confirmMsg]);
         playNotificationSound('system');
         setPdcRequested(true);
     };
@@ -320,21 +357,28 @@ export default function ACARS() {
             timestamp: new Date().toISOString(),
             station: `${session.airportIcao}_ATIS`,
             text: session.atis.text,
-            type: 'atis'
+            type: 'atis',
         };
-        setMessages(prev => [...prev, atisMsg]);
+        setMessages((prev) => [...prev, atisMsg]);
         playNotificationSound('atis');
     };
 
     const getMessageColor = (type: AcarsMessage['type']) => {
         switch (type) {
-            case 'warning': return 'text-red-400';
-            case 'pdc': return 'text-cyan-400';
-            case 'Success': return 'text-green-400';
-            case 'system': return 'text-white';
-            case 'contact': return 'text-orange-400';
-            case 'atis': return 'text-blue-400';
-            default: return 'text-white';
+            case 'warning':
+                return 'text-red-400';
+            case 'pdc':
+                return 'text-cyan-400';
+            case 'Success':
+                return 'text-green-400';
+            case 'system':
+                return 'text-white';
+            case 'contact':
+                return 'text-orange-400';
+            case 'atis':
+                return 'text-blue-400';
+            default:
+                return 'text-white';
         }
     };
 
@@ -373,9 +417,13 @@ export default function ACARS() {
                 <Navbar />
                 <div className="flex items-center justify-center h-screen">
                     <div className="text-center">
-                        <h1 className="text-2xl font-bold text-red-500 mb-4">Access Denied</h1>
+                        <h1 className="text-2xl font-bold text-red-500 mb-4">
+                            Access Denied
+                        </h1>
                         <p className="text-gray-400 mb-6">{error}</p>
-                        <Button onClick={() => navigate('/')}>Return Home</Button>
+                        <Button onClick={() => navigate('/')}>
+                            Return Home
+                        </Button>
                     </div>
                 </div>
             </div>
@@ -390,33 +438,55 @@ export default function ACARS() {
                 {/*Controllers and atis*/}
                 <div className="w-80 bg-gray-900 border-r border-gray-800 flex flex-col">
                     <div className="p-4 border-b border-gray-800">
-                        <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">    
+                        <h3 className="text-sm font-semibold text-gray-400 mb-3 flex items-center gap-2">
                             <User className="w-4 h-4" />
                             ACTIVE PFATC CONTROLLERS
                         </h3>
                         <div className="space-y-3 text-sm">
-                            {activeSessions.map(session => (
-                                <div key={session.sessionId} className="text-gray-300">
-                                    <div className="font-semibold text-cyan-400">{session.airportIcao}</div>
-                                    {session.controllers && session.controllers.length > 0 ? (
+                            {activeSessions.map((session) => (
+                                <div
+                                    key={session.sessionId}
+                                    className="text-gray-300"
+                                >
+                                    <div className="font-semibold text-cyan-400">
+                                        {session.airportIcao}
+                                    </div>
+                                    {session.controllers &&
+                                    session.controllers.length > 0 ? (
                                         <div className="ml-2 mt-1 space-y-1">
-                                            {session.controllers.map((controller, idx) => (
-                                                <div key={idx} className="text-xs flex items-center gap-1">
-                                                    <span className="text-gray-400">•</span>
-                                                    <span className="text-white">{controller.username}</span>
-                                                    <span className="text-gray-500">({controller.role})</span>
-                                                </div>
-                                            ))}
+                                            {session.controllers.map(
+                                                (controller, idx) => (
+                                                    <div
+                                                        key={idx}
+                                                        className="text-xs flex items-center gap-1"
+                                                    >
+                                                        <span className="text-gray-400">
+                                                            •
+                                                        </span>
+                                                        <span className="text-white">
+                                                            {
+                                                                controller.username
+                                                            }
+                                                        </span>
+                                                        <span className="text-gray-500">
+                                                            ({controller.role})
+                                                        </span>
+                                                    </div>
+                                                )
+                                            )}
                                         </div>
                                     ) : (
                                         <div className="text-xs text-gray-500 ml-2">
-                                            {session.activeUsers} controller(s) online
+                                            {session.activeUsers} controller(s)
+                                            online
                                         </div>
                                     )}
                                 </div>
                             ))}
                             {activeSessions.length === 0 && (
-                                <div className="text-gray-500 text-xs">No active controllers</div>
+                                <div className="text-gray-500 text-xs">
+                                    No active controllers
+                                </div>
                             )}
                         </div>
                     </div>
@@ -428,28 +498,39 @@ export default function ACARS() {
                         </h3>
                         <div className="space-y-3">
                             {activeSessions
-                                .filter(session => session.atis && session.atis.text)
-                                .map(session => (
+                                .filter(
+                                    (session) =>
+                                        session.atis && session.atis.text
+                                )
+                                .map((session) => (
                                     <div
                                         key={session.sessionId}
                                         className="text-xs cursor-pointer hover:bg-gray-800 p-2 rounded transition-colors"
-                                        onDoubleClick={() => handleAtisClick(session)}
+                                        onDoubleClick={() =>
+                                            handleAtisClick(session)
+                                        }
                                         title="Double-click to send to terminal"
                                     >
                                         <div className="font-bold text-blue-400 mb-1">
-                                            {session.airportIcao} INFO {session.atis?.letter}
+                                            {session.airportIcao} INFO{' '}
+                                            {session.atis?.letter}
                                         </div>
                                         <div className="text-gray-500 text-[10px] mt-1">
-                                            {session.atis?.timestamp && new Date(session.atis.timestamp).toLocaleTimeString('en-US', {
-                                                hour: '2-digit',
-                                                minute: '2-digit',
-                                                timeZone: 'UTC',
-                                                hour12: false
-                                            })}Z
+                                            {session.atis?.timestamp &&
+                                                new Date(
+                                                    session.atis.timestamp
+                                                ).toLocaleTimeString('en-US', {
+                                                    hour: '2-digit',
+                                                    minute: '2-digit',
+                                                    timeZone: 'UTC',
+                                                    hour12: false,
+                                                })}
+                                            Z
                                         </div>
                                     </div>
                                 ))}
-                            {activeSessions.filter(s => s.atis && s.atis.text).length === 0 && (
+                            {activeSessions.filter((s) => s.atis && s.atis.text)
+                                .length === 0 && (
                                 <div className="text-xs text-gray-500">
                                     No ATIS available
                                 </div>
@@ -468,21 +549,32 @@ export default function ACARS() {
                                     <>
                                         {flight.callsign}
                                         <span className="text-gray-400 font-normal text-base">
-                                            - {parseCallsign(flight.callsign, airlines)}
+                                            -{' '}
+                                            {parseCallsign(
+                                                flight.callsign,
+                                                airlines
+                                            )}
                                         </span>
                                     </>
-                                ) : 'ACARS TERMINAL'}
+                                ) : (
+                                    'ACARS TERMINAL'
+                                )}
                             </h1>
                         </div>
                     </div>
 
                     <div className="flex-1 overflow-y-auto p-4 font-mono text-sm space-y-2">
-                        {messages.map(msg => (
-                            <div key={msg.id} className={getMessageColor(msg.type)}>
-                                <span className="text-gray-500">{formatTimestamp(msg.timestamp)}</span>
-                                {' '}
-                                <span className="font-bold">[{msg.station}]:</span>
-                                {' '}
+                        {messages.map((msg) => (
+                            <div
+                                key={msg.id}
+                                className={getMessageColor(msg.type)}
+                            >
+                                <span className="text-gray-500">
+                                    {formatTimestamp(msg.timestamp)}
+                                </span>{' '}
+                                <span className="font-bold">
+                                    [{msg.station}]:
+                                </span>{' '}
                                 {renderMessageText(msg)}
                             </div>
                         ))}

@@ -93,8 +93,12 @@ export default function Flights() {
     const [showAddDepartureModal, setShowAddDepartureModal] = useState(false);
     const [showAddArrivalModal, setShowAddArrivalModal] = useState(false);
     const [showContactAcarsModal, setShowContactAcarsModal] = useState(false);
-    const [activeAcarsFlights, setActiveAcarsFlights] = useState<Set<string | number>>(new Set());
-    const [activeAcarsFlightData, setActiveAcarsFlightData] = useState<Flight[]>([]);
+    const [activeAcarsFlights, setActiveAcarsFlights] = useState<
+        Set<string | number>
+    >(new Set());
+    const [activeAcarsFlightData, setActiveAcarsFlightData] = useState<
+        Flight[]
+    >([]);
 
     const handleMentionReceived = () => {
         if (user) {
@@ -222,7 +226,6 @@ export default function Flights() {
         accessError,
     ]);
 
-    // Don't initialize sockets if there's an access error
     useEffect(() => {
         if (!sessionId || !accessId || !initialLoadComplete || accessError)
             return;
@@ -269,7 +272,6 @@ export default function Flights() {
             socket.socket.disconnect();
         };
     }, [sessionId, accessId, initialLoadComplete, user, settings, accessError]);
-    // helper to issue PDC (emits to flights websocket)
     const handleIssuePDC = async (
         flightId: string | number,
         pdcText: string
@@ -278,7 +280,6 @@ export default function Flights() {
             console.warn('handleIssuePDC: no flights socket available');
             throw new Error('No flights socket');
         }
-        // emit the dedicated event the server expects
         flightsSocket.socket.emit('issuePDC', { flightId, pdcText });
     };
 
@@ -287,16 +288,20 @@ export default function Flights() {
 
         const fetchActiveAcars = async () => {
             try {
-                const response = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/flights/acars/active`, {
-                    credentials: 'include'
-                });
+                const response = await fetch(
+                    `${import.meta.env.VITE_SERVER_URL}/api/flights/acars/active`,
+                    {
+                        credentials: 'include',
+                    }
+                );
 
                 if (response.ok) {
                     const flights: Flight[] = await response.json();
                     setActiveAcarsFlightData(flights);
-                    setActiveAcarsFlights(new Set(flights.map(f => f.id)));
+                    setActiveAcarsFlights(new Set(flights.map((f) => f.id)));
                 }
-            } catch (error) {
+            } catch {
+                // Ignore errors
             }
         };
 
@@ -888,7 +893,9 @@ export default function Flights() {
                         showViewTabs={!showCombinedView}
                         position={position}
                         onPositionChange={setPosition}
-                        onContactAcarsClick={() => setShowContactAcarsModal(true)}
+                        onContactAcarsClick={() =>
+                            setShowContactAcarsModal(true)
+                        }
                     />
                     <div className="-mt-4">
                         {loading ? (

@@ -1,9 +1,10 @@
 import { useState, useEffect } from 'react';
 import { X, Radio, Plane, MapPin } from 'lucide-react';
+import { fetchFrequencies } from '../../utils/fetch/data';
+import type { AirportFrequency } from '../../types/airports';
+import type { Flight } from '../../types/flight';
 import Button from '../common/Button';
 import Dropdown from '../common/Dropdown';
-import type { Flight } from '../../types/flight';
-import { fetchFrequencies } from '../../utils/fetch/data';
 
 interface ContactAcarsModalProps {
     isOpen: boolean;
@@ -26,24 +27,31 @@ export default function ContactAcarsModal({
     const [customMessage, setCustomMessage] = useState('');
     const [sending, setSending] = useState(false);
     const [selectedPosition, setSelectedPosition] = useState<string>('TWR');
-    const [frequencies, setFrequencies] = useState<{ type: string; freq: string }[]>([]);
+    const [frequencies, setFrequencies] = useState<
+        { type: string; freq: string }[]
+    >([]);
 
-    const flightsWithAcars = flights.filter(f => activeAcarsFlights.has(f.id));
+    const flightsWithAcars = flights.filter((f) =>
+        activeAcarsFlights.has(f.id)
+    );
 
     useEffect(() => {
         const loadFrequencies = async () => {
             try {
-                const freqData = await fetchFrequencies();
-                const airportFreq = freqData.find((f: any) => f.icao === airportIcao);
-                const freqs = Array.isArray(airportFreq?.frequencies) ? airportFreq.frequencies : [];
+                const freqData: AirportFrequency[] = await fetchFrequencies();
+                const airportFreq = freqData.find(
+                    (f: AirportFrequency) => f.icao === airportIcao
+                );
+                const freqs = Array.isArray(airportFreq?.frequencies)
+                    ? airportFreq.frequencies
+                    : [];
                 setFrequencies(freqs);
 
-                // Set default position to first available frequency, preferring TWR
                 if (freqs.length > 0) {
-                    const twr = freqs.find(f => f.type === 'TWR');
+                    const twr = freqs.find((f) => f.type === 'TWR');
                     setSelectedPosition(twr ? 'TWR' : freqs[0].type);
                 }
-            } catch (error) {
+            } catch {
                 setFrequencies([]);
             }
         };
@@ -54,7 +62,7 @@ export default function ContactAcarsModal({
     }, [airportIcao]);
 
     const getDefaultMessage = () => {
-        const freq = frequencies.find(f => f.type === selectedPosition);
+        const freq = frequencies.find((f) => f.type === selectedPosition);
         if (freq) {
             return `CONTACT ME ON ${airportIcao}_${selectedPosition} ${freq.freq}`;
         }
@@ -91,7 +99,9 @@ export default function ContactAcarsModal({
                                 <Radio className="h-6 w-6 text-blue-400" />
                             </div>
                             <div>
-                                <h3 className="text-xl font-semibold">Contact ACARS Terminal</h3>
+                                <h3 className="text-xl font-semibold">
+                                    Contact ACARS Terminal
+                                </h3>
                                 <p className="text-sm text-gray-400 mt-1">
                                     Send a message to a flight's ACARS terminal
                                 </p>
@@ -112,7 +122,9 @@ export default function ContactAcarsModal({
                         <div className="text-center py-8 text-gray-400">
                             <Radio className="h-12 w-12 mx-auto mb-3 opacity-50" />
                             <p>No flights with active ACARS terminals</p>
-                            <p className="text-sm mt-2">Flights must open their ACARS terminal first</p>
+                            <p className="text-sm mt-2">
+                                Flights must open their ACARS terminal first
+                            </p>
                         </div>
                     ) : (
                         <>
@@ -125,7 +137,9 @@ export default function ContactAcarsModal({
                                     {flightsWithAcars.map((flight) => (
                                         <button
                                             key={flight.id}
-                                            onClick={() => setSelectedFlight(flight)}
+                                            onClick={() =>
+                                                setSelectedFlight(flight)
+                                            }
                                             className={`w-full text-left p-4 rounded-lg border-2 transition-all ${
                                                 selectedFlight?.id === flight.id
                                                     ? 'border-blue-500 bg-blue-500/10'
@@ -141,11 +155,13 @@ export default function ContactAcarsModal({
                                                         </div>
                                                         <div className="text-sm text-gray-400 flex items-center gap-2 mt-1">
                                                             <MapPin className="h-3 w-3" />
-                                                            {flight.departure} → {flight.arrival}
+                                                            {flight.departure} →{' '}
+                                                            {flight.arrival}
                                                         </div>
                                                     </div>
                                                 </div>
-                                                {selectedFlight?.id === flight.id && (
+                                                {selectedFlight?.id ===
+                                                    flight.id && (
                                                     <div className="h-5 w-5 rounded-full bg-blue-500 flex items-center justify-center">
                                                         <div className="h-2 w-2 rounded-full bg-white"></div>
                                                     </div>
@@ -168,9 +184,9 @@ export default function ContactAcarsModal({
                                         Contact as
                                     </label>
                                     <Dropdown
-                                        options={frequencies.map(freq => ({
+                                        options={frequencies.map((freq) => ({
                                             value: freq.type,
-                                            label: `${freq.type} - ${freq.freq}`
+                                            label: `${freq.type} - ${freq.freq}`,
                                         }))}
                                         value={selectedPosition}
                                         onChange={setSelectedPosition}
@@ -191,7 +207,9 @@ export default function ContactAcarsModal({
                                     <input
                                         type="text"
                                         value={customMessage}
-                                        onChange={(e) => setCustomMessage(e.target.value)}
+                                        onChange={(e) =>
+                                            setCustomMessage(e.target.value)
+                                        }
                                         placeholder={getDefaultMessage()}
                                         className="w-full px-4 py-2 bg-gray-800 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
                                         maxLength={100}
