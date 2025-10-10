@@ -46,14 +46,11 @@ export async function validateAcarsAccess(sessionId, flightId, acarsToken) {
         return { valid: false };
     }
 
-    const sessionResult = await flightsPool.query(
-        `SELECT access_id FROM sessions WHERE session_id = $1`,
-        [sessionId]
-    );
+    const session = await getSessionById(sessionId);
 
     return {
         valid: true,
-        accessId: sessionResult.rows[0]?.access_id || null
+        accessId: session?.access_id || null
     };
 }
 
