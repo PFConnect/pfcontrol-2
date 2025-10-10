@@ -1,16 +1,40 @@
 import pool from '../db/connections/connection.js';
 
 export async function validateSessionAccess(sessionId, accessId) {
-    if (!sessionId || !accessId) return false;
+    console.log(`[validateSessionAccess] Input - SessionID: "${sessionId}", AccessID: "${accessId}"`);
+
+    if (!sessionId || !accessId) {
+        console.log(`[validateSessionAccess] Validation failed - Missing parameters`);
+        return false;
+    }
 
     try {
         const result = await pool.query(
-            'SELECT 1 FROM sessions WHERE session_id = $1 AND access_id = $2',
+            'SELECT session_id, access_id FROM sessions WHERE session_id = $1 AND access_id = $2',
             [sessionId, accessId]
         );
-        return result.rowCount > 0;
+
+        console.log(`[validateSessionAccess] Query result - rowCount: ${result.rowCount}, rows:`, result.rows);
+
+        if (result.rowCount > 0) {
+            console.log(`[validateSessionAccess] ✓ Validation successful`);
+            return true;
+        } else {
+            // Check if session exists with any accessId
+            const sessionCheck = await pool.query(
+                'SELECT session_id, access_id FROM sessions WHERE session_id = $1',
+                [sessionId]
+            );
+
+            if (sessionCheck.rowCount > 0) {
+                console.log(`[validateSessionAccess] ✗ Session exists but accessId mismatch. Expected: "${sessionCheck.rows[0].access_id}", Got: "${accessId}"`);
+            } else {
+                console.log(`[validateSessionAccess] ✗ Session not found in database`);
+            }
+            return false;
+        }
     } catch (error) {
-        console.error('Session validation error:', error);
+        console.error('[validateSessionAccess] Database error:', error);
         return false;
     }
 }

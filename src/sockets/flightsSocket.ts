@@ -11,6 +11,8 @@ export function createFlightsSocket(
     onFlightDeleted: (data: { flightId: string | number }) => void,
     onFlightError?: (error: { action: string; flightId?: string | number; error: string }) => void
 ) {
+    console.log(`[createFlightsSocket] Creating socket with SessionID: "${sessionId}", AccessID: "${accessId}"`);
+
     const socket = io(SOCKET_URL, {
         withCredentials: true,
         path: '/sockets/flights',

@@ -48,6 +48,9 @@ export default function Flights() {
     const accessId = searchParams.get('accessId') ?? undefined;
     const isMobile = useMediaQuery({ maxWidth: 1000 });
 
+    // Debug logging
+    console.log(`[Flights] URL Params - SessionID: "${sessionId}", AccessID: "${accessId}"`);
+
     const [accessError, setAccessError] = useState<string | null>(null);
     const [validatingAccess, setValidatingAccess] = useState(true);
     const [session, setSession] = useState<SessionData | null>(null);

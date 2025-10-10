@@ -22,7 +22,7 @@ export function setupFlightsWebsocket(httpServer) {
         const sessionId = socket.handshake.query.sessionId;
         const accessId = socket.handshake.query.accessId;
 
-        console.log(`[Flights Socket] Connection attempt - SessionID: ${sessionId || 'missing'}, AccessID: ${accessId ? 'provided' : 'missing'}, Socket ID: ${socket.id}`);
+        console.log(`[Flights Socket] Connection attempt - SessionID: "${sessionId || 'missing'}", AccessID: "${accessId || 'missing'}", Socket ID: ${socket.id}`);
 
         if (!sessionId) {
             console.warn(`[Flights Socket] Rejected connection ${socket.id} - Missing sessionId`);
