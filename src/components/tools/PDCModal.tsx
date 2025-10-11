@@ -32,6 +32,7 @@ const PDCModal: React.FC<PDCModalProps> = ({ isOpen, onClose, flight, onIssuePDC
 		'standard'
 	);
 	const [error, setError] = useState<string | null>(null);
+	const [customRemarks, setCustomRemarks] = useState<string>('');
 
 	const generateRandomSquawk = (): string => {
 		return Array.from({ length: 4 }, () =>
@@ -39,10 +40,13 @@ const PDCModal: React.FC<PDCModalProps> = ({ isOpen, onClose, flight, onIssuePDC
 		).join('');
 	};
 
-	const generateRandomIdentifier = (): string => {
-		const squawk = getSquawk();
+	const [autoSquawk] = useState(() => generateRandomSquawk());
+
+	const [autoIdentifier] = useState(() => {
+		// Generate identifier from squawk and callsign
+		const squawk = flight?.squawk || autoSquawk;
 		const firstThreeNumbers = squawk.substring(0, 3);
-		
+
 		let firstLetter = 'A';
 		if (flight?.callsign) {
 			const letters = flight.callsign.match(/[A-Z]/i);
@@ -50,12 +54,9 @@ const PDCModal: React.FC<PDCModalProps> = ({ isOpen, onClose, flight, onIssuePDC
 				firstLetter = letters[0].toUpperCase();
 			}
 		}
-		
-		return firstThreeNumbers + firstLetter;
-	};
 
-	const [autoSquawk] = useState(() => generateRandomSquawk());
-	const [autoIdentifier] = useState(() => generateRandomIdentifier());
+		return firstThreeNumbers + firstLetter;
+	});
 
 	useEffect(() => {
 		localStorage.setItem(
@@ -67,6 +68,32 @@ const PDCModal: React.FC<PDCModalProps> = ({ isOpen, onClose, flight, onIssuePDC
 	useEffect(() => {
 		if (isOpen && flight?.departure) {
 			fetchAirportFrequencies(flight.departure);
+		}
+	}, [isOpen, flight]);
+
+	// Pre-fill remarks with default text when modal opens
+	useEffect(() => {
+		if (isOpen && flight) {
+			const sidText = flight.sid || 'DCT';
+			const isVFR = flight.flight_type === 'VFR';
+			const isRadarVectors = sidText === 'RADAR VECTORS';
+			const clearedAlt = flight.clearedFL || '030';
+			const freqs = getFrequencies();
+
+			let climbInstruction;
+			if (isVFR || isRadarVectors) {
+				climbInstruction = `CLEARED ${sidText}`;
+			} else {
+				climbInstruction = `CLEARED ${sidText} DEPARTURE CLIMB VIA SID`;
+			}
+
+			const defaultRemarks = `${climbInstruction} EXP ${flight.cruisingFL || clearedAlt} 10 MIN AFT DP`;
+			setCustomRemarks(defaultRemarks);
+		}
+
+		// Reset remarks when modal closes
+		if (!isOpen) {
+			setCustomRemarks('');
 		}
 	}, [isOpen, flight]);
 
@@ -141,9 +168,14 @@ const PDCModal: React.FC<PDCModalProps> = ({ isOpen, onClose, flight, onIssuePDC
 				departure: customFreqs.departure || '122.800'
 			};
 		}
+
+
+		const clearanceFreq = airportFreqs.clearanceDelivery || airportFreqs.ground || '122.800';
+		const departureFreq = airportFreqs.departure || airportFreqs.tower || '122.800';
+
 		return {
-			clearance: airportFreqs.clearanceDelivery || '122.800',
-			departure: airportFreqs.departure || '122.800'
+			clearance: clearanceFreq,
+			departure: departureFreq
 		};
 	};
 
@@ -156,23 +188,15 @@ const PDCModal: React.FC<PDCModalProps> = ({ isOpen, onClose, flight, onIssuePDC
 		const sidText = flight.sid || 'DCT';
 		const freqs = getFrequencies();
 		const clearedAlt = flight.clearedFL || '030';
-		const isVFR = flight.flight_type === 'VFR';
-		const isRadarVectors = sidText === 'RADAR VECTORS';
-
-		let climbInstruction;
-		if (isVFR || isRadarVectors) {
-			climbInstruction = `CLEARED ${sidText}`;
-		} else {
-			climbInstruction = `CLEARED ${sidText} DEPARTURE CLIMB VIA SID`;
-		}
 
 		if (pdcFormat === 'simplified') {
 			return `PDC FOR ${flight.callsign}
 CLEARED TO ${flight.arrival} VIA ${sidText}
 CLIMB AND MAINTAIN ${clearedAlt}
 SQUAWK ${squawk}
-CONTACT DEPARTURE ${freqs.departure}
-CONTACT CLEARANCE ${freqs.clearance} TO PUSH`;
+DEPARTURE ${freqs.departure}
+CLEARANCE ${freqs.clearance}
+IDENTIFIER ${identifier}${customRemarks ? `\nREMARKS: ${customRemarks}` : ''}`;
 		}
 
 		return `ACARS: PDC | CALLSIGN: ${
@@ -181,8 +205,7 @@ CONTACT CLEARANCE ${freqs.clearance} TO PUSH`;
 DEPARTURE: ${flight.departure} | DESTINATION: ${flight.arrival} |
 ROUTE: ${flight.departure}.${sidText}..${flight.arrival} |
 ALTITUDE: ${clearedAlt} | TRANSPONDER: ${squawk} | REMARKS:
-${climbInstruction} EXP ${flight.cruisingFL || clearedAlt} 10
-MIN AFT DP DPFRQ ${freqs.departure} | CTC ${freqs.clearance} TO PUSH
+${customRemarks}, DPFRQ ${freqs.departure} CTC ${freqs.clearance} TO PUSH
 IDENTIFIER: ${identifier}`;
 	};
 
@@ -190,8 +213,19 @@ IDENTIFIER: ${identifier}`;
 		type: keyof AirportFrequencies,
 		value: string
 	) => {
-		setCustomFreqs((prev) => ({ ...prev, [type]: value }));
+		const filtered = value.replace(/[^0-9.]/g, '');
+		setCustomFreqs((prev) => ({ ...prev, [type]: filtered }));
 		setUseCustomFreqs(true);
+	};
+
+	const handleSquawkChange = (value: string) => {
+		const filtered = value.replace(/[^0-7]/g, '').slice(0, 4);
+		setCustomSquawk(filtered);
+	};
+
+	const handleIdentifierChange = (value: string) => {
+		const filtered = value.replace(/[^A-Z0-9]/gi, '').slice(0, 4).toUpperCase();
+		setCustomIdentifier(filtered);
 	};
 
 	const copyToClipboard = async () => {
@@ -366,6 +400,24 @@ IDENTIFIER: ${identifier}`;
 							</div>
 						</div>
 					</div>
+					{/* Remarks */}
+					<div className="space-y-3">
+						<h3 className="text-lg font-semibold text-blue-300">
+							Remarks
+						</h3>
+						<div>
+							<textarea
+								value={customRemarks}
+								onChange={(e) => setCustomRemarks(e.target.value)}
+								placeholder="Enter PDC remarks..."
+								className="w-full bg-zinc-800 border border-zinc-700 text-white rounded-lg p-3 font-mono text-sm min-h-[80px] resize-y focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+								maxLength={250}
+							/>
+							<p className="text-xs text-gray-500 mt-1">
+								Edit Remarks
+							</p>
+						</div>
+					</div>
 
 					{/* Frequencies */}
 					<div className="space-y-3">
@@ -392,9 +444,9 @@ IDENTIFIER: ${identifier}`;
 									value={
 										useCustomFreqs
 											? customFreqs.clearanceDelivery ||
-											  ''
+											''
 											: airportFreqs.clearanceDelivery ||
-											  '122.800'
+											'122.800'
 									}
 									onChange={(value) =>
 										handleCustomFreqChange(
@@ -416,7 +468,7 @@ IDENTIFIER: ${identifier}`;
 										useCustomFreqs
 											? customFreqs.departure || ''
 											: airportFreqs.departure ||
-											  '122.800'
+											'122.800'
 									}
 									onChange={(value) =>
 										handleCustomFreqChange(
@@ -462,12 +514,17 @@ IDENTIFIER: ${identifier}`;
 											? customSquawk
 											: flight.squawk || autoSquawk
 									}
-									onChange={setCustomSquawk}
+									onChange={handleSquawkChange}
 									placeholder="e.g. 1234"
 									className="w-full bg-zinc-800 border border-zinc-700 font-mono"
 									maxLength={4}
 									disabled={!useCustomSquawk}
 								/>
+								{useCustomSquawk && (
+									<p className="text-xs text-gray-500 mt-1">
+										Only digits 0-7 allowed
+									</p>
+								)}
 							</div>
 							<div>
 								<div className="flex items-center justify-between mb-2">
@@ -497,16 +554,20 @@ IDENTIFIER: ${identifier}`;
 											? customIdentifier
 											: autoIdentifier
 									}
-									onChange={setCustomIdentifier}
+									onChange={handleIdentifierChange}
 									placeholder="e.g. AB12"
 									className="w-full bg-zinc-800 border border-zinc-700 font-mono"
 									maxLength={4}
 									disabled={!useCustomIdentifier}
 								/>
+								{useCustomIdentifier && (
+									<p className="text-xs text-gray-500 mt-1">
+										Letters and numbers only
+									</p>
+								)}
 							</div>
 						</div>
 					</div>
-
 					{/* Warning */}
 					<div className="bg-amber-900/20 p-3 rounded-lg border border-amber-700 text-amber-300 text-xs">
 						<div className="flex items-start">
