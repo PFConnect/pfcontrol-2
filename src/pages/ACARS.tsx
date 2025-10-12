@@ -37,6 +37,7 @@ export default function ACARS() {
     const [messages, setMessages] = useState<AcarsMessage[]>([]);
     const [activeSessions, setActiveSessions] = useState<OverviewSession[]>([]);
     const [error, setError] = useState<string | null>(null);
+    const [isAuthError, setIsAuthError] = useState(false);
     const [pdcRequested, setPdcRequested] = useState(false);
     const [sessionAccessId, setSessionAccessId] = useState<string | null>(null);
 
@@ -102,6 +103,10 @@ export default function ACARS() {
                 );
 
                 if (!flightResponse.ok) {
+                    if (flightResponse.status === 401) {
+                        setIsAuthError(true);
+                        throw new Error('Authentication required');
+                    }
                     throw new Error('Failed to load flight data');
                 }
 
@@ -419,14 +424,44 @@ export default function ACARS() {
             <div className="min-h-screen bg-gray-950 text-white">
                 <Navbar />
                 <div className="flex items-center justify-center h-screen">
-                    <div className="text-center">
-                        <h1 className="text-2xl font-bold text-red-500 mb-4">
-                            Access Denied
-                        </h1>
-                        <p className="text-gray-400 mb-6">{error}</p>
-                        <Button onClick={() => navigate('/')}>
-                            Return Home
-                        </Button>
+                    <div className="text-center max-w-md px-4">
+                        {isAuthError ? (
+                            <>
+                                <h1 className="text-3xl font-bold text-blue-500 mb-4">
+                                    Sign In Required
+                                </h1>
+                                <p className="text-gray-300 mb-2 text-lg">
+                                    To use ACARS you have to sign in!
+                                </p>
+                                <p className="text-green-400 mb-6 text-sm">
+                                    Don't worry your flight plan was still submitted, but you will not be able to use ACARS until you sign in.
+                                </p>
+                                <div className="flex gap-3 justify-center">
+                                    <Button
+                                        onClick={() => window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/discord`}
+                                        className="bg-blue-600 hover:bg-blue-700"
+                                    >
+                                        Sign In with Discord
+                                    </Button>
+                                    <Button
+                                        onClick={() => navigate('/')}
+                                        variant="outline"
+                                    >
+                                        Return Home
+                                    </Button>
+                                </div>
+                            </>
+                        ) : (
+                            <>
+                                <h1 className="text-2xl font-bold text-red-500 mb-4">
+                                    Access Denied
+                                </h1>
+                                <p className="text-gray-400 mb-6">{error}</p>
+                                <Button onClick={() => navigate('/')}>
+                                    Return Home
+                                </Button>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
