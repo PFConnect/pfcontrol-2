@@ -113,6 +113,20 @@ export default function CustomUserButton({
                     <button
                         onClick={() =>
                             handleAction(
+                                () =>
+                                    (window.location.href =
+                                        '/pilots/' + user.username)
+                            )
+                        }
+                        className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:text-white hover:bg-zinc-800/60 rounded-xl transition-all duration-200 font-medium"
+                    >
+                        <User className="w-4 h-4" />
+                        <span>Profile</span>
+                    </button>
+
+                    <button
+                        onClick={() =>
+                            handleAction(
                                 () => (window.location.href = '/sessions')
                             )
                         }
@@ -204,11 +218,7 @@ export default function CustomUserButton({
 
             {isDropdownOpen && (
                 <div className="absolute right-0 mt-2 w-64 bg-zinc-900/95 backdrop-blur-md border border-zinc-800 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-1 duration-200">
-                    <Link
-                        to={`/pilots/${user.username}`}
-                        onClick={() => setIsDropdownOpen(false)}
-                        className="px-4 py-3 border-b border-gray-700/50 block hover:bg-zinc-800/50 transition-colors"
-                    >
+                    <div className="px-4 py-3 border-b border-gray-700/50 block cursor-default">
                         <div className="flex items-center space-x-3">
                             {user.avatar ? (
                                 <img
@@ -232,9 +242,21 @@ export default function CustomUserButton({
                                 )}
                             </div>
                         </div>
-                    </Link>
+                    </div>
 
                     <div className="py-1">
+                        <button
+                            onClick={() => {
+                                setIsDropdownOpen(false);
+                                window.location.href =
+                                    '/pilots/' + user.username;
+                            }}
+                            className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
+                        >
+                            <User className="w-4 h-4" />
+                            <span className="font-medium">Profile</span>
+                        </button>
+
                         <button
                             onClick={() => {
                                 setIsDropdownOpen(false);
