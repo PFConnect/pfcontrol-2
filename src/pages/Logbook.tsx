@@ -276,33 +276,35 @@ export default function Logbook() {
         <div className="min-h-screen bg-gray-950 text-white">
             <Navbar />
             {/* Hero Header */}
-            <div className="relative w-full bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-gray-900/40 border-b-2 border-blue-800/30 py-6 pt-16">
-                <div className="absolute inset-0 bg-[url('/assets/app/backgrounds/mdpc_01.png')] bg-cover bg-center opacity-10"></div>
-                <div className="relative container mx-auto max-w-7xl px-4 py-12 md:py-16">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        <div className="flex items-center">
-                            <div className="p-3 bg-blue-500/20 rounded-xl mr-4">
-                                <Notebook className="h-8 w-8 text-blue-400" />
+            <div className="bg-gradient-to-b from-zinc-800 to-zinc-900 border-b border-zinc-700/50 py-8 md:py-12">
+                <div className="pt-20 pb-4">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div className="flex items-center">
+                                <div className="p-3 bg-blue-500/20 rounded-xl mr-4">
+                                    <Notebook className="h-8 w-8 text-blue-400" />
+                                </div>
+                                <div>
+                                    <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1">
+                                        Flight Logbook
+                                    </h1>
+                                    <p className="text-blue-300/80 text-sm md:text-base">
+                                        Your complete flight history and
+                                        statistics
+                                    </p>
+                                </div>
                             </div>
-                            <div>
-                                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-1">
-                                    Flight Logbook
-                                </h1>
-                                <p className="text-blue-300/80 text-sm md:text-base">
-                                    Your complete flight history and statistics
-                                </p>
-                            </div>
+                            <Button
+                                onClick={() =>
+                                    navigate(`/pilots/${user?.username}`)
+                                }
+                                className="flex items-center self-start md:self-auto"
+                                variant="outline"
+                            >
+                                <User className="w-4 h-4 mr-2" />
+                                <span className="inline">Public Profile</span>
+                            </Button>
                         </div>
-                        <Button
-                            onClick={() =>
-                                navigate(`/pilots/${user?.username}`)
-                            }
-                            className="flex items-center self-start md:self-auto"
-                            variant="outline"
-                        >
-                            <User className="w-4 h-4 mr-2" />
-                            <span className="inline">Public Profile</span>
-                        </Button>
                     </div>
                 </div>
             </div>

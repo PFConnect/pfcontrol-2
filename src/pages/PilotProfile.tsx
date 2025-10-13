@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
-import Loader from '../components/common/Loader';
+import { useParams } from 'react-router-dom';
 import {
     User,
     Plane,
@@ -35,8 +34,15 @@ import {
     Tooltip,
     Legend,
 } from 'chart.js';
-import Button from '../components/common/Button';
 import { useNavigate } from 'react-router-dom';
+import { fetchPilotProfile, shareFlight } from '../utils/fetch/pilot';
+import type { PilotProfile, Role } from '../types/pilot';
+import Button from '../components/common/Button';
+import Loader from '../components/common/Loader';
+import Navbar from '../components/Navbar';
+import AccessDenied from '../components/AccessDenied';
+import { SiRoblox } from 'react-icons/si';
+
 ChartJS.register(
     CategoryScale,
     LinearScale,
@@ -46,70 +52,22 @@ ChartJS.register(
     Legend
 );
 
-interface Role {
-    id: number;
-    name: string;
-    description: string | null;
-    color: string;
-    icon: string;
-    priority: number;
-}
-
-interface PilotProfile {
-    user: {
-        id: string;
-        username: string;
-        discriminator: string;
-        avatar: string | null;
-        roblox_username: string | null;
-        roblox_user_id?: string | null;
-        vatsim_cid: string | null;
-        vatsim_rating_short: string | null;
-        vatsim_rating_long: string | null;
-        member_since: string;
-        is_admin: boolean;
-        roles: Role[];
-        role_name: string | null;
-        role_description: string | null;
-    };
-    stats: {
-        total_flights: number;
-        total_hours: number;
-        total_flight_time_minutes: number;
-        total_distance_nm: number;
-        favorite_aircraft: string | null;
-        favorite_departure: string | null;
-        best_landing_rate: number | null;
-        average_landing_score: number | null;
-        highest_altitude: number | null;
-        longest_flight_distance: number | null;
-    };
-    recentFlights: Array<{
-        id: number;
-        callsign: string;
-        aircraft_model: string | null;
-        aircraft_icao: string | null;
-        departure_icao: string;
-        arrival_icao: string;
-        duration_minutes: number | null;
-        total_distance_nm: number | null;
-        landing_rate_fpm: number | null;
-        flight_end: string;
-    }>;
-    activityData: Array<{
-        month: string;
-        flight_count: number;
-        total_minutes: number;
-    }>;
-}
-
 export default function PilotProfile() {
     const { username } = useParams<{ username: string }>();
     const [profile, setProfile] = useState<PilotProfile | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
     const [shareClicked, setShareClicked] = useState(false);
-    const navigate = useNavigate()
+    const navigate = useNavigate();
+
+    const handleLinkRoblox = () => {
+        window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/roblox`;
+    };
+
+    const handleLinkVatsim = () => {
+        window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/vatsim?force=1`;
+    };
+
     useEffect(() => {
         fetchProfile();
     }, [username]);
@@ -120,40 +78,13 @@ export default function PilotProfile() {
         setShareClicked(true);
         setTimeout(() => setShareClicked(false), 2000);
     };
-const handleShareFlight = async (flightid: string): Promise<string> => {
-    try {
-        const res = await fetch(
-            `${import.meta.env.VITE_SERVER_URL}/api/logbook/flights/${flightid}/share`,
-            {
-                method: 'POST',
-                credentials: 'include',
-            }
-        );
-        if (!res.ok) return '';
-        const data = await res.json();
-        if (data.shareToken) return `/flight/${data.shareToken}`;
-        if (data.shareUrl) {
-            try {
-                const u = new URL(data.shareUrl);
-                return u.pathname || data.shareUrl;
-            } catch {
-                return data.shareUrl;
-            }
-        }
-    } catch (e) {
-        console.error(e);
-    }
-    return '';
-};
+    const handleShareFlight = async (flightid: string): Promise<string> => {
+        return await shareFlight(flightid);
+    };
     const fetchProfile = async () => {
         try {
-            const res = await fetch(
-                `${
-                    import.meta.env.VITE_SERVER_URL
-                }/api/logbook/pilot/${username}`
-            );
-            if (res.ok) {
-                const data = await res.json();
+            const data = await fetchPilotProfile(username!);
+            if (data) {
                 setProfile(data);
             } else {
                 setError('Pilot not found');
@@ -246,28 +177,14 @@ const handleShareFlight = async (flightid: string): Promise<string> => {
 
     if (loading) {
         return (
-            <div className="min-h-screen bg-gray-950 flex items-center justify-center">
+            <div className="min-h-screen bg-zinc-950 text-white flex items-center justify-center">
                 <Loader />
             </div>
         );
     }
 
     if (error || !profile) {
-        return (
-            <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-                <div className="bg-red-900/20 border-2 border-red-500/50 rounded-xl p-6 max-w-md">
-                    <div className="flex items-center gap-3 mb-4">
-                        <AlertCircle className="h-6 w-6 text-red-400" />
-                        <h2 className="text-xl font-bold text-red-200">
-                            Error
-                        </h2>
-                    </div>
-                    <p className="text-red-200 font-semibold">
-                        {error || 'Pilot not found'}
-                    </p>
-                </div>
-            </div>
-        );
+        return <AccessDenied errorType="pilot-not-found" />;
     }
 
     const mapLongToShort = (longName: string | null): string | null => {
@@ -277,7 +194,12 @@ const handleShareFlight = async (flightid: string): Promise<string> => {
         if (key.includes('student') && key.includes('1')) return 'S1';
         if (key.includes('student') && key.includes('2')) return 'S2';
         if (key.includes('student') && key.includes('3')) return 'S3';
-        if (key.startsWith('c1') || key.includes('controller 1') || key.includes('controller i')) return 'C1';
+        if (
+            key.startsWith('c1') ||
+            key.includes('controller 1') ||
+            key.includes('controller i')
+        )
+            return 'C1';
         if (key.startsWith('c2') || key.includes('controller 2')) return 'C2';
         if (key.startsWith('c3') || key.includes('controller 3')) return 'C3';
         if (key.includes('instructor') && key.includes('1')) return 'I1';
@@ -289,7 +211,14 @@ const handleShareFlight = async (flightid: string): Promise<string> => {
     };
 
     const displayVatsimRating =
-        profile.user.vatsim_rating_short || mapLongToShort(profile.user.vatsim_rating_long);
+        profile.user.vatsim_rating_short ||
+        mapLongToShort(profile.user.vatsim_rating_long);
+
+    const isVatsimLinked = !!(
+        profile.user.vatsim_cid ||
+        profile.user.vatsim_rating_short ||
+        profile.user.vatsim_rating_long
+    );
 
     const activityChartData = {
         labels: profile.activityData
@@ -326,221 +255,186 @@ const handleShareFlight = async (flightid: string): Promise<string> => {
     };
 
     return (
-        <div className="min-h-screen bg-gray-950 text-white pb-12">
-            {/* Header with branding */}
-            <div className="bg-gradient-to-r from-blue-900/30 to-purple-900/30 border-b-2 border-blue-800/30 py-4">
-                <div className="container mx-auto max-w-6xl px-4">
-                    <div className="flex items-center justify-between">
-                        <div className="flex items-center gap-3">
-                            <User className="h-6 w-6 text-blue-400" />
-                            <span className="text-xl font-bold text-white">
-                                Pilot Profile
-                            </span>
-                        </div>
-                        <div className="flex items-center gap-4">
+        <div className="min-h-screen bg-zinc-950 text-white">
+            <Navbar />
+
+            <div className="bg-gradient-to-b from-zinc-800 to-zinc-900 border-b border-zinc-700/50 py-8 md:py-12">
+                <div className="pt-20 pb-4">
+                    <div className="max-w-7xl mx-auto px-4">
+                        <div className="flex flex-col md:flex-row md:items-center gap-6">
+                            {/* Avatar */}
+                            <div className="relative self-center md:self-auto">
+                                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-2 border-blue-600 overflow-hidden bg-gray-800 shadow-xl">
+                                    <img
+                                        src={getDiscordAvatar(
+                                            profile.user.id,
+                                            profile.user.avatar
+                                        )}
+                                        alt={profile.user.username}
+                                        className="w-full h-full object-cover"
+                                    />
+                                </div>
+                            </div>
+
+                            {/* User Info */}
+                            <div className="flex-1 text-center md:text-left">
+                                <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+                                    {profile.user.username}
+                                </h1>
+                                {(profile.user.is_admin ||
+                                    (profile.user.roles &&
+                                        profile.user.roles.length > 0)) && (
+                                    <div className="flex flex-wrap gap-2 mb-3 justify-center md:justify-start">
+                                        {profile.user.is_admin && (
+                                            <div
+                                                className="inline-flex items-center gap-2 px-4 py-1 rounded-full border-2 cursor-default"
+                                                style={{
+                                                    backgroundColor:
+                                                        'rgba(59, 130, 246, 0.2)',
+                                                    borderColor:
+                                                        'rgba(59, 130, 246, 0.5)',
+                                                    boxShadow:
+                                                        '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
+                                                }}
+                                            >
+                                                <Braces
+                                                    className="h-4 w-4"
+                                                    style={{ color: '#3B82F6' }}
+                                                />
+                                                <span
+                                                    className="text-sm font-semibold"
+                                                    style={{ color: '#3B82F6' }}
+                                                >
+                                                    Developer
+                                                </span>
+                                            </div>
+                                        )}
+                                        {profile.user.roles &&
+                                            profile.user.roles.map((role) => {
+                                                const badge =
+                                                    getRoleBadge(role);
+                                                const BadgeIcon = badge.icon;
+                                                return (
+                                                    <div
+                                                        key={role.id}
+                                                        className="inline-flex items-center gap-2 px-4 py-1 rounded-full border-2 cursor-default"
+                                                        style={{
+                                                            backgroundColor: `rgba(${badge.rgb}, 0.2)`,
+                                                            borderColor: `rgba(${badge.rgb}, 0.5)`,
+                                                            boxShadow: `0 4px 6px -1px rgba(${badge.rgb}, 0.2)`,
+                                                        }}
+                                                    >
+                                                        <BadgeIcon
+                                                            className="h-4 w-4"
+                                                            style={{
+                                                                color: badge.color,
+                                                            }}
+                                                        />
+                                                        <span
+                                                            className="text-sm font-semibold"
+                                                            style={{
+                                                                color: badge.color,
+                                                            }}
+                                                        >
+                                                            {badge.text}
+                                                        </span>
+                                                    </div>
+                                                );
+                                            })}
+                                    </div>
+                                )}
+                                <div className="flex flex-col md:flex-row gap-2 md:gap-4 justify-center md:justify-start mt-2">
+                                    <div className="flex items-center gap-2 text-gray-400 justify-center md:justify-start">
+                                        <Calendar className="h-5 w-5" />
+                                        <span className="text-base md:text-lg">
+                                            Member since{' '}
+                                            {new Date(
+                                                profile.user.member_since
+                                            ).toLocaleDateString('en-US', {
+                                                month: 'long',
+                                                year: 'numeric',
+                                            })}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center gap-4 justify-center md:justify-start">
+                                        {/* Roblox */}
+                                        <div className="flex items-center gap-2">
+                                            <SiRoblox className="h-5 w-5 text-blue-300" />
+                                            {profile.user.roblox_username ? (
+                                                profile.user.roblox_user_id ? (
+                                                    <a
+                                                        href={`https://www.roblox.com/users/${profile.user.roblox_user_id}/profile`}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="text-base md:text-lg text-blue-300 hover:underline hover:text-blue-200"
+                                                    >
+                                                        {
+                                                            profile.user
+                                                                .roblox_username
+                                                        }
+                                                    </a>
+                                                ) : (
+                                                    <span className="text-base md:text-lg text-blue-300">
+                                                        {
+                                                            profile.user
+                                                                .roblox_username
+                                                        }
+                                                    </span>
+                                                )
+                                            ) : (
+                                                <button
+                                                    onClick={handleLinkRoblox}
+                                                    className="text-base md:text-lg text-blue-300 hover:underline hover:text-blue-200"
+                                                >
+                                                    Connect Roblox
+                                                </button>
+                                            )}
+                                        </div>
+                                        {/* VATSIM */}
+                                        <div className="flex items-center gap-2">
+                                            <img
+                                                src="/assets/images/vatsim.webp"
+                                                alt="VATSIM"
+                                                className="h-6 w-6"
+                                            />
+                                            {isVatsimLinked ? (
+                                                <a
+                                                    href={`https://stats.vatsim.net/stats/${profile.user.vatsim_cid}`}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    className="text-base md:text-lg text-blue-400 hover:underline hover:text-blue-300"
+                                                >
+                                                    {displayVatsimRating}
+                                                </a>
+                                            ) : (
+                                                <button
+                                                    onClick={handleLinkVatsim}
+                                                    className="text-base md:text-lg text-blue-400 hover:underline hover:text-blue-300"
+                                                >
+                                                    Connect VATSIM
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                             <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => (window.location.href = '/')}
-                                className="text-blue-400 hover:text-blue-300 transition-colors text-sm"
+                                onClick={handleShareProfile}
+                                className="flex items-center gap-2 self-center md:self-auto"
+                                variant={shareClicked ? 'success' : 'outline'}
                             >
-                                Back to PFControl
+                                <Share2 className="w-4 h-4" />
+                                <span>
+                                    {shareClicked ? 'Copied!' : 'Share'}
+                                </span>
                             </Button>
                         </div>
                     </div>
                 </div>
             </div>
 
-            {/* Profile Header */}
-            <div className="relative w-full bg-gradient-to-br from-blue-900/40 via-purple-900/30 to-gray-900/40 border-b-2 border-blue-800/30 py-8 md:py-12">
-                <div className="absolute inset-0 bg-[url('/assets/app/backgrounds/mdpc_01.png')] bg-cover bg-center opacity-10"></div>
-                <div className="relative container mx-auto max-w-6xl px-4">
-                    <div className="flex flex-col md:flex-row md:items-center gap-6">
-                        {/* Avatar */}
-                        <div className="relative self-center md:self-auto">
-                            <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-blue-500/50 overflow-hidden bg-gray-800 shadow-xl shadow-blue-500/20">
-                                <img
-                                    src={getDiscordAvatar(
-                                        profile.user.id,
-                                        profile.user.avatar
-                                    )}
-                                    alt={profile.user.username}
-                                    className="w-full h-full object-cover"
-                                />
-                            </div>
-                        </div>
-
-                        {/* User Info */}
-                        <div className="flex-1 text-center md:text-left">
-                            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-2">
-                                {profile.user.username}
-                                {profile.user.discriminator &&
-                                    profile.user.discriminator !== '0' && (
-                                        <span className="text-gray-400">
-                                            #{profile.user.discriminator}
-                                        </span>
-                                    )}
-                            </h1>
-                            {(profile.user.is_admin ||
-                                (profile.user.roles &&
-                                    profile.user.roles.length > 0)) && (
-                                <div className="flex flex-wrap gap-2 mb-3 justify-center md:justify-start">
-                                    {profile.user.is_admin && (
-                                        <div
-                                            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-default"
-                                            style={{
-                                                backgroundColor:
-                                                    'rgba(59, 130, 246, 0.2)',
-                                                borderColor:
-                                                    'rgba(59, 130, 246, 0.5)',
-                                                boxShadow:
-                                                    '0 4px 6px -1px rgba(59, 130, 246, 0.2)',
-                                            }}
-                                        >
-                                            <Braces
-                                                className="h-4 w-4"
-                                                style={{ color: '#3B82F6' }}
-                                            />
-                                            <span
-                                                className="text-sm font-semibold"
-                                                style={{ color: '#3B82F6' }}
-                                            >
-                                                Developer
-                                            </span>
-                                        </div>
-                                    )}
-                                    {profile.user.roles &&
-                                        profile.user.roles.map((role) => {
-                                            const badge = getRoleBadge(role);
-                                            const BadgeIcon = badge.icon;
-                                            return (
-                                                <div
-                                                    key={role.id}
-                                                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-default"
-                                                    style={{
-                                                        backgroundColor: `rgba(${badge.rgb}, 0.2)`,
-                                                        borderColor: `rgba(${badge.rgb}, 0.5)`,
-                                                        boxShadow: `0 4px 6px -1px rgba(${badge.rgb}, 0.2)`,
-                                                    }}
-                                                >
-                                                    <BadgeIcon
-                                                        className="h-4 w-4"
-                                                        style={{
-                                                            color: badge.color,
-                                                        }}
-                                                    />
-                                                    <span
-                                                        className="text-sm font-semibold"
-                                                        style={{
-                                                            color: badge.color,
-                                                        }}
-                                                    >
-                                                        {badge.text}
-                                                    </span>
-                                                </div>
-                                            );
-                                        })}
-                                    {(displayVatsimRating || profile.user.vatsim_cid) && (
-                                        profile.user.vatsim_cid ? (
-                                            <a
-                                                href={`https://stats.vatsim.net/stats/${profile.user.vatsim_cid}`}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2"
-                                                style={{
-                                                    background: 'linear-gradient(135deg, rgba(42,160,240,0.3) 0%, rgba(49,196,243,0.3) 50%, rgba(46,204,113,0.3) 100%)',
-                                                    borderColor: 'rgba(42,160,240,0.3)',
-                                                    boxShadow: '0 4px 6px -1px rgba(42,160,240,0.2)'
-                                                }}
-                                            >
-                                                <span className="inline-flex items-center justify-center rounded-full bg-white p-1">
-                                                    <img
-                                                        src="/assets/images/vatsim.svg"
-                                                        alt="VATSIM"
-                                                        className="h-4 w-4"
-                                                        style={{ transform: 'rotate(180deg)' }}
-                                                    />
-                                                </span>
-                                                {displayVatsimRating && (
-                                                    <span className="text-base md:text-lg font-bold" style={{ color: '#3B82F6' }}>
-                                                        {displayVatsimRating}
-                                                    </span>
-                                                )}
-                                            </a>
-                                        ) : (
-                                            <div
-                                                className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border-2 cursor-default"
-                                                style={{
-                                                    background: 'linear-gradient(135deg, rgba(42,160,240,0.3) 0%, rgba(49,196,243,0.3) 50%, rgba(46,204,113,0.3) 100%)',
-                                                    borderColor: 'rgba(42,160,240,0.3)',
-                                                    boxShadow: '0 4px 6px -1px rgba(42,160,240,0.2)'
-                                                }}
-                                            >
-                                                <span className="inline-flex items-center justify-center rounded-full bg-white p-1">
-                                                    <img
-                                                        src="/assets/images/vatsim.svg"
-                                                        alt="VATSIM"
-                                                        className="h-4 w-4"
-                                                        style={{ transform: 'rotate(180deg)' }}
-                                                    />
-                                                </span>
-                                                {displayVatsimRating && (
-                                                    <span className="text-base md:text-lg font-bold" style={{ color: '#3B82F6' }}>
-                                                        {displayVatsimRating}
-                                                    </span>
-                                                )}
-                                            </div>
-                                        )
-                                    )}
-                                </div>
-                            )}
-                        <div className="flex flex-col md:flex-row gap-2 md:gap-4 justify-center md:justify-start">
-                            {profile.user.roblox_username && (
-                                <p className="text-base md:text-lg text-blue-300">
-                                    Roblox:{' '}
-                                    {profile.user.roblox_user_id ? (
-                                        <a
-                                            href={`https://www.roblox.com/users/${profile.user.roblox_user_id}/profile`}
-                                            target="_blank"
-                                            rel="noopener noreferrer"
-                                            className="underline hover:text-blue-200"
-                                        >
-                                            {profile.user.roblox_username}
-                                        </a>
-                                    ) : (
-                                        profile.user.roblox_username
-                                    )}
-                                </p>
-                            )}
-                            {/* VATSIM badge moved up to align with role badges */}
-                            <div className="flex items-center gap-2 text-gray-400 justify-center md:justify-start">
-                                <Calendar className="h-4 w-4" />
-                                <span className="text-sm">
-                                    Member since{' '}
-                                    {new Date(
-                                        profile.user.member_since
-                                    ).toLocaleDateString('en-US', {
-                                        month: 'long',
-                                        year: 'numeric',
-                                    })}
-                                </span>
-                            </div>
-                        </div>
-                        </div>
-                        <Button
-                            onClick={handleShareProfile}
-                            className="flex items-center gap-2 self-center md:self-auto"
-                            variant={shareClicked ? 'success' : 'outline'}
-                        >
-                            <Share2 className="w-4 h-4" />
-                            <span>{shareClicked ? 'Copied!' : 'Share'}</span>
-                        </Button>
-                    </div>
-                </div>
-            </div>
-
             {/* Stats Grid */}
-            <div className="container mx-auto max-w-6xl px-4 mt-8">
+            <div className="max-w-7xl mx-auto px-4 mt-8">
                 <h2 className="text-2xl font-bold text-white mb-4 flex items-center gap-2">
                     <TrendingUp className="h-6 w-6 text-blue-400" />
                     Statistics
@@ -707,7 +601,9 @@ const handleShareFlight = async (flightid: string): Promise<string> => {
                                     <div
                                         key={flight.id}
                                         onClick={async () => {
-                                            const url = await handleShareFlight(String(flight.id));
+                                            const url = await handleShareFlight(
+                                                String(flight.id)
+                                            );
                                             if (url) navigate(url);
                                         }}
                                         className="bg-gray-900/50 rounded-xl border-2 border-gray-800 p-4 hover:border-blue-700/50 transition-all"
@@ -729,7 +625,8 @@ const handleShareFlight = async (flightid: string): Promise<string> => {
                                                 </div>
                                                 <div className="flex items-center gap-4 text-sm text-gray-400">
                                                     <span className="font-mono">
-                                                        {flight.departure_icao} → {flight.arrival_icao}
+                                                        {flight.departure_icao}{' '}
+                                                        → {flight.arrival_icao}
                                                     </span>
                                                     <span>•</span>
                                                     <span>

@@ -11,7 +11,8 @@ interface AccessDeniedProps {
         | 'access-denied'
         | 'invalid-session'
         | 'banned'
-        | 'tester-required';
+        | 'tester-required'
+        | 'pilot-not-found';
 }
 
 export default function AccessDenied({
@@ -28,18 +29,22 @@ export default function AccessDenied({
         errorType === 'invalid-session'
             ? 'from-black via-zinc-900 to-yellow-700'
             : errorType === 'banned'
-            ? 'from-black via-zinc-900 to-red-900'
-            : errorType === 'tester-required'
-            ? 'from-black via-zinc-900 to-cyan-900'
-            : 'from-black via-zinc-900 to-red-950';
+              ? 'from-black via-zinc-900 to-red-900'
+              : errorType === 'tester-required'
+                ? 'from-black via-zinc-900 to-cyan-900'
+                : errorType === 'pilot-not-found'
+                  ? 'from-black via-zinc-900 to-blue-900'
+                  : 'from-black via-zinc-900 to-red-950';
     const textGradient =
         errorType === 'invalid-session'
             ? 'from-yellow-400 to-yellow-700'
             : errorType === 'banned'
-            ? 'from-red-400 to-red-700'
-            : errorType === 'tester-required'
-            ? 'from-cyan-400 to-cyan-700'
-            : 'from-red-400 to-red-900';
+              ? 'from-red-400 to-red-700'
+              : errorType === 'tester-required'
+                ? 'from-cyan-400 to-cyan-700'
+                : errorType === 'pilot-not-found'
+                  ? 'from-blue-400 to-blue-700'
+                  : 'from-red-400 to-red-900';
 
     if (errorType === 'invalid-session') {
         displayMessage = displayMessage || 'Invalid Session';
@@ -56,6 +61,11 @@ export default function AccessDenied({
         displayDescription =
             displayDescription ||
             'This application is currently in testing. Please contact an administrator if you believe you should have access.';
+    } else if (errorType === 'pilot-not-found') {
+        displayMessage = displayMessage || 'Pilot Not Found';
+        displayDescription =
+            displayDescription ||
+            'The pilot you are looking for could not be found.';
     } else {
         displayMessage = displayMessage || 'Access Denied';
         displayDescription =
@@ -73,7 +83,10 @@ export default function AccessDenied({
                     <h1
                         className={`text-[10rem] font-extrabold bg-gradient-to-br ${textGradient} bg-clip-text text-transparent -mb-8`}
                     >
-                        {errorType === 'invalid-session' ? '404' : '403'}
+                        {errorType === 'invalid-session' ||
+                        errorType === 'pilot-not-found'
+                            ? '404'
+                            : '403'}
                     </h1>
                     <p className="text-2xl mb-4 text-gray-300">
                         {displayMessage}
@@ -81,7 +94,8 @@ export default function AccessDenied({
                     <p className="text-lg mb-8 text-gray-400">
                         {displayDescription}
                     </p>
-                    {errorType == 'tester-required' && (
+                    {errorType === 'tester-required' ||
+                    errorType === 'pilot-not-found' ? (
                         <Link
                             to="https://pfconnect.online/discord"
                             className={`inline-flex items-center px-8 py-4 rounded-full ${'bg-[#4f62a5] hover:bg-[#384366]'} text-white text-xl font-medium transition-all duration-300 shadow-lg hover:shadow-xl`}
@@ -89,8 +103,7 @@ export default function AccessDenied({
                             <FaDiscord className="mr-3 h-6 w-6 group-hover:-translate-x-1 transition-transform duration-300" />
                             Support Server
                         </Link>
-                    )}
-                    {errorType !== 'tester-required' && (
+                    ) : (
                         <Link
                             to="https://pfconnect.online/discord"
                             className={`inline-flex items-center px-8 py-4 rounded-full ${

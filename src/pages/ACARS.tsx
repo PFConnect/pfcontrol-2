@@ -1,6 +1,19 @@
 import { useEffect, useState, useRef } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
-import { Terminal, User, Radio, StickyNote, Map, ZoomIn, ZoomOut, Maximize, Minimize, ChevronLeft, ChevronRight, Menu } from 'lucide-react';
+import {
+    Terminal,
+    User,
+    Radio,
+    StickyNote,
+    Map,
+    ZoomIn,
+    ZoomOut,
+    Maximize,
+    Minimize,
+    ChevronLeft,
+    ChevronRight,
+    Menu,
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Loader from '../components/common/Loader';
 import Button from '../components/common/Button';
@@ -49,7 +62,9 @@ export default function ACARS() {
     const [terminalWidth, setTerminalWidth] = useState(50);
     const [notesWidth, setNotesWidth] = useState(20);
     const [selectedChart, setSelectedChart] = useState<string | null>(null);
-    const [isDragging, setIsDragging] = useState<'terminal' | 'notes' | 'chartList' | null>(null);
+    const [isDragging, setIsDragging] = useState<
+        'terminal' | 'notes' | 'chartList' | null
+    >(null);
     const [chartLoadError, setChartLoadError] = useState(false);
     const [chartZoom, setChartZoom] = useState(1);
     const [chartPan, setChartPan] = useState({ x: 0, y: 0 });
@@ -61,7 +76,9 @@ export default function ACARS() {
         const saved = localStorage.getItem('acars-sidebar-visible');
         return saved !== null ? saved === 'true' : true;
     });
-    const [mobileTab, setMobileTab] = useState<'terminal' | 'notes' | 'charts'>('terminal');
+    const [mobileTab, setMobileTab] = useState<'terminal' | 'notes' | 'charts'>(
+        'terminal'
+    );
     const [isMobileDrawerOpen, setIsMobileDrawerOpen] = useState(false);
 
     const socketRef = useRef<ReturnType<typeof createFlightsSocket> | null>(
@@ -82,16 +99,31 @@ export default function ACARS() {
     }, [settings]);
 
     useEffect(() => {
-        if (sessionId && flightId && flight && !dataLoading && !notesInitializedRef.current) {
+        if (
+            sessionId &&
+            flightId &&
+            flight &&
+            !dataLoading &&
+            !notesInitializedRef.current
+        ) {
             const storageKey = `acars-notes-${sessionId}-${flightId}`;
             const savedNotes = localStorage.getItem(storageKey);
 
             if (savedNotes) {
                 setNotes(savedNotes);
             } else {
-                const departureAirport = getAirportName(flight.departure || '', airports);
-                const arrivalAirport = getAirportName(flight.arrival || '', airports);
-                const formattedCallsign = parseCallsign(flight.callsign || '', airlines);
+                const departureAirport = getAirportName(
+                    flight.departure || '',
+                    airports
+                );
+                const arrivalAirport = getAirportName(
+                    flight.arrival || '',
+                    airports
+                );
+                const formattedCallsign = parseCallsign(
+                    flight.callsign || '',
+                    airlines
+                );
 
                 const initialNotes = `FLIGHT PLAN DETAILS
 ═══════════════════════════════════════
@@ -159,7 +191,10 @@ NOTES:
             const newTerminalWidth = Math.max(30, Math.min(70, percentage));
             setTerminalWidth(newTerminalWidth);
         } else if (isDragging === 'notes') {
-            const newNotesWidth = Math.max(15, Math.min(35, percentage - terminalWidth));
+            const newNotesWidth = Math.max(
+                15,
+                Math.min(35, percentage - terminalWidth)
+            );
             setNotesWidth(newNotesWidth);
         }
     };
@@ -191,7 +226,10 @@ NOTES:
     const handleChartMouseDown = (e: React.MouseEvent) => {
         if (e.button !== 0) return; // Only left click
         setIsChartDragging(true);
-        setChartDragStart({ x: e.clientX - chartPan.x, y: e.clientY - chartPan.y });
+        setChartDragStart({
+            x: e.clientX - chartPan.x,
+            y: e.clientY - chartPan.y,
+        });
     };
 
     const handleChartMouseMove = (e: React.MouseEvent) => {
@@ -223,11 +261,17 @@ NOTES:
         if (!chartContainerRef.current) return;
 
         if (!document.fullscreenElement) {
-            chartContainerRef.current.requestFullscreen().then(() => {
-                setIsChartFullscreen(true);
-            }).catch((err) => {
-                console.error('Error attempting to enable fullscreen:', err);
-            });
+            chartContainerRef.current
+                .requestFullscreen()
+                .then(() => {
+                    setIsChartFullscreen(true);
+                })
+                .catch((err) => {
+                    console.error(
+                        'Error attempting to enable fullscreen:',
+                        err
+                    );
+                });
         } else {
             document.exitFullscreen().then(() => {
                 setIsChartFullscreen(false);
@@ -250,7 +294,10 @@ NOTES:
 
         document.addEventListener('fullscreenchange', handleFullscreenChange);
         return () => {
-            document.removeEventListener('fullscreenchange', handleFullscreenChange);
+            document.removeEventListener(
+                'fullscreenchange',
+                handleFullscreenChange
+            );
         };
     }, []);
 
@@ -281,36 +328,144 @@ NOTES:
         const baseUrl = '/assets/app/charts';
 
         // Mapping of available charts per airport
-        const availableCharts: Record<string, { pattern: string; num: number; name: string; type: string }[]> = {
-            'EGKK': [
-                { pattern: 'GND', num: 1, name: 'Airport Diagram', type: 'Ground' },
-                { pattern: 'GND', num: 2, name: 'Ground Movement', type: 'Ground' },
-                { pattern: 'DEP', num: 1, name: 'SID Chart 1', type: 'Departure' },
-                { pattern: 'DEP', num: 2, name: 'SID Chart 2', type: 'Departure' },
-                { pattern: 'DEP', num: 3, name: 'SID Chart 3', type: 'Departure' },
-                { pattern: 'ARR', num: 1, name: 'STAR Chart 1', type: 'Arrival' },
-                { pattern: 'ARR', num: 2, name: 'STAR Chart 2', type: 'Arrival' },
+        const availableCharts: Record<
+            string,
+            { pattern: string; num: number; name: string; type: string }[]
+        > = {
+            EGKK: [
+                {
+                    pattern: 'GND',
+                    num: 1,
+                    name: 'Airport Diagram',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'GND',
+                    num: 2,
+                    name: 'Ground Movement',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 1,
+                    name: 'SID Chart 1',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 2,
+                    name: 'SID Chart 2',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 3,
+                    name: 'SID Chart 3',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'ARR',
+                    num: 1,
+                    name: 'STAR Chart 1',
+                    type: 'Arrival',
+                },
+                {
+                    pattern: 'ARR',
+                    num: 2,
+                    name: 'STAR Chart 2',
+                    type: 'Arrival',
+                },
             ],
-            'GCLP': [
-                { pattern: 'GND', num: 1, name: 'Airport Diagram', type: 'Ground' },
-                { pattern: 'DEP', num: 1, name: 'SID Chart 1', type: 'Departure' },
-                { pattern: 'DEP', num: 2, name: 'SID Chart 2', type: 'Departure' },
-                { pattern: 'DEP', num: 3, name: 'SID Chart 3', type: 'Departure' },
-                { pattern: 'ARR', num: 1, name: 'STAR Chart 1', type: 'Arrival' },
-                { pattern: 'ARR', num: 2, name: 'STAR Chart 2', type: 'Arrival' },
-                { pattern: 'ARR', num: 3, name: 'STAR Chart 3', type: 'Arrival' },
+            GCLP: [
+                {
+                    pattern: 'GND',
+                    num: 1,
+                    name: 'Airport Diagram',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 1,
+                    name: 'SID Chart 1',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 2,
+                    name: 'SID Chart 2',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 3,
+                    name: 'SID Chart 3',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'ARR',
+                    num: 1,
+                    name: 'STAR Chart 1',
+                    type: 'Arrival',
+                },
+                {
+                    pattern: 'ARR',
+                    num: 2,
+                    name: 'STAR Chart 2',
+                    type: 'Arrival',
+                },
+                {
+                    pattern: 'ARR',
+                    num: 3,
+                    name: 'STAR Chart 3',
+                    type: 'Arrival',
+                },
             ],
-            'LCLK': [
-                { pattern: 'GND', num: 1, name: 'Airport Diagram', type: 'Ground' },
-                { pattern: 'GND', num: 2, name: 'Ground Movement', type: 'Ground' },
-                { pattern: 'DEP', num: 1, name: 'SID Chart 1', type: 'Departure' },
-                { pattern: 'DEP', num: 2, name: 'SID Chart 2', type: 'Departure' },
+            LCLK: [
+                {
+                    pattern: 'GND',
+                    num: 1,
+                    name: 'Airport Diagram',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'GND',
+                    num: 2,
+                    name: 'Ground Movement',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 1,
+                    name: 'SID Chart 1',
+                    type: 'Departure',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 2,
+                    name: 'SID Chart 2',
+                    type: 'Departure',
+                },
                 { pattern: 'ARR', num: 1, name: 'STAR Chart', type: 'Arrival' },
             ],
-            'MDPC': [
-                { pattern: 'GND', num: 1, name: 'Airport Diagram', type: 'Ground' },
-                { pattern: 'GND', num: 2, name: 'Ground Movement', type: 'Ground' },
-                { pattern: 'DEP', num: 1, name: 'SID Chart', type: 'Departure' },
+            MDPC: [
+                {
+                    pattern: 'GND',
+                    num: 1,
+                    name: 'Airport Diagram',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'GND',
+                    num: 2,
+                    name: 'Ground Movement',
+                    type: 'Ground',
+                },
+                {
+                    pattern: 'DEP',
+                    num: 1,
+                    name: 'SID Chart',
+                    type: 'Departure',
+                },
                 { pattern: 'ARR', num: 1, name: 'STAR Chart', type: 'Arrival' },
             ],
         };
@@ -369,7 +524,9 @@ NOTES:
             if (chatPopSettings?.enabled) {
                 // Create a fresh audio element each time to avoid pitch issues
                 const audio = new Audio('/assets/app/sounds/ACARSChatPop.mp3');
-                const logVolume = linearToLogVolume(chatPopSettings.volume || 100);
+                const logVolume = linearToLogVolume(
+                    chatPopSettings.volume || 100
+                );
 
                 const onCanPlay = () => {
                     audio.removeEventListener('canplaythrough', onCanPlay);
@@ -409,7 +566,8 @@ NOTES:
                     throw new Error('Failed to validate access');
                 }
 
-                const { valid, accessId: sessionAccess } = await validateResponse.json();
+                const { valid, accessId: sessionAccess } =
+                    await validateResponse.json();
                 if (!valid) {
                     throw new Error('Invalid access token');
                 }
@@ -505,9 +663,18 @@ NOTES:
                 type: 'Success',
             };
 
-            const formattedCallsign = parseCallsign(flight.callsign || '', airlines);
-            const departureAirport = getAirportName(flight.departure || '', airports);
-            const arrivalAirport = getAirportName(flight.arrival || '', airports);
+            const formattedCallsign = parseCallsign(
+                flight.callsign || '',
+                airlines
+            );
+            const departureAirport = getAirportName(
+                flight.departure || '',
+                airports
+            );
+            const arrivalAirport = getAirportName(
+                flight.arrival || '',
+                airports
+            );
 
             const detailsMsg: AcarsMessage = {
                 id: `${Date.now()}-details`,
@@ -577,10 +744,10 @@ NOTES:
         const socket = createFlightsSocket(
             sessionId,
             sessionAccessId,
-            () => { },
-            () => { },
-            () => { },
-            () => { }
+            () => {},
+            () => {},
+            () => {},
+            () => {}
         );
 
         socketRef.current = socket;
@@ -745,11 +912,15 @@ NOTES:
                                     To use ACARS you have to sign in!
                                 </p>
                                 <p className="text-green-400 mb-6 text-sm">
-                                    Don't worry your flight plan was still submitted, but you will not be able to use ACARS until you sign in.
+                                    Don't worry your flight plan was still
+                                    submitted, but you will not be able to use
+                                    ACARS until you sign in.
                                 </p>
                                 <div className="flex gap-3 justify-center">
                                     <Button
-                                        onClick={() => window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/discord`}
+                                        onClick={() =>
+                                            (window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/discord`)
+                                        }
                                         className="bg-blue-600 hover:bg-blue-700"
                                     >
                                         Sign In with Discord
@@ -790,14 +961,21 @@ NOTES:
                 onMouseUp={handleMouseUp}
                 onMouseLeave={handleMouseUp}
             >
-                <div style={{ width: `${terminalWidth}%` }} className="flex-shrink-0">
+                <div
+                    style={{ width: `${terminalWidth}%` }}
+                    className="flex-shrink-0"
+                >
                     <div className="bg-gray-900 rounded-2xl shadow-2xl overflow-hidden border border-gray-800">
                         <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-3 border-b border-gray-700">
                             <div className="flex items-center gap-3">
                                 <button
                                     onClick={handleToggleSidebar}
                                     className="p-1 hover:bg-gray-700 rounded transition-colors"
-                                    title={showSidebar ? 'Hide sidebar' : 'Show sidebar'}
+                                    title={
+                                        showSidebar
+                                            ? 'Hide sidebar'
+                                            : 'Show sidebar'
+                                    }
                                 >
                                     {showSidebar ? (
                                         <ChevronLeft className="w-4 h-4 text-gray-400" />
@@ -808,13 +986,18 @@ NOTES:
                                 <div className="flex items-center gap-2">
                                     <Terminal className="w-4 h-4 text-green-500" />
                                     <span className="text-sm font-mono text-gray-300">
-                                        {flight?.callsign ? `${flight.callsign} - ACARS Terminal` : 'ACARS Terminal'}
+                                        {flight?.callsign
+                                            ? `${flight.callsign} - ACARS Terminal`
+                                            : 'ACARS Terminal'}
                                     </span>
                                 </div>
                             </div>
                         </div>
 
-                        <div className="flex" style={{ height: 'calc(100vh - 200px)' }}>
+                        <div
+                            className="flex"
+                            style={{ height: 'calc(100vh - 200px)' }}
+                        >
                             {showSidebar && (
                                 <div className="w-64 bg-gray-900 border-r border-gray-800 flex flex-col">
                                     <div className="p-3 border-b border-gray-800">
@@ -832,54 +1015,95 @@ NOTES:
                                                         {session.airportIcao}
                                                     </div>
                                                     {session.controllers &&
-                                                        session.controllers.length > 0 ? (
+                                                    session.controllers.length >
+                                                        0 ? (
                                                         <div className="ml-2 mt-1 space-y-1">
-                                                            {session.controllers.map((controller, idx) => {
-                                                                const isCurrentUser =
-                                                                    !!user &&
-                                                                    controller.username === user.username;
-                                                                const isVatsimLinked =
-                                                                    isCurrentUser && !!user?.vatsimCid;
-                                                                const hasControllerRating =
-                                                                    isVatsimLinked &&
-                                                                    !!user?.vatsimRatingShort &&
-                                                                    user.vatsimRatingShort !== 'OBS' &&
-                                                                    user.vatsimRatingShort !== 'SUS';
-                                                                return (
-                                                                    <div key={idx} className="">
-                                                                        <div className="flex items-center gap-2">
-                                                                            <span className="text-gray-400 text-base">•</span>
-                                                                            <a className="text-white text-base md:text-lg font-semibold" href={`${window.location.origin}/pilots/${controller.username}`}
-                                                                                target="_blank"
-                                                                                rel="noopener noreferrer">
-                                                                                {controller.username}
-                                                                            </a>
-                                                                            {isVatsimLinked && hasControllerRating && (
-                                                                                <span className="relative group inline-flex items-center justify-center rounded-full bg-white p-0.5">
-                                                                                    <img
-                                                                                        src="/assets/images/vatsim.svg"
-                                                                                        alt="VATSIM"
-                                                                                        className="h-3 w-3"
-                                                                                        style={{ transform: 'rotate(180deg)' }}
-                                                                                    />
-                                                                                    <span
-                                                                                        className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap rounded-md px-2 py-1 text-[10px] md:text-xs font-medium text-white bg-gradient-to-r from-cyan-500 to-green-500 shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-100"
-                                                                                    >
-                                                                                        <span className="font-bold">{user.vatsimRatingShort}</span> | This user holds a controller rating on VATSIM
-                                                                                    </span>
+                                                            {session.controllers.map(
+                                                                (
+                                                                    controller,
+                                                                    idx
+                                                                ) => {
+                                                                    const isCurrentUser =
+                                                                        !!user &&
+                                                                        controller.username ===
+                                                                            user.username;
+                                                                    const isVatsimLinked =
+                                                                        isCurrentUser &&
+                                                                        !!user?.vatsimCid;
+                                                                    const hasControllerRating =
+                                                                        isVatsimLinked &&
+                                                                        !!user?.vatsimRatingShort &&
+                                                                        user.vatsimRatingShort !==
+                                                                            'OBS' &&
+                                                                        user.vatsimRatingShort !==
+                                                                            'SUS';
+                                                                    return (
+                                                                        <div
+                                                                            key={
+                                                                                idx
+                                                                            }
+                                                                            className=""
+                                                                        >
+                                                                            <div className="flex items-center gap-2">
+                                                                                <span className="text-gray-400 text-base">
+                                                                                    •
                                                                                 </span>
-                                                                            )}
-                                                                            <span className="text-gray-500 text-sm md:text-base">
-                                                                                ({controller.role})
-                                                                            </span>
+                                                                                <a
+                                                                                    className="text-white text-base md:text-lg font-semibold"
+                                                                                    href={`${window.location.origin}/pilots/${controller.username}`}
+                                                                                    target="_blank"
+                                                                                    rel="noopener noreferrer"
+                                                                                >
+                                                                                    {
+                                                                                        controller.username
+                                                                                    }
+                                                                                </a>
+                                                                                {isVatsimLinked &&
+                                                                                    hasControllerRating && (
+                                                                                        <span className="relative group inline-flex items-center justify-center rounded-full bg-white p-0.5">
+                                                                                            <img
+                                                                                                src="/assets/images/vatsim.webp"
+                                                                                                alt="VATSIM"
+                                                                                                className="h-3 w-3"
+                                                                                            />
+                                                                                            <span className="absolute left-full top-1/2 -translate-y-1/2 ml-2 whitespace-nowrap rounded-md px-2 py-1 text-[10px] md:text-xs font-medium text-white bg-gradient-to-r from-cyan-500 to-green-500 shadow-lg opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity duration-100">
+                                                                                                <span className="font-bold">
+                                                                                                    {
+                                                                                                        user.vatsimRatingShort
+                                                                                                    }
+                                                                                                </span>{' '}
+                                                                                                |
+                                                                                                This
+                                                                                                user
+                                                                                                holds
+                                                                                                a
+                                                                                                controller
+                                                                                                rating
+                                                                                                on
+                                                                                                VATSIM
+                                                                                            </span>
+                                                                                        </span>
+                                                                                    )}
+                                                                                <span className="text-gray-500 text-sm md:text-base">
+                                                                                    (
+                                                                                    {
+                                                                                        controller.role
+                                                                                    }
+
+                                                                                    )
+                                                                                </span>
+                                                                            </div>
                                                                         </div>
-                                                                    </div>
-                                                                );
-                                                            })}
+                                                                    );
+                                                                }
+                                                            )}
                                                         </div>
                                                     ) : (
                                                         <div className="text-[10px] text-gray-500 ml-2">
-                                                            {session.activeUsers} controller(s)
+                                                            {
+                                                                session.activeUsers
+                                                            }{' '}
+                                                            controller(s)
                                                         </div>
                                                     )}
                                                 </div>
@@ -901,41 +1125,56 @@ NOTES:
                                             {activeSessions
                                                 .filter(
                                                     (session) =>
-                                                        session.atis && session.atis.text
+                                                        session.atis &&
+                                                        session.atis.text
                                                 )
                                                 .map((session) => (
                                                     <div
                                                         key={session.sessionId}
                                                         className="text-xs cursor-pointer hover:bg-gray-800 p-2 rounded-lg transition-colors border border-gray-800 hover:border-gray-700"
                                                         onDoubleClick={() =>
-                                                            handleAtisClick(session)
+                                                            handleAtisClick(
+                                                                session
+                                                            )
                                                         }
                                                         title="Double-click to send to terminal"
                                                     >
                                                         <div className="font-bold text-blue-400 text-[11px] mb-0.5">
-                                                            {session.airportIcao} INFO{' '}
-                                                            {session.atis?.letter}
+                                                            {
+                                                                session.airportIcao
+                                                            }{' '}
+                                                            INFO{' '}
+                                                            {
+                                                                session.atis
+                                                                    ?.letter
+                                                            }
                                                         </div>
                                                         <div className="text-gray-500 text-[9px]">
-                                                            {session.atis?.timestamp &&
+                                                            {session.atis
+                                                                ?.timestamp &&
                                                                 new Date(
                                                                     session.atis.timestamp
-                                                                ).toLocaleTimeString('en-US', {
-                                                                    hour: '2-digit',
-                                                                    minute: '2-digit',
-                                                                    timeZone: 'UTC',
-                                                                    hour12: false,
-                                                                })}
+                                                                ).toLocaleTimeString(
+                                                                    'en-US',
+                                                                    {
+                                                                        hour: '2-digit',
+                                                                        minute: '2-digit',
+                                                                        timeZone:
+                                                                            'UTC',
+                                                                        hour12: false,
+                                                                    }
+                                                                )}
                                                             Z
                                                         </div>
                                                     </div>
                                                 ))}
-                                            {activeSessions.filter((s) => s.atis && s.atis.text)
-                                                .length === 0 && (
-                                                    <div className="text-[10px] text-gray-500">
-                                                        No ATIS available
-                                                    </div>
-                                                )}
+                                            {activeSessions.filter(
+                                                (s) => s.atis && s.atis.text
+                                            ).length === 0 && (
+                                                <div className="text-[10px] text-gray-500">
+                                                    No ATIS available
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 </div>
@@ -950,7 +1189,11 @@ NOTES:
                                                 <>
                                                     {flight.callsign}
                                                     <span className="text-gray-500 font-normal text-xs ml-2">
-                                                        {parseCallsign(flight.callsign || '', airlines)}
+                                                        {parseCallsign(
+                                                            flight.callsign ||
+                                                                '',
+                                                            airlines
+                                                        )}
                                                     </span>
                                                 </>
                                             ) : (
@@ -964,7 +1207,9 @@ NOTES:
                                     {messages.map((msg) => (
                                         <div
                                             key={msg.id}
-                                            className={getMessageColor(msg.type)}
+                                            className={getMessageColor(
+                                                msg.type
+                                            )}
                                         >
                                             <span className="text-gray-500">
                                                 {formatTimestamp(msg.timestamp)}
@@ -987,7 +1232,9 @@ NOTES:
                                             onClick={handleRequestPDC}
                                             disabled={pdcRequested}
                                         >
-                                            {pdcRequested ? 'PDC REQUESTED' : 'REQUEST PDC'}
+                                            {pdcRequested
+                                                ? 'PDC REQUESTED'
+                                                : 'REQUEST PDC'}
                                         </Button>
                                     </div>
                                 </div>
@@ -1003,7 +1250,10 @@ NOTES:
                             onMouseDown={() => handleMouseDown('terminal')}
                         />
 
-                        <div style={{ width: `${notesWidth}%` }} className="flex-shrink-0">
+                        <div
+                            style={{ width: `${notesWidth}%` }}
+                            className="flex-shrink-0"
+                        >
                             <div className="bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden">
                                 <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-3 border-b border-gray-700">
                                     <div className="flex items-center gap-2">
@@ -1013,7 +1263,10 @@ NOTES:
                                         </span>
                                     </div>
                                 </div>
-                                <div className="p-4" style={{ height: 'calc(100vh - 200px)' }}>
+                                <div
+                                    className="p-4"
+                                    style={{ height: 'calc(100vh - 200px)' }}
+                                >
                                     <textarea
                                         value={notes}
                                         onChange={handleNotesChange}
@@ -1034,7 +1287,10 @@ NOTES:
                         />
 
                         <div className="flex-1 min-w-0">
-                            <div ref={chartContainerRef} className={`bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden h-full ${isChartFullscreen ? 'bg-black' : ''}`}>
+                            <div
+                                ref={chartContainerRef}
+                                className={`bg-gray-900 rounded-2xl shadow-2xl border border-gray-800 overflow-hidden h-full ${isChartFullscreen ? 'bg-black' : ''}`}
+                            >
                                 <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-3 border-b border-gray-700">
                                     <div className="flex items-center justify-between">
                                         <div className="flex items-center gap-2">
@@ -1057,7 +1313,10 @@ NOTES:
                                                     className="px-2 py-1 hover:bg-gray-700 rounded transition-colors text-[10px] text-gray-400 font-mono"
                                                     title="Reset Zoom"
                                                 >
-                                                    {Math.round(chartZoom * 100)}%
+                                                    {Math.round(
+                                                        chartZoom * 100
+                                                    )}
+                                                    %
                                                 </button>
                                                 <button
                                                     onClick={handleZoomIn}
@@ -1067,7 +1326,9 @@ NOTES:
                                                     <ZoomIn className="w-4 h-4 text-gray-400" />
                                                 </button>
                                                 <button
-                                                    onClick={handleToggleFullscreen}
+                                                    onClick={
+                                                        handleToggleFullscreen
+                                                    }
                                                     className="p-1 hover:bg-gray-700 rounded transition-colors ml-2"
                                                     title="Toggle Fullscreen"
                                                 >
@@ -1083,7 +1344,11 @@ NOTES:
                                 </div>
                                 <div
                                     className="flex"
-                                    style={{ height: isChartFullscreen ? 'calc(100vh - 60px)' : 'calc(100vh - 200px)' }}
+                                    style={{
+                                        height: isChartFullscreen
+                                            ? 'calc(100vh - 60px)'
+                                            : 'calc(100vh - 200px)',
+                                    }}
                                     onMouseMove={handleChartListMouseMove}
                                     onMouseUp={handleMouseUp}
                                     onMouseLeave={handleMouseUp}
@@ -1100,20 +1365,33 @@ NOTES:
                                                         {flight.departure}
                                                     </h4>
                                                     <div className="space-y-1">
-                                                        {getChartsForAirport(flight.departure || '').map((chart, idx) => (
+                                                        {getChartsForAirport(
+                                                            flight.departure ||
+                                                                ''
+                                                        ).map((chart, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 onClick={() => {
-                                                                    setSelectedChart(chart.path);
-                                                                    setChartLoadError(false);
+                                                                    setSelectedChart(
+                                                                        chart.path
+                                                                    );
+                                                                    setChartLoadError(
+                                                                        false
+                                                                    );
                                                                 }}
-                                                                className={`bg-gray-950 border rounded p-2 text-[10px] transition-colors cursor-pointer ${selectedChart === chart.path
+                                                                className={`bg-gray-950 border rounded p-2 text-[10px] transition-colors cursor-pointer ${
+                                                                    selectedChart ===
+                                                                    chart.path
                                                                         ? 'border-cyan-500 bg-cyan-950'
                                                                         : 'border-gray-800 hover:border-gray-700'
-                                                                    }`}
+                                                                }`}
                                                             >
-                                                                <div className="text-gray-300 break-words">{chart.name}</div>
-                                                                <div className="text-[9px] text-gray-500 mt-0.5 break-words">{chart.type}</div>
+                                                                <div className="text-gray-300 break-words">
+                                                                    {chart.name}
+                                                                </div>
+                                                                <div className="text-[9px] text-gray-500 mt-0.5 break-words">
+                                                                    {chart.type}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1125,20 +1403,32 @@ NOTES:
                                                         {flight.arrival}
                                                     </h4>
                                                     <div className="space-y-1">
-                                                        {getChartsForAirport(flight.arrival || '').map((chart, idx) => (
+                                                        {getChartsForAirport(
+                                                            flight.arrival || ''
+                                                        ).map((chart, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 onClick={() => {
-                                                                    setSelectedChart(chart.path);
-                                                                    setChartLoadError(false);
+                                                                    setSelectedChart(
+                                                                        chart.path
+                                                                    );
+                                                                    setChartLoadError(
+                                                                        false
+                                                                    );
                                                                 }}
-                                                                className={`bg-gray-950 border rounded p-2 text-[10px] transition-colors cursor-pointer ${selectedChart === chart.path
+                                                                className={`bg-gray-950 border rounded p-2 text-[10px] transition-colors cursor-pointer ${
+                                                                    selectedChart ===
+                                                                    chart.path
                                                                         ? 'border-green-500 bg-green-950'
                                                                         : 'border-gray-800 hover:border-gray-700'
-                                                                    }`}
+                                                                }`}
                                                             >
-                                                                <div className="text-gray-300 break-words">{chart.name}</div>
-                                                                <div className="text-[9px] text-gray-500 mt-0.5 break-words">{chart.type}</div>
+                                                                <div className="text-gray-300 break-words">
+                                                                    {chart.name}
+                                                                </div>
+                                                                <div className="text-[9px] text-gray-500 mt-0.5 break-words">
+                                                                    {chart.type}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1151,22 +1441,45 @@ NOTES:
                                                             {flight.alternate}
                                                         </h4>
                                                         <div className="space-y-1">
-                                                            {getChartsForAirport(flight.alternate).map((chart, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    onClick={() => {
-                                                                        setSelectedChart(chart.path);
-                                                                        setChartLoadError(false);
-                                                                    }}
-                                                                    className={`bg-gray-950 border rounded p-2 text-[10px] transition-colors cursor-pointer ${selectedChart === chart.path
-                                                                            ? 'border-yellow-500 bg-yellow-950'
-                                                                            : 'border-gray-800 hover:border-gray-700'
+                                                            {getChartsForAirport(
+                                                                flight.alternate
+                                                            ).map(
+                                                                (
+                                                                    chart,
+                                                                    idx
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            idx
+                                                                        }
+                                                                        onClick={() => {
+                                                                            setSelectedChart(
+                                                                                chart.path
+                                                                            );
+                                                                            setChartLoadError(
+                                                                                false
+                                                                            );
+                                                                        }}
+                                                                        className={`bg-gray-950 border rounded p-2 text-[10px] transition-colors cursor-pointer ${
+                                                                            selectedChart ===
+                                                                            chart.path
+                                                                                ? 'border-yellow-500 bg-yellow-950'
+                                                                                : 'border-gray-800 hover:border-gray-700'
                                                                         }`}
-                                                                >
-                                                                    <div className="text-gray-300 break-words">{chart.name}</div>
-                                                                    <div className="text-[9px] text-gray-500 mt-0.5 break-words">{chart.type}</div>
-                                                                </div>
-                                                            ))}
+                                                                    >
+                                                                        <div className="text-gray-300 break-words">
+                                                                            {
+                                                                                chart.name
+                                                                            }
+                                                                        </div>
+                                                                        <div className="text-[9px] text-gray-500 mt-0.5 break-words">
+                                                                            {
+                                                                                chart.type
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -1175,7 +1488,9 @@ NOTES:
                                     </div>
                                     <div
                                         className="w-1 bg-gray-800 hover:bg-purple-500 cursor-col-resize transition-colors flex-shrink-0"
-                                        onMouseDown={() => handleMouseDown('chartList')}
+                                        onMouseDown={() =>
+                                            handleMouseDown('chartList')
+                                        }
                                     />
                                     <div
                                         ref={chartViewRef}
@@ -1199,7 +1514,14 @@ NOTES:
                                             }
                                         }}
                                         onMouseLeave={handleChartMouseUp}
-                                        style={{ cursor: isChartDragging ? 'grabbing' : selectedChart && !chartLoadError ? 'grab' : 'default' }}
+                                        style={{
+                                            cursor: isChartDragging
+                                                ? 'grabbing'
+                                                : selectedChart &&
+                                                    !chartLoadError
+                                                  ? 'grab'
+                                                  : 'default',
+                                        }}
                                     >
                                         {selectedChart ? (
                                             chartLoadError ? (
@@ -1215,13 +1537,26 @@ NOTES:
                                                         className="max-w-none max-h-full"
                                                         style={{
                                                             transform: `translate(${chartPan.x}px, ${chartPan.y}px) scale(${chartZoom})`,
-                                                            transformOrigin: 'center',
-                                                            transition: isChartDragging ? 'none' : 'transform 0.1s ease-out',
+                                                            transformOrigin:
+                                                                'center',
+                                                            transition:
+                                                                isChartDragging
+                                                                    ? 'none'
+                                                                    : 'transform 0.1s ease-out',
                                                             userSelect: 'none',
-                                                            pointerEvents: 'none'
+                                                            pointerEvents:
+                                                                'none',
                                                         }}
-                                                        onLoad={() => setChartLoadError(false)}
-                                                        onError={() => setChartLoadError(true)}
+                                                        onLoad={() =>
+                                                            setChartLoadError(
+                                                                false
+                                                            )
+                                                        }
+                                                        onError={() =>
+                                                            setChartLoadError(
+                                                                true
+                                                            )
+                                                        }
                                                         draggable={false}
                                                     />
                                                 </div>
@@ -1263,11 +1598,16 @@ NOTES:
                     <div className="flex border-t border-gray-700">
                         <button
                             onClick={() => setMobileTab('terminal')}
-                            className={`flex-1 px-4 py-3 text-xs font-mono transition-colors ${settings?.acars?.notesEnabled || settings?.acars?.chartsEnabled ? 'border-r border-gray-700' : ''
-                                } ${mobileTab === 'terminal'
+                            className={`flex-1 px-4 py-3 text-xs font-mono transition-colors ${
+                                settings?.acars?.notesEnabled ||
+                                settings?.acars?.chartsEnabled
+                                    ? 'border-r border-gray-700'
+                                    : ''
+                            } ${
+                                mobileTab === 'terminal'
                                     ? 'bg-gray-800 text-green-400'
                                     : 'text-gray-400 hover:bg-gray-800/50'
-                                }`}
+                            }`}
                         >
                             <div className="flex items-center justify-center gap-2">
                                 <Terminal className="w-4 h-4" />
@@ -1277,11 +1617,15 @@ NOTES:
                         {settings?.acars?.notesEnabled && (
                             <button
                                 onClick={() => setMobileTab('notes')}
-                                className={`flex-1 px-4 py-3 text-xs font-mono transition-colors ${settings?.acars?.chartsEnabled ? 'border-r border-gray-700' : ''
-                                    } ${mobileTab === 'notes'
+                                className={`flex-1 px-4 py-3 text-xs font-mono transition-colors ${
+                                    settings?.acars?.chartsEnabled
+                                        ? 'border-r border-gray-700'
+                                        : ''
+                                } ${
+                                    mobileTab === 'notes'
                                         ? 'bg-gray-800 text-blue-400'
                                         : 'text-gray-400 hover:bg-gray-800/50'
-                                    }`}
+                                }`}
                             >
                                 <div className="flex items-center justify-center gap-2">
                                     <StickyNote className="w-4 h-4" />
@@ -1292,10 +1636,11 @@ NOTES:
                         {settings?.acars?.chartsEnabled && (
                             <button
                                 onClick={() => setMobileTab('charts')}
-                                className={`flex-1 px-4 py-3 text-xs font-mono transition-colors ${mobileTab === 'charts'
+                                className={`flex-1 px-4 py-3 text-xs font-mono transition-colors ${
+                                    mobileTab === 'charts'
                                         ? 'bg-gray-800 text-purple-400'
                                         : 'text-gray-400 hover:bg-gray-800/50'
-                                    }`}
+                                }`}
                             >
                                 <div className="flex items-center justify-center gap-2">
                                     <Map className="w-4 h-4" />
@@ -1307,7 +1652,10 @@ NOTES:
                 </div>
 
                 {/* Mobile Content Area */}
-                <div className="bg-gray-900 rounded-b-2xl border border-gray-800 border-t-0 overflow-hidden" style={{ height: 'calc(100vh - 220px)' }}>
+                <div
+                    className="bg-gray-900 rounded-b-2xl border border-gray-800 border-t-0 overflow-hidden"
+                    style={{ height: 'calc(100vh - 220px)' }}
+                >
                     {/* Terminal Tab */}
                     {mobileTab === 'terminal' && (
                         <div className="h-full flex flex-col bg-black">
@@ -1317,7 +1665,10 @@ NOTES:
                                         <>
                                             {flight.callsign}
                                             <span className="text-gray-500 font-normal text-[10px] ml-2">
-                                                {parseCallsign(flight.callsign || '', airlines)}
+                                                {parseCallsign(
+                                                    flight.callsign || '',
+                                                    airlines
+                                                )}
                                             </span>
                                         </>
                                     )}
@@ -1326,11 +1677,16 @@ NOTES:
 
                             <div className="flex-1 overflow-y-auto p-3 font-mono text-[10px] space-y-1">
                                 {messages.map((msg) => (
-                                    <div key={msg.id} className={getMessageColor(msg.type)}>
+                                    <div
+                                        key={msg.id}
+                                        className={getMessageColor(msg.type)}
+                                    >
                                         <span className="text-gray-500">
                                             {formatTimestamp(msg.timestamp)}
                                         </span>{' '}
-                                        <span className="font-bold">[{msg.station}]:</span>{' '}
+                                        <span className="font-bold">
+                                            [{msg.station}]:
+                                        </span>{' '}
                                         {renderMessageText(msg)}
                                     </div>
                                 ))}
@@ -1345,7 +1701,9 @@ NOTES:
                                     onClick={handleRequestPDC}
                                     disabled={pdcRequested}
                                 >
-                                    {pdcRequested ? 'PDC REQUESTED' : 'REQUEST PDC'}
+                                    {pdcRequested
+                                        ? 'PDC REQUESTED'
+                                        : 'REQUEST PDC'}
                                 </Button>
                             </div>
                         </div>
@@ -1403,17 +1761,28 @@ NOTES:
                                                         {flight.departure}
                                                     </h4>
                                                     <div className="space-y-1">
-                                                        {getChartsForAirport(flight.departure || '').map((chart, idx) => (
+                                                        {getChartsForAirport(
+                                                            flight.departure ||
+                                                                ''
+                                                        ).map((chart, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 onClick={() => {
-                                                                    setSelectedChart(chart.path);
-                                                                    setChartLoadError(false);
+                                                                    setSelectedChart(
+                                                                        chart.path
+                                                                    );
+                                                                    setChartLoadError(
+                                                                        false
+                                                                    );
                                                                 }}
                                                                 className="bg-gray-950 border border-gray-800 hover:border-gray-700 rounded p-2 text-[10px] transition-colors cursor-pointer"
                                                             >
-                                                                <div className="text-gray-300">{chart.name}</div>
-                                                                <div className="text-[9px] text-gray-500 mt-0.5">{chart.type}</div>
+                                                                <div className="text-gray-300">
+                                                                    {chart.name}
+                                                                </div>
+                                                                <div className="text-[9px] text-gray-500 mt-0.5">
+                                                                    {chart.type}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1425,17 +1794,27 @@ NOTES:
                                                         {flight.arrival}
                                                     </h4>
                                                     <div className="space-y-1">
-                                                        {getChartsForAirport(flight.arrival || '').map((chart, idx) => (
+                                                        {getChartsForAirport(
+                                                            flight.arrival || ''
+                                                        ).map((chart, idx) => (
                                                             <div
                                                                 key={idx}
                                                                 onClick={() => {
-                                                                    setSelectedChart(chart.path);
-                                                                    setChartLoadError(false);
+                                                                    setSelectedChart(
+                                                                        chart.path
+                                                                    );
+                                                                    setChartLoadError(
+                                                                        false
+                                                                    );
                                                                 }}
                                                                 className="bg-gray-950 border border-gray-800 hover:border-gray-700 rounded p-2 text-[10px] transition-colors cursor-pointer"
                                                             >
-                                                                <div className="text-gray-300">{chart.name}</div>
-                                                                <div className="text-[9px] text-gray-500 mt-0.5">{chart.type}</div>
+                                                                <div className="text-gray-300">
+                                                                    {chart.name}
+                                                                </div>
+                                                                <div className="text-[9px] text-gray-500 mt-0.5">
+                                                                    {chart.type}
+                                                                </div>
                                                             </div>
                                                         ))}
                                                     </div>
@@ -1448,19 +1827,40 @@ NOTES:
                                                             {flight.alternate}
                                                         </h4>
                                                         <div className="space-y-1">
-                                                            {getChartsForAirport(flight.alternate).map((chart, idx) => (
-                                                                <div
-                                                                    key={idx}
-                                                                    onClick={() => {
-                                                                        setSelectedChart(chart.path);
-                                                                        setChartLoadError(false);
-                                                                    }}
-                                                                    className="bg-gray-950 border border-gray-800 hover:border-gray-700 rounded p-2 text-[10px] transition-colors cursor-pointer"
-                                                                >
-                                                                    <div className="text-gray-300">{chart.name}</div>
-                                                                    <div className="text-[9px] text-gray-500 mt-0.5">{chart.type}</div>
-                                                                </div>
-                                                            ))}
+                                                            {getChartsForAirport(
+                                                                flight.alternate
+                                                            ).map(
+                                                                (
+                                                                    chart,
+                                                                    idx
+                                                                ) => (
+                                                                    <div
+                                                                        key={
+                                                                            idx
+                                                                        }
+                                                                        onClick={() => {
+                                                                            setSelectedChart(
+                                                                                chart.path
+                                                                            );
+                                                                            setChartLoadError(
+                                                                                false
+                                                                            );
+                                                                        }}
+                                                                        className="bg-gray-950 border border-gray-800 hover:border-gray-700 rounded p-2 text-[10px] transition-colors cursor-pointer"
+                                                                    >
+                                                                        <div className="text-gray-300">
+                                                                            {
+                                                                                chart.name
+                                                                            }
+                                                                        </div>
+                                                                        <div className="text-[9px] text-gray-500 mt-0.5">
+                                                                            {
+                                                                                chart.type
+                                                                            }
+                                                                        </div>
+                                                                    </div>
+                                                                )
+                                                            )}
                                                         </div>
                                                     </div>
                                                 )}
@@ -1470,7 +1870,9 @@ NOTES:
                                 ) : (
                                     <div className="relative h-full bg-black">
                                         <button
-                                            onClick={() => setSelectedChart(null)}
+                                            onClick={() =>
+                                                setSelectedChart(null)
+                                            }
                                             className="absolute top-2 left-2 z-10 bg-gray-900 border border-gray-700 hover:bg-gray-800 text-gray-300 px-3 py-1 rounded text-[10px] font-mono"
                                         >
                                             ← Back to List
@@ -1482,25 +1884,51 @@ NOTES:
                                         ) : (
                                             <div
                                                 className="w-full h-full flex items-center justify-center overflow-hidden"
-                                                onMouseDown={handleChartMouseDown}
-                                                onMouseMove={isChartDragging ? handleChartMouseMove : undefined}
+                                                onMouseDown={
+                                                    handleChartMouseDown
+                                                }
+                                                onMouseMove={
+                                                    isChartDragging
+                                                        ? handleChartMouseMove
+                                                        : undefined
+                                                }
                                                 onMouseUp={handleChartMouseUp}
-                                                onMouseLeave={handleChartMouseUp}
+                                                onMouseLeave={
+                                                    handleChartMouseUp
+                                                }
                                                 onTouchStart={(e) => {
                                                     const touch = e.touches[0];
                                                     setIsChartDragging(true);
-                                                    setChartDragStart({ x: touch.clientX - chartPan.x, y: touch.clientY - chartPan.y });
-                                                }}
-                                                onTouchMove={(e) => {
-                                                    if (!isChartDragging) return;
-                                                    const touch = e.touches[0];
-                                                    setChartPan({
-                                                        x: touch.clientX - chartDragStart.x,
-                                                        y: touch.clientY - chartDragStart.y,
+                                                    setChartDragStart({
+                                                        x:
+                                                            touch.clientX -
+                                                            chartPan.x,
+                                                        y:
+                                                            touch.clientY -
+                                                            chartPan.y,
                                                     });
                                                 }}
-                                                onTouchEnd={() => setIsChartDragging(false)}
-                                                style={{ cursor: isChartDragging ? 'grabbing' : 'grab' }}
+                                                onTouchMove={(e) => {
+                                                    if (!isChartDragging)
+                                                        return;
+                                                    const touch = e.touches[0];
+                                                    setChartPan({
+                                                        x:
+                                                            touch.clientX -
+                                                            chartDragStart.x,
+                                                        y:
+                                                            touch.clientY -
+                                                            chartDragStart.y,
+                                                    });
+                                                }}
+                                                onTouchEnd={() =>
+                                                    setIsChartDragging(false)
+                                                }
+                                                style={{
+                                                    cursor: isChartDragging
+                                                        ? 'grabbing'
+                                                        : 'grab',
+                                                }}
                                             >
                                                 <img
                                                     key={selectedChart}
@@ -1509,14 +1937,22 @@ NOTES:
                                                     className="max-w-none"
                                                     style={{
                                                         transform: `translate(${chartPan.x}px, ${chartPan.y}px) scale(${chartZoom})`,
-                                                        transformOrigin: 'center',
-                                                        transition: isChartDragging ? 'none' : 'transform 0.1s ease-out',
+                                                        transformOrigin:
+                                                            'center',
+                                                        transition:
+                                                            isChartDragging
+                                                                ? 'none'
+                                                                : 'transform 0.1s ease-out',
                                                         userSelect: 'none',
                                                         pointerEvents: 'none',
-                                                        maxHeight: '100%'
+                                                        maxHeight: '100%',
                                                     }}
-                                                    onLoad={() => setChartLoadError(false)}
-                                                    onError={() => setChartLoadError(true)}
+                                                    onLoad={() =>
+                                                        setChartLoadError(false)
+                                                    }
+                                                    onError={() =>
+                                                        setChartLoadError(true)
+                                                    }
                                                     draggable={false}
                                                 />
                                             </div>
@@ -1541,7 +1977,9 @@ NOTES:
                         <div className="fixed top-0 right-0 h-full w-80 max-w-[85vw] bg-gray-900 border-l border-gray-800 z-50 flex flex-col animate-slide-in">
                             {/* Drawer Header */}
                             <div className="bg-gradient-to-r from-gray-800 to-gray-900 px-4 py-3 border-b border-gray-700 flex items-center justify-between">
-                                <span className="text-sm font-mono text-gray-300">Controllers & ATIS</span>
+                                <span className="text-sm font-mono text-gray-300">
+                                    Controllers & ATIS
+                                </span>
                                 <button
                                     onClick={() => setIsMobileDrawerOpen(false)}
                                     className="p-1 hover:bg-gray-700 rounded transition-colors"
@@ -1558,29 +1996,53 @@ NOTES:
                                 </h3>
                                 <div className="space-y-2 text-xs">
                                     {activeSessions.map((session) => (
-                                        <div key={session.sessionId} className="text-gray-300">
+                                        <div
+                                            key={session.sessionId}
+                                            className="text-gray-300"
+                                        >
                                             <div className="font-semibold text-cyan-400 text-xs">
                                                 {session.airportIcao}
                                             </div>
-                                            {session.controllers && session.controllers.length > 0 ? (
+                                            {session.controllers &&
+                                            session.controllers.length > 0 ? (
                                                 <div className="ml-2 mt-0.5 space-y-0.5">
-                                                    {session.controllers.map((controller, idx) => (
-                                                        <div key={idx} className="text-[10px] flex items-center gap-1">
-                                                            <span className="text-gray-500">•</span>
-                                                            <span className="text-gray-300">{controller.username}</span>
-                                                            <span className="text-gray-600">({controller.role})</span>
-                                                        </div>
-                                                    ))}
+                                                    {session.controllers.map(
+                                                        (controller, idx) => (
+                                                            <div
+                                                                key={idx}
+                                                                className="text-[10px] flex items-center gap-1"
+                                                            >
+                                                                <span className="text-gray-500">
+                                                                    •
+                                                                </span>
+                                                                <span className="text-gray-300">
+                                                                    {
+                                                                        controller.username
+                                                                    }
+                                                                </span>
+                                                                <span className="text-gray-600">
+                                                                    (
+                                                                    {
+                                                                        controller.role
+                                                                    }
+                                                                    )
+                                                                </span>
+                                                            </div>
+                                                        )
+                                                    )}
                                                 </div>
                                             ) : (
                                                 <div className="text-[10px] text-gray-500 ml-2">
-                                                    {session.activeUsers} controller(s)
+                                                    {session.activeUsers}{' '}
+                                                    controller(s)
                                                 </div>
                                             )}
                                         </div>
                                     ))}
                                     {activeSessions.length === 0 && (
-                                        <div className="text-gray-500 text-[10px]">No active controllers</div>
+                                        <div className="text-gray-500 text-[10px]">
+                                            No active controllers
+                                        </div>
                                     )}
                                 </div>
                             </div>
@@ -1593,35 +2055,51 @@ NOTES:
                                 </h3>
                                 <div className="space-y-2">
                                     {activeSessions
-                                        .filter((session) => session.atis && session.atis.text)
+                                        .filter(
+                                            (session) =>
+                                                session.atis &&
+                                                session.atis.text
+                                        )
                                         .map((session) => (
                                             <div
                                                 key={session.sessionId}
                                                 className="text-xs cursor-pointer hover:bg-gray-800 p-2 rounded-lg transition-colors border border-gray-800 hover:border-gray-700"
                                                 onClick={() => {
                                                     handleAtisClick(session);
-                                                    setIsMobileDrawerOpen(false);
+                                                    setIsMobileDrawerOpen(
+                                                        false
+                                                    );
                                                     setMobileTab('terminal');
                                                 }}
                                                 title="Tap to send to terminal"
                                             >
                                                 <div className="font-bold text-blue-400 text-[11px] mb-0.5">
-                                                    {session.airportIcao} INFO {session.atis?.letter}
+                                                    {session.airportIcao} INFO{' '}
+                                                    {session.atis?.letter}
                                                 </div>
                                                 <div className="text-gray-500 text-[9px]">
                                                     {session.atis?.timestamp &&
-                                                        new Date(session.atis.timestamp).toLocaleTimeString('en-US', {
-                                                            hour: '2-digit',
-                                                            minute: '2-digit',
-                                                            timeZone: 'UTC',
-                                                            hour12: false,
-                                                        })}
+                                                        new Date(
+                                                            session.atis.timestamp
+                                                        ).toLocaleTimeString(
+                                                            'en-US',
+                                                            {
+                                                                hour: '2-digit',
+                                                                minute: '2-digit',
+                                                                timeZone: 'UTC',
+                                                                hour12: false,
+                                                            }
+                                                        )}
                                                     Z
                                                 </div>
                                             </div>
                                         ))}
-                                    {activeSessions.filter((s) => s.atis && s.atis.text).length === 0 && (
-                                        <div className="text-[10px] text-gray-500">No ATIS available</div>
+                                    {activeSessions.filter(
+                                        (s) => s.atis && s.atis.text
+                                    ).length === 0 && (
+                                        <div className="text-[10px] text-gray-500">
+                                            No ATIS available
+                                        </div>
                                     )}
                                 </div>
                             </div>
