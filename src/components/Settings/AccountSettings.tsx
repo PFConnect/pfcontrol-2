@@ -6,7 +6,9 @@ import Button from '../common/Button';
 export default function AccountSettings() {
     const { user, refreshUser } = useAuth();
     const isVatsimLinked = !!(
-        user?.vatsimCid || user?.vatsimRatingShort || user?.vatsimRatingLong
+        user?.vatsimCid ||
+        user?.vatsimRatingShort ||
+        user?.vatsimRatingLong
     );
 
     const handleLinkRoblox = () => {
@@ -16,17 +18,19 @@ export default function AccountSettings() {
     };
 
     const handleLinkVatsim = () => {
-        // Always force VATSIM to show the login/consent screen when linking
         window.location.href = `${import.meta.env.VITE_SERVER_URL}/api/auth/vatsim?force=1`;
     };
 
     const handleUnlinkVatsim = async () => {
         if (!confirm('Unlink your VATSIM account?')) return;
         try {
-            const res = await fetch(`${import.meta.env.VITE_SERVER_URL}/api/auth/vatsim/unlink`, {
-                method: 'POST',
-                credentials: 'include',
-            });
+            const res = await fetch(
+                `${import.meta.env.VITE_SERVER_URL}/api/auth/vatsim/unlink`,
+                {
+                    method: 'POST',
+                    credentials: 'include',
+                }
+            );
             if (res.ok) {
                 await refreshUser();
             } else {
@@ -137,30 +141,55 @@ export default function AccountSettings() {
                 {/* VATSIM Account */}
                 <div className="bg-zinc-800/50 rounded-xl border-2 border-zinc-700/50 p-5 flex items-center justify-between">
                     <div className="flex items-center space-x-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-emerald-600 rounded-xl flex items-center justify-center">
-                            <TowerControl className="w-7 h-7 text-white" />
+                        <div className="w-12 h-12 bg-white rounded-xl flex items-center justify-center">
+                            <img
+                                src="/assets/images/vatsim.webp"
+                                alt="VATSIM"
+                                className="w-8 h-8"
+                            />
                         </div>
                         <div>
-                            <h3 className="text-white font-semibold text-base">VATSIM Account</h3>
+                            <h3 className="text-white font-semibold text-base">
+                                VATSIM Account
+                            </h3>
                             {isVatsimLinked ? (
                                 <div className="flex items-center space-x-2 mt-1">
-                                    <span className="text-green-400 text-sm font-medium">Connected</span>
+                                    <span className="text-green-400 text-sm font-medium">
+                                        Connected
+                                    </span>
                                     <span className="text-zinc-500">•</span>
-                                    <span className="text-zinc-300 text-sm">{user?.vatsimRatingShort || user?.vatsimRatingLong || `CID ${user?.vatsimCid}`}</span>
+                                    <span className="text-zinc-300 text-sm">
+                                        {user?.vatsimRatingShort ||
+                                            user?.vatsimRatingLong ||
+                                            `CID ${user?.vatsimCid}`}
+                                    </span>
                                 </div>
                             ) : (
-                                <p className="text-zinc-400 text-sm mt-1">Link your VATSIM account to show controller rating on your profile</p>
+                                <p className="text-zinc-400 text-sm mt-1">
+                                    Link your VATSIM account to show controller
+                                    rating on your profile
+                                </p>
                             )}
                         </div>
                     </div>
                     <div>
                         {isVatsimLinked ? (
-                            <Button onClick={handleUnlinkVatsim} variant="outline" size="sm" className="border-red-700/50 text-red-400 hover:bg-red-900/20 hover:border-red-600">
+                            <Button
+                                onClick={handleUnlinkVatsim}
+                                variant="outline"
+                                size="sm"
+                                className="border-red-700/50 text-red-400 hover:bg-red-900/20 hover:border-red-600"
+                            >
                                 <UserX className="w-4 h-4 mr-2" />
                                 Unlink
                             </Button>
                         ) : (
-                            <Button onClick={handleLinkVatsim} variant="primary" size="sm" className="bg-emerald-600 hover:bg-emerald-700 border-emerald-600">
+                            <Button
+                                onClick={handleLinkVatsim}
+                                variant="primary"
+                                size="sm"
+                                className="bg-emerald-600 hover:bg-emerald-700 border-emerald-600"
+                            >
                                 <ExternalLink className="w-4 h-4 mr-2" />
                                 Link Account
                             </Button>
