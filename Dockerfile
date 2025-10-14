@@ -41,6 +41,9 @@ COPY package*.json ./
 # Install only production dependencies
 RUN npm ci --omit=dev && npm cache clean --force
 
+# Set NODE_ENV explicitly
+ENV NODE_ENV=production
+
 # Copy built application from builder stage
 COPY --from=builder --chown=nodeuser:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodeuser:nodejs /app/public ./public
