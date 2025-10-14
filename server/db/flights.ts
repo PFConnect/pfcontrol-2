@@ -7,12 +7,50 @@ import { generateRandomId, generateSID, generateSquawk, getWakeTurbulence } from
 import crypto from "crypto";
 import { sql } from "kysely";
 
-function sanitizeFlightForClient(flight: FlightsDatabase) {
-    const { user_id, ip_address, acars_token, ...sanitizedFlight } = flight;
+export interface ClientFlight {
+  id: string;
+  session_id: string;
+  user_id?: string;
+  ip_address?: string;
+  callsign?: string;
+  aircraft?: string;
+  flight_type?: string;
+  departure?: string;
+  arrival?: string;
+  alternate?: string;
+  route?: string;
+  sid?: string;
+  star?: string;
+  runway?: string;
+  cruisingFL?: string;
+  clearedFL?: string;
+  stand?: string;
+  gate?: string;
+  remark?: string;
+  timestamp?: string;
+  created_at?: Date;
+  updated_at?: Date;
+  status?: string;
+  clearance?: string;
+  position?: object;
+  squawk?: string;
+  wtc?: string;
+  hidden?: boolean;
+  acars_token?: string;
+  pdc_remarks?: string;
+  user?: {
+    id: string;
+    discord_username: string;
+    discord_avatar_url: string | null;
+  };
+}
+
+function sanitizeFlightForClient(flight: FlightsDatabase[string]): ClientFlight {
+    const { user_id, ip_address, acars_token, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
     return {
         ...sanitizedFlight,
-        cruisingFL: flight.cruisingFL,
-        clearedFL: flight.clearedFL,
+        cruisingFL: cruisingfl,
+        clearedFL: clearedfl,
     };
 }
 
@@ -90,7 +128,7 @@ export async function getFlightsBySession(sessionId: string) {
     }
 
     const enrichedFlights = flights.map(flight => {
-        const sanitized = sanitizeFlightForClient(flight as unknown as FlightsDatabase);
+        const sanitized = sanitizeFlightForClient(flight as unknown as FlightsDatabase[string]);
 
         let user = undefined;
         if (flight.user_id && usersMap.has(flight.user_id)) {
@@ -111,7 +149,7 @@ export async function getFlightsBySession(sessionId: string) {
       .selectAll()
       .orderBy('created_at', 'asc')
       .execute();
-    return fallbackFlights.map((flight) => sanitizeFlightForClient(flight as unknown as FlightsDatabase));
+    return fallbackFlights.map((flight) => sanitizeFlightForClient(flight as unknown as FlightsDatabase[string]));
   }
 }
 
@@ -175,7 +213,7 @@ export async function getFlightsBySessionWithTime(sessionId: string, hoursBack =
       .orderBy('created_at', 'asc')
       .execute();
 
-    return flights.map(flight => sanitizeFlightForClient(flight as unknown as FlightsDatabase));
+    return flights.map(flight => sanitizeFlightForClient(flight as unknown as FlightsDatabase[string]));
   } catch (error) {
     console.error(
       `Error fetching flights for session ${sessionId}:`,
@@ -185,7 +223,7 @@ export async function getFlightsBySessionWithTime(sessionId: string, hoursBack =
   }
 }
 
-interface AddFlightData {
+export interface AddFlightData {
   id?: string;
   squawk?: string;
   wtc?: string;
@@ -271,17 +309,13 @@ export async function addFlight(sessionId: string, flightData: AddFlightData) {
     throw new Error('Failed to insert flight');
   }
 
-  return {
-    ...result,
-    cruisingFL: result.cruisingfl,
-    clearedFL: result.clearedfl,
-  };
+  return sanitizeFlightForClient(result);
 }
 
 export async function updateFlight(
   sessionId: string,
   flightId: string,
-  updates: Partial<FlightsDatabase>
+  updates: Record<string, unknown>
 ) {
   const validSessionId = validateSessionId(sessionId);
   const validFlightId = validateFlightId(flightId);
@@ -330,7 +364,7 @@ export async function updateFlight(
     throw new Error('Flight not found or update failed');
   }
 
-  return sanitizeFlightForClient(result as unknown as FlightsDatabase);
+  return sanitizeFlightForClient(result as unknown as FlightsDatabase[string]);
 }
 
 export async function deleteFlight(sessionId: string, flightId: string) {
