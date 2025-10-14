@@ -259,7 +259,7 @@ class FlightTracker {
       this.reconnectAttempts = 0;
     });
 
-    this.socket.on('message', async (data) => {
+    this.socket.on('message', async (data: WebSocket.RawData) => {
       let processedData: Buffer | ArrayBuffer | { arrayBuffer: () => Promise<ArrayBuffer> };
       if (Array.isArray(data)) {
         processedData = Buffer.concat(data);
@@ -280,7 +280,7 @@ class FlightTracker {
       }
     });
 
-    this.socket.on('error', (err) => {
+    this.socket.on('error', (err: Error) => {
       if (err.message && err.message.includes('403')) {
         debug('[Flight Tracker] Access denied (403). The Project Flight API may require authentication or have IP restrictions. Flight tracking disabled.', 'error');
         this.connectionFailed = true;
