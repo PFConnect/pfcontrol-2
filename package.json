@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "set NODE_ENV=development && concurrently \"vite\" \"npx ts-node --loader ts-node/esm server/main.ts\"",
+    "dev": "set NODE_ENV=development && concurrently \"vite\" \"npx tsx server/main.ts\"",
     "prod": "cross-env NODE_ENV=production node server/dist/server.js",
     "build": "vite build --mode production",
     "build:dev": "vite build --mode development",

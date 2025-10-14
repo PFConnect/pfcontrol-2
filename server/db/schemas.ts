@@ -1,6 +1,5 @@
 import { mainDb, flightsDb, chatsDb } from './connection.js';
 
-
 export async function createMainTables() {
   // app_settings
   await mainDb.schema
@@ -36,7 +35,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('roles')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('name', 'varchar(255)', (col) => col.unique().notNull())
     .addColumn('description', 'text')
     .execute();
@@ -54,7 +53,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('audit_log')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('user_id', 'varchar(255)', (col) => col.references('users.id').onDelete('set null'))
     .addColumn('action', 'varchar(255)', (col) => col.notNull())
     .addColumn('details', 'jsonb')
@@ -65,7 +64,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('bans')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('user_id', 'varchar(255)', (col) => col.references('users.id').onDelete('cascade').notNull())
     .addColumn('reason', 'text')
     .addColumn('banned_at', 'timestamp', (col) => col.defaultTo('now()'))
@@ -76,7 +75,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('notifications')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('title', 'varchar(255)', (col) => col.notNull())
     .addColumn('message', 'text', (col) => col.notNull())
     .addColumn('created_at', 'timestamp', (col) => col.defaultTo('now()'))
@@ -86,7 +85,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('user_notifications')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('user_id', 'varchar(255)', (col) => col.references('users.id').onDelete('cascade'))
     .addColumn('notification_id', 'integer', (col) => col.references('notifications.id').onDelete('cascade'))
     .addColumn('read', 'boolean', (col) => col.defaultTo(false))
@@ -97,7 +96,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('testers')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('user_id', 'varchar(255)', (col) => col.references('users.id').onDelete('cascade').unique().notNull())
     .addColumn('approved', 'boolean', (col) => col.defaultTo(false))
     .execute();
@@ -137,7 +136,7 @@ export async function createMainTables() {
   await mainDb.schema
     .createTable('logbook_telemetry')
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('flight_id', 'varchar(255)', (col) => col.references('logbook_flights.id').onDelete('cascade'))
     .addColumn('timestamp', 'timestamp', (col) => col.notNull())
     .addColumn('position', 'jsonb')
@@ -210,7 +209,7 @@ export async function createChatsTable(sessionId: string) {
   await chatsDb.schema
     .createTable(tableName)
     .ifNotExists()
-    .addColumn('id', 'integer', (col) => col.primaryKey().autoIncrement())
+    .addColumn('id', 'serial', (col) => col.primaryKey())
     .addColumn('user_id', 'varchar(255)', (col) => col.notNull())
     .addColumn('username', 'varchar(255)')
     .addColumn('avatar', 'varchar(255)')

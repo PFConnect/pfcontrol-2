@@ -2,6 +2,9 @@ import { Kysely, PostgresDialect } from 'kysely';
 import { createMainTables } from './schemas';
 import pg from 'pg';
 import Redis from 'ioredis';
+import dotenv from 'dotenv';
+
+dotenv.config({ path: process.env.NODE_ENV === 'production' ? '.env.production' : '.env.development' });
 
 import type { MainDatabase } from './types/connection/MainDatabase';
 import type { FlightsDatabase } from './types/connection/FlightsDatabase';
