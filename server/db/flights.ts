@@ -46,7 +46,7 @@ export interface ClientFlight {
 }
 
 function sanitizeFlightForClient(flight: FlightsDatabase[string]): ClientFlight {
-    const { user_id, ip_address, acars_token, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
+    const { user_id, ip_address, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
     return {
         ...sanitizedFlight,
         cruisingFL: cruisingfl,
@@ -221,8 +221,8 @@ export async function getFlightsBySessionWithTime(sessionId: string, hoursBack =
     const flights = await flightsDb
       .selectFrom(tableName)
       .selectAll()
-      .where('created_at', '>=', sinceDate)
-      .orderBy('created_at', 'asc')
+      .where('timestamp', '>=', sinceDate.toISOString())
+      .orderBy('timestamp', 'asc')
       .execute();
 
     return flights.map(flight => sanitizeFlightForClient(flight as unknown as FlightsDatabase[string]));
