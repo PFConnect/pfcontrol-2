@@ -19,6 +19,10 @@ const aircraftPath = path.join(__dirname, '..', 'data', 'aircraftData.json');
 const airlinesPath = path.join(__dirname, '..', 'data', 'airlineData.json');
 const backgroundsPath = path.join(__dirname, '..', '..', 'public', 'assets', 'app', 'backgrounds');
 
+if (!fs.existsSync(airportsPath) || !fs.existsSync(aircraftPath) || !fs.existsSync(airlinesPath) || !fs.existsSync(backgroundsPath)) {
+  console.error(`Data file missing`);
+}
+
 interface AirportFrequencies {
     APP?: string;
     TWR?: string;
