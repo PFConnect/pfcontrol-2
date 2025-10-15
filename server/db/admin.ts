@@ -85,6 +85,19 @@ async function backfillStatistics() {
 }
 
 export async function getDailyStatistics(days = 30) {
+  const cacheKey = `admin:daily_stats:${days}`;
+  
+  try {
+    const cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn(`[Redis] Failed to read cache for daily stats (${days} days):`, error.message);
+    }
+  }
+
   try {
     await cleanupOldStatistics();
 
@@ -106,6 +119,14 @@ export async function getDailyStatistics(days = 30) {
       return getDailyStatistics(days);
     }
 
+    try {
+      await redisConnection.set(cacheKey, JSON.stringify(result), 'EX', 300);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn(`[Redis] Failed to set cache for daily stats (${days} days):`, error.message);
+      }
+    }
+
     return result;
   } catch (error) {
     console.error('Error fetching daily statistics:', error);
@@ -114,6 +135,19 @@ export async function getDailyStatistics(days = 30) {
 }
 
 export async function getTotalStatistics() {
+  const cacheKey = 'admin:total_stats';
+  
+  try {
+    const cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn('[Redis] Failed to read cache for total stats:', error.message);
+    }
+  }
+
   try {
     const directStats = await calculateDirectStatistics();
 
@@ -127,12 +161,22 @@ export async function getTotalStatistics() {
       ])
       .executeTakeFirst();
 
-    return {
+    const result = {
       total_logins: Number(dailyStatsResult?.total_logins) || 0,
       total_sessions: directStats.total_sessions,
       total_flights: directStats.total_flights,
       total_users: directStats.total_users,
     };
+
+    try {
+      await redisConnection.set(cacheKey, JSON.stringify(result), 'EX', 300);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn('[Redis] Failed to set cache for total stats:', error.message);
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error('Error fetching total statistics:', error);
     return {
@@ -294,8 +338,23 @@ export async function getAllUsers(page = 1, limit = 50, search = '', filterAdmin
       };
     });
 
+    const usersWithCacheStatus = await Promise.all(
+      usersWithAdminStatus.map(async (user) => {
+        const cached = await redisConnection.exists(`user:${user.id}`);
+        return { ...user, cached: cached === 1 };
+      })
+    );
+
+    let filteredUsers = usersWithCacheStatus;
+    if (filterAdmin === 'cached') {
+      filteredUsers = usersWithCacheStatus.filter((user) => user.cached);
+      totalUsers = filteredUsers.length;
+      const offset = (page - 1) * limit;
+      filteredUsers = filteredUsers.slice(offset, offset + limit);
+    }
+
     return {
-      users: usersWithAdminStatus,
+      users: filteredUsers,
       pagination: {
         page,
         limit,
