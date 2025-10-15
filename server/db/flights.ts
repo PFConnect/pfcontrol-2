@@ -46,7 +46,7 @@ export interface ClientFlight {
 }
 
 function sanitizeFlightForClient(flight: FlightsDatabase[string]): ClientFlight {
-    const { user_id, ip_address, acars_token, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
+    const { user_id, ip_address, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
     return {
         ...sanitizedFlight,
         cruisingFL: cruisingfl,

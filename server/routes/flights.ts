@@ -83,7 +83,7 @@ router.delete('/:sessionId/:flightId', requireAuth, async (req, res) => {
 router.get('/:sessionId/:flightId/validate-acars', acarsValidationLimiter, async (req, res) => {
     try {
         const { sessionId, flightId } = req.params;
-        const acarsToken = typeof req.query.accessId === 'string' ? req.query.accessId : undefined;
+        const acarsToken = typeof req.query.acars_token === 'string' ? req.query.acars_token : undefined;
 
         if (!acarsToken) {
             return res.status(400).json({ valid: false, error: 'Missing access token' });

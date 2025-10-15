@@ -17,7 +17,7 @@ const __dirname = path.dirname(__filename);
 const airportsPath = path.join(__dirname, '..', 'data', 'airportData.json');
 const aircraftPath = path.join(__dirname, '..', 'data', 'aircraftData.json');
 const airlinesPath = path.join(__dirname, '..', 'data', 'airlineData.json');
-const backgroundsPath = path.join(__dirname, '..', '..', 'public', 'assets', 'app', 'backgrounds');
+const backgroundsPath = path.join(process.cwd(), 'public', 'assets', 'app', 'backgrounds');
 
 if (!fs.existsSync(airportsPath) || !fs.existsSync(aircraftPath) || !fs.existsSync(airlinesPath) || !fs.existsSync(backgroundsPath)) {
   console.error(`Data file missing`);
