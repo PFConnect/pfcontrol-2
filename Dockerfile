@@ -48,6 +48,7 @@ ENV NODE_ENV=production
 COPY --from=builder --chown=nodeuser:nodejs /app/dist ./dist
 COPY --from=builder --chown=nodeuser:nodejs /app/public ./public
 COPY --from=builder --chown=nodeuser:nodejs /app/server/dist ./server/dist
+COPY --from=builder --chown=nodeuser:nodejs /app/server/data ./server/data
 
 # Create logs directory
 RUN mkdir -p logs && chown nodeuser:nodejs logs
