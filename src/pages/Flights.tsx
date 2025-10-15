@@ -30,7 +30,7 @@ import ContactAcarsSidebar from '../components/tools/ContactAcarsSidebar';
 import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import Joyride, { type CallBackProps, STATUS } from 'react-joyride';
-import CustomTooltip from '../components/tutorial/CustomToolTip';
+import CustomTooltip from '../components/tutorial/CustomTooltip';
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
