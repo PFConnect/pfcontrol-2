@@ -28,6 +28,7 @@
     "cors": "^2.8.5",
     "dnd-kit": "^0.0.2",
     "dotenv": "^17.2.2",
+    "express": "^5.1.0",
     "express-rate-limit": "^8.1.0",
     "form-data": "^4.0.4",
     "helmet": "^8.1.0",
