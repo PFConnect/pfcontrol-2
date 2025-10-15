@@ -3,12 +3,14 @@ import {
   UNSAFE_NavigationContext,
   useLocation,
   useSearchParams,
+  useNavigate,
 } from 'react-router-dom';
 import {
   Save,
   AlertTriangle,
   Settings as SettingsIcon,
   Check,
+  RotateCcw,
 } from 'lucide-react';
 import type {
   Settings,
@@ -30,6 +32,7 @@ import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import CustomTooltip from '../components/tutorial/CustomToolTip';
 import Modal from '../components/common/Modal';
+import { useAuth } from '../hooks/auth/useAuth';
 
 function useCustomBlocker(shouldBlock: boolean, onBlock: () => void) {
   const navigator = useContext(UNSAFE_NavigationContext)?.navigator;
@@ -61,6 +64,7 @@ function useCustomBlocker(shouldBlock: boolean, onBlock: () => void) {
 
 export default function Settings() {
   const { settings, updateSettings, loading } = useSettings();
+  const { refreshUser } = useAuth();
   const [localSettings, setLocalSettings] = useState<Settings | null>(null);
   const [saving, setSaving] = useState(false);
   const [hasChanges, setHasChanges] = useState(false);
@@ -71,6 +75,7 @@ export default function Settings() {
 
   const [searchParams] = useSearchParams();
   const startTutorial = searchParams.get('tutorial') === 'true';
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (settings) {
@@ -208,6 +213,20 @@ export default function Settings() {
       updateTutorialStatus(true);
     } else if (status === STATUS.SKIPPED) {
       updateTutorialStatus(true);
+    }
+  };
+
+  const handleRestartTutorial = async () => {
+    try {
+      const success = await updateTutorialStatus(false);
+      if (success) {
+        await refreshUser();
+        navigate('/?tutorial=true');
+      } else {
+        console.error('Failed to reset tutorial.');
+      }
+    } catch (error) {
+      console.error('Error resetting tutorial:', error);
     }
   };
 
@@ -415,13 +434,28 @@ export default function Settings() {
         title="Tutorial Completed!"
         variant="success"
         footer={
-          <Button
-            size="sm"
-            variant="success"
-            onClick={() => setShowTutorialCompleteModal(false)}
-          >
-            Got it!
-          </Button>
+          <div className="flex gap-2">
+            {' '}
+            <Button
+              onClick={() => {
+                setShowTutorialCompleteModal(false);
+                handleRestartTutorial();
+              }}
+              variant="outline"
+              size="sm"
+              className="border-yellow-700/50 text-yellow-400 hover:bg-yellow-900/20 hover:border-yellow-600"
+            >
+              <RotateCcw className="w-4 h-4 mr-2" />
+              Restart Tutorial
+            </Button>
+            <Button
+              onClick={() => setShowTutorialCompleteModal(false)}
+              variant="success"
+              size="sm"
+            >
+              Got it!
+            </Button>
+          </div>
         }
       >
         <div className="flex items-center gap-4 mb-4">
