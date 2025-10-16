@@ -11,7 +11,7 @@ export async function addTester(
   const result = await mainDb
     .insertInto("testers")
     .values({
-      id: sql`NOW()`,
+      id: sql`DEFAULT`,
       user_id: userId,
       username,
       added_by: addedBy,
