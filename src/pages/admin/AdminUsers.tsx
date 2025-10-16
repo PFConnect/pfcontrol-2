@@ -709,7 +709,7 @@ export default function AdminUsers() {
                             </span>
                           </td>
                           <td className="px-6 py-4 text-zinc-300">
-                            {tableUser.total_sessions_created || 0}
+                            {tableUser.current_sessions_count ?? 0}
                           </td>
                           <td className="px-6 py-4">
                             <div className="flex flex-wrap gap-2">
@@ -758,7 +758,7 @@ export default function AdminUsers() {
                                   <ShieldUser className="w-4 h-4" />
                                 </Button>
                               )}
-                              {(tableUser.total_sessions_created || 0) >= 1 && (
+                              {(tableUser.current_sessions_count || 0) >= 1 && (
                                 <Button
                                   size="sm"
                                   variant="secondary"

@@ -281,6 +281,15 @@ export async function getAllUsers(page = 1, limit = 50, search = '', filterAdmin
       [key: string]: unknown;
     }
 
+    const userIds = (rawUsers as RawUser[]).map(u => u.id);
+    const sessionCounts = await mainDb
+      .selectFrom('sessions')
+      .select(['created_by', mainDb.fn.countAll().as('count')])
+      .where('created_by', 'in', userIds)
+      .groupBy('created_by')
+      .execute();
+    const sessionCountMap = Object.fromEntries(sessionCounts.map(row => [row.created_by, Number(row.count)]));
+
     const usersWithAdminStatus = (rawUsers as RawUser[]).map((user: RawUser) => {
       let decryptedSettings = null;
       try {
@@ -334,7 +343,8 @@ export async function getAllUsers(page = 1, limit = 50, search = '', filterAdmin
         settings: decryptedSettings,
         roleId: user.role_id,
         roleName: user.role_name,
-        rolePermissions: rolePermissions
+        rolePermissions: rolePermissions,
+        current_sessions_count: sessionCountMap[user.id] || 0 // <-- Add this line
       };
     });
 

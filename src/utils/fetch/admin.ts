@@ -42,6 +42,7 @@ export interface AdminUser {
     ip_address: string;
     is_vpn: boolean;
     total_sessions_created: number;
+    current_sessions_count: number;
     total_minutes: number;
     created_at: string;
     is_admin: boolean;

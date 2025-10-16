@@ -25,6 +25,7 @@ export default function CustomTooltip({
   const customStep = step as CustomStep;
   if (
     step.target === '#settings-button' ||
+    step.target === '#departure-table .edit-del' ||
     (step.target === '#start-session-btn' &&
       step.title === '' &&
       step.content === '')

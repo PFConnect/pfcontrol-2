@@ -2,7 +2,6 @@ import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Info, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/auth/useAuth';
-import { useData } from '../hooks/data/useData';
 import { createSession, fetchMySessions } from '../utils/fetch/sessions';
 import { generateATIS } from '../utils/fetch/atis';
 import Navbar from '../components/Navbar';
@@ -11,7 +10,6 @@ import RunwayDropdown from '../components/dropdowns/RunwayDropdown';
 import Checkbox from '../components/common/Checkbox';
 import Button from '../components/common/Button';
 import WindDisplay from '../components/tools/WindDisplay';
-import AtisReminderModal from '../components/modals/AtisReminderModal';
 import Joyride, { type CallBackProps, STATUS } from 'react-joyride';
 import CustomTooltip from '../components/tutorial/CustomTooltip';
 import { updateTutorialStatus } from '../utils/fetch/auth';
@@ -24,29 +22,11 @@ export default function Create() {
   const [isPFATCNetwork, setIsPFATCNetwork] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
-  const [showAtisModal, setShowAtisModal] = useState<boolean>(false);
-  const [sessionInfo, setSessionInfo] = useState<{
-    sessionId: string;
-    accessId: string;
-  } | null>(null);
-  const [atisText, setAtisText] = useState<string>('');
   const [sessionCount, setSessionCount] = useState<number>(0);
   const [sessionLimitReached, setSessionLimitReached] =
     useState<boolean>(false);
   const [isDeletingOldest, setIsDeletingOldest] = useState<boolean>(false);
-
   const { user } = useAuth();
-  const { airports } = useData();
-
-  const selectedAirportData = airports?.find(
-    (airport) => airport.icao === selectedAirport
-  );
-  const selectedAirportName = selectedAirportData?.name || '';
-  const selectedAirportControlName =
-    selectedAirportData?.controlName || selectedAirportName;
-  const selectedAirportAppFrequency =
-    selectedAirportData?.allFrequencies?.APP || '123.456';
-
   const [searchParams] = useSearchParams();
   const startTutorial = searchParams.get('tutorial') === 'true';
 
@@ -78,6 +58,11 @@ export default function Create() {
     }
   };
 
+  const handleContinueToSession = (sessionId: string, accessId: string) => {
+    const tutorialParam = startTutorial ? '&tutorial=true' : '';
+    navigate(`/view/${sessionId}?accessId=${accessId}${tutorialParam}`);
+  };
+
   const handleCreateSession = async () => {
     if (!selectedAirport || !selectedRunway) {
       setError('Please select both airport and runway');
@@ -98,11 +83,12 @@ export default function Create() {
         activeRunway: selectedRunway,
         isPFATC: isPFATCNetwork,
         createdBy: user?.userId || 'unknown',
+        isTutorial: startTutorial,
       });
 
       setSessionCount((prev) => prev + 1);
 
-      const atisResponse = await generateATIS({
+      await generateATIS({
         sessionId: newSession.sessionId,
         ident: 'A',
         icao: selectedAirport,
@@ -110,15 +96,7 @@ export default function Create() {
         departing_runways: [selectedRunway],
       });
 
-      if (isPFATCNetwork) {
-        setSessionInfo(newSession);
-        setAtisText(atisResponse.atisText);
-        setShowAtisModal(true);
-      } else {
-        navigate(
-          `/view/${newSession.sessionId}?accessId=${newSession.accessId}`
-        );
-      }
+      handleContinueToSession(newSession.sessionId, newSession.accessId);
     } catch (err) {
       console.error('Error creating session:', err);
       const errorMessage =
@@ -133,15 +111,6 @@ export default function Create() {
       }
     } finally {
       setIsCreating(false);
-    }
-  };
-
-  const handleContinueToSession = () => {
-    if (sessionInfo) {
-      const tutorialParam = startTutorial ? '&tutorial=true' : '';
-      navigate(
-        `/view/${sessionInfo.sessionId}?accessId=${sessionInfo.accessId}${tutorialParam}`
-      );
     }
   };
 
@@ -250,10 +219,11 @@ export default function Create() {
             <div className="border-t border-gray-700 pt-6">
               <Checkbox
                 id="pfatc-checkbox"
-                checked={isPFATCNetwork}
+                checked={startTutorial ? true : isPFATCNetwork}
                 onChange={setIsPFATCNetwork}
                 label="I am controlling on the PFATC Network"
                 className="text-gray-300"
+                disabled={startTutorial ? true : false}
               />
               {isPFATCNetwork && (
                 <div className="mt-3 p-3 bg-blue-900/40 backdrop-blur-sm border border-blue-500/50 rounded-md">
@@ -328,19 +298,6 @@ export default function Create() {
           </div>
         </div>
       </div>
-      {showAtisModal && sessionInfo && (
-        <AtisReminderModal
-          onContinue={handleContinueToSession}
-          atisText={atisText}
-          accessId={sessionInfo.accessId}
-          userId={user?.userId || ''}
-          sessionId={sessionInfo.sessionId}
-          airportIcao={selectedAirport}
-          airportName={selectedAirportName}
-          airportControlName={selectedAirportControlName}
-          airportAppFrequency={selectedAirportAppFrequency}
-        />
-      )}
       <Joyride
         steps={steps}
         run={startTutorial}

@@ -288,37 +288,39 @@ export default function DepartureTable({
                   </th>
                 )}
                 {departureColumns.aircraft !== false && (
-                  <th className="py-2.5 px-4 text-left">ATYP</th>
+                  <th className="py-2.5 px-4 text-left column-atyp">ATYP</th>
                 )}
                 {departureColumns.wakeTurbulence !== false && (
                   <th className="py-2.5 px-4 text-left column-w">W</th>
                 )}
                 {departureColumns.flightType !== false && (
-                  <th className="py-2.5 px-4 text-left">V</th>
+                  <th className="py-2.5 px-4 text-left column-flight-type">
+                    V
+                  </th>
                 )}
                 {departureColumns.arrival !== false && (
-                  <th className="py-2.5 px-4 text-left">ADES</th>
+                  <th className="py-2.5 px-4 text-left column-ades">ADES</th>
                 )}
                 {departureColumns.runway !== false && (
                   <th className="py-2.5 px-4 text-left column-rwy">RWY</th>
                 )}
                 {departureColumns.sid !== false && (
-                  <th className="py-2.5 px-4 text-left">SID</th>
+                  <th className="py-2.5 px-4 text-left column-sid">SID</th>
                 )}
                 {departureColumns.rfl !== false && (
                   <th className="py-2.5 px-4 text-left column-rfl">RFL</th>
                 )}
                 {departureColumns.cfl !== false && (
-                  <th className="py-2.5 px-4 text-left">CFL</th>
+                  <th className="py-2.5 px-4 text-left column-cfl">CFL</th>
                 )}
                 {departureColumns.squawk !== false && (
                   <th className="py-2.5 px-4 text-left w-28">ASSR</th>
                 )}
                 {departureColumns.clearance !== false && (
-                  <th className="py-2.5 px-4 text-left">C</th>
+                  <th className="py-2.5 px-4 text-left column-clearance">C</th>
                 )}
                 {departureColumns.status !== false && (
-                  <th className="py-2.5 px-4 text-left">STS</th>
+                  <th className="py-2.5 px-4 text-left column-sts">STS</th>
                 )}
                 {departureColumns.remark !== false && (
                   <th className="py-2.5 px-4 text-left w-64 column-rmk">RMK</th>
@@ -330,7 +332,7 @@ export default function DepartureTable({
                   <th className="py-2.5 px-4 text-left column-hide">HIDE</th>
                 )}
                 {departureColumns.delete !== false && (
-                  <th className="py-2.5 px-4 text-left">DEL</th>
+                  <th className="py-2.5 px-4 text-left column-del">DEL</th>
                 )}
               </tr>
             </thead>
@@ -423,7 +425,7 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.aircraft !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-atyp">
                         <AircraftDropdown
                           value={flight.aircraft}
                           onChange={(type) =>
@@ -440,10 +442,12 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.flightType !== false && (
-                      <td className="py-2 px-4">{flight.flight_type || '-'}</td>
+                      <td className="py-2 px-4 column-flight-type">
+                        {flight.flight_type || '-'}
+                      </td>
                     )}
                     {departureColumns.arrival !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-ades">
                         <AirportDropdown
                           value={flight.arrival}
                           onChange={(icao) =>
@@ -468,7 +472,7 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.sid !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-sid">
                         <SidDropdown
                           airportIcao={flight.departure || ''}
                           value={flight.sid}
@@ -491,7 +495,7 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.cfl !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-cfl">
                         <AltitudeDropdown
                           value={flight.clearedFL}
                           onChange={(alt) =>
@@ -538,7 +542,7 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.clearance !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-clearance">
                         <Checkbox
                           checked={isClearanceChecked(flight.clearance)}
                           onChange={() =>
@@ -554,7 +558,7 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.status !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-sts">
                         <StatusDropdown
                           value={flight.status}
                           onChange={(status) =>
@@ -614,10 +618,10 @@ export default function DepartureTable({
                       </td>
                     )}
                     {departureColumns.delete !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-4 column-del">
                         <button
                           title="Delete"
-                          className="text-gray-400 hover:text-red-500"
+                          className="text-gray-400 hover:text-red-500 edit-del"
                           onClick={() => handleDeleteFlight(flight.id)}
                         >
                           <Trash2 />

@@ -478,7 +478,6 @@ export default function Settings() {
         continuous
         showProgress
         showSkipButton
-        disableScrolling={true}
         tooltipComponent={CustomTooltip}
         styles={{
           options: {

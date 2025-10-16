@@ -34,6 +34,7 @@ export async function createSession(data: {
     createdBy: string;
     isPFATC?: boolean;
     activeRunway?: string | null;
+    isTutorial?: boolean;
 }): Promise<SessionInfo> {
     const res = await fetch(`${API_BASE_URL}/api/sessions/create`, {
         method: 'POST',

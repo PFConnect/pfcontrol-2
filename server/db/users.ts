@@ -238,6 +238,26 @@ export async function addSessionToUser(userId: string, sessionId: string) {
   return await getUserById(userId);
 }
 
+export async function removeSessionFromUser(userId: string, sessionId: string) {
+  const user = await getUserById(userId);
+  if (!user) throw new Error('User not found');
+
+  const sessions = (user.sessions || []).filter((s: string) => s !== sessionId);
+  const encryptedSessions = encrypt(sessions);
+
+  await mainDb
+    .updateTable('users')
+    .set({
+      sessions: JSON.stringify(encryptedSessions),
+      updated_at: sql`NOW()`
+    })
+    .where('id', '=', userId)
+    .execute();
+
+  await invalidateUserCache(userId);
+  return await getUserById(userId);
+}
+
 export async function updateRobloxAccount(userId: string, { robloxUserId, robloxUsername, accessToken, refreshToken }: { robloxUserId: string; robloxUsername: string; accessToken: string; refreshToken: string }) {
   await mainDb
     .updateTable('users')

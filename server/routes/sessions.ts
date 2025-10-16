@@ -7,7 +7,7 @@ import {
     getAllSessions,
     updateSessionName,
 } from '../db/sessions.js';
-import { addSessionToUser } from '../db/users.js';
+import { addSessionToUser, removeSessionFromUser } from '../db/users.js';
 import { generateSessionId, generateAccessId } from '../utils/ids.js';
 import { recordNewSession } from '../db/statistics.js';
 import { requireSessionAccess, requireSessionOwnership } from '../middleware/sessionAccess.js';
@@ -15,6 +15,7 @@ import { getSessionsByUser } from '../db/sessions.js';
 import requireAuth from '../middleware/auth.js';
 import { sessionCreationLimiter } from '../middleware/rateLimiting.js';
 import { sanitizeAlphanumeric } from '../utils/sanitization.js';
+import { getUserById } from '../db/users.js';
 
 import { Request, Response } from 'express';
 import { JwtPayloadClient } from '../types/JwtPayload.js';
@@ -38,12 +39,24 @@ router.post('/create', sessionCreationLimiter, requireAuth, async (req: Request,
             return res.status(401).json({ error: 'Unauthorized' });
         }
         const createdBy = user.userId;
-        const { airportIcao, isPFATC = false, activeRunway = null } = req.body;
+        const { airportIcao, isPFATC = false, activeRunway = null, isTutorial = false } = req.body;
         if (!airportIcao) {
             return res.status(400).json({ error: 'Airport ICAO is required' });
         }
 
         const userSessions = await getSessionsByUser(createdBy);
+
+        // Clean up user's sessions array
+        const userRecord = await getUserById(createdBy);
+        if (userRecord && Array.isArray(userRecord.sessions)) {
+            const validSessionIds = new Set(userSessions.map(s => s.session_id));
+            for (const sid of userRecord.sessions) {
+                if (!validSessionIds.has(sid)) {
+                    await removeSessionFromUser(createdBy, sid);
+                }
+            }
+        }
+
         if (userSessions.length >= 10) {
             return res.status(400).json({
                 error: 'Session limit reached',
@@ -63,7 +76,7 @@ router.post('/create', sessionCreationLimiter, requireAuth, async (req: Request,
             return res.status(500).json({ error: 'Session ID collision, please try again.' });
         }
 
-        await createSession({ sessionId, accessId, activeRunway, airportIcao, createdBy, isPFATC });
+        await createSession({ sessionId, accessId, activeRunway, airportIcao, createdBy, isPFATC, isTutorial });
 
         await addSessionToUser(createdBy, sessionId);
 
@@ -238,6 +251,7 @@ router.post('/delete', requireAuth, async (req: Request, res: Response) => {
         }
 
         await deleteSession(sessionId);
+        await removeSessionFromUser(session.created_by, sessionId);
         res.json({ message: 'Session deleted successfully', sessionId });
     } catch (error) {
         console.error('Error deleting session:', error);

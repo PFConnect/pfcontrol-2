@@ -1,4 +1,5 @@
 import { mainDb, flightsDb } from "./connection.js";
+import { addFlight } from './flights';
 import { validateSessionId } from "../utils/validation.js";
 import { encrypt } from "../utils/encryption.js";
 import { sql } from "kysely";
@@ -12,7 +13,7 @@ interface CreateSessionParams {
   isPFATC?: boolean;
 }
 
-export async function createSession({ sessionId, accessId, activeRunway, airportIcao, createdBy, isPFATC }: CreateSessionParams) {
+export async function createSession({ sessionId, accessId, activeRunway, airportIcao, createdBy, isPFATC, isTutorial }: CreateSessionParams & { isTutorial?: boolean }) {
   const validSessionId = validateSessionId(sessionId);
 
   const encryptedAtis = encrypt({
@@ -67,6 +68,26 @@ export async function createSession({ sessionId, accessId, activeRunway, airport
     .addColumn('hidden', 'boolean', (col) => col.defaultTo(false))
     .addColumn('acars_token', 'varchar(16)')
     .execute();
+
+  if (isTutorial) {
+    await addFlight(sessionId, {
+      callsign: 'EXAMPLE123',
+      aircraft: 'A320',
+      flight_type: 'IFR',
+      departure: airportIcao,
+      arrival: 'EGKK',
+      stand: 'EXAMPLE',
+      runway: activeRunway || '',
+      sid: 'RADAR VECTORS',
+      cruisingFL: 340,
+      clearedFL: 140,
+      squawk: '1234',
+      wtc: 'M',
+      status: 'PENDING',
+      remark: 'Example',
+      hidden: false,
+    });
+  }
 }
 
 export async function getSessionById(sessionId: string) {

@@ -8,6 +8,7 @@ interface CheckboxProps {
   checkedClass?: string;
   flashing?: boolean;
   id?: string;
+  disabled?: boolean;
 }
 
 export default function Checkbox({
@@ -18,6 +19,7 @@ export default function Checkbox({
   checkedClass = 'bg-blue-600 border-blue-600',
   flashing = false,
   id,
+  disabled = false,
 }: CheckboxProps) {
   return (
     <label
@@ -30,6 +32,7 @@ export default function Checkbox({
           className="absolute inset-0 w-6 h-6 opacity-0 cursor-pointer z-10"
           checked={checked}
           onChange={(e) => onChange(e.target.checked)}
+          disabled={disabled}
         />
 
         <div
@@ -39,7 +42,8 @@ export default function Checkbox({
               ? checkedClass
               : flashing
                 ? 'bg-green-500 border-green-500 animate-pulse'
-                : 'bg-transparent border-gray-400')
+                : 'bg-transparent border-gray-400') +
+            (disabled ? ' opacity-50 cursor-not-allowed' : '')
           }
         >
           {checked && (
