@@ -270,7 +270,7 @@ export default function Home() {
                       .replace('submitted total', 'Flights Submitted')
                       .trim()}
                 </h3>
-                <div className="flex justify-center gap-12">
+                <div className="flex flex-col md:flex-row justify-center gap-12">
                   {users.slice(0, 3).map((user, idx) => (
                     <div
                       key={user.userId}
