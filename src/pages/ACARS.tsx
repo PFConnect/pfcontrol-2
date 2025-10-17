@@ -3,7 +3,7 @@ import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Loader from '../components/common/Loader';
 import Button from '../components/common/Button';
-import { PanelsTopLeft, Terminal, Map } from 'lucide-react';
+import { PanelsTopLeft, Terminal, Map, PlaneTakeoff } from 'lucide-react';
 import { useData } from '../hooks/data/useData';
 import { useSettings } from '../hooks/settings/useSettings';
 import { createFlightsSocket } from '../sockets/flightsSocket';
@@ -47,11 +47,11 @@ export default function ACARS() {
   const [isChartDragging, setIsChartDragging] = useState(false);
   const [chartDragStart, setChartDragStart] = useState({ x: 0, y: 0 });
   const [imageSize, setImageSize] = useState({ width: 0, height: 0 });
-  const [showSidebar, setShowSidebar] = useState(true); // Always show on desktop
+  const [showSidebar, setShowSidebar] = useState(true);
   const [mobileTab, setMobileTab] = useState<'terminal' | 'notes' | 'charts'>(
     'terminal'
   );
-  const [showChartsDrawer, setShowChartsDrawer] = useState(false); // New state for charts drawer
+  const [showChartsDrawer, setShowChartsDrawer] = useState(false);
 
   const socketRef = useRef<ReturnType<typeof createFlightsSocket> | null>(null);
   const initializedRef = useRef(false);
@@ -445,6 +445,43 @@ NOTES:
     </span>
   );
 
+  const acarsSettings = settings?.acars;
+
+  const minSidebar = 10,
+    maxSidebar = 40;
+  const minTerminal = 20,
+    maxTerminal = 80;
+  const minNotes = 10,
+    maxNotes = 40;
+
+  let sidebarWidth = acarsSettings?.sidebarWidth ?? 15;
+  let terminalWidth = acarsSettings?.terminalWidth ?? 65;
+  let notesWidth = acarsSettings?.notesWidth ?? 20;
+  const notesEnabled = acarsSettings?.notesEnabled ?? true;
+
+  sidebarWidth = Math.max(minSidebar, Math.min(maxSidebar, sidebarWidth));
+  notesWidth = notesEnabled
+    ? Math.max(minNotes, Math.min(maxNotes, notesWidth))
+    : 0;
+
+  if (!showSidebar) sidebarWidth = 0;
+
+  if (notesEnabled) {
+    const total = sidebarWidth + terminalWidth + notesWidth;
+    if (total !== 100) {
+      terminalWidth = 100 - sidebarWidth - notesWidth;
+      if (terminalWidth < minTerminal) {
+        terminalWidth = minTerminal;
+        notesWidth = 100 - sidebarWidth - terminalWidth;
+        if (notesWidth < minNotes) notesWidth = minNotes;
+      }
+    }
+  } else {
+    notesWidth = 0;
+    terminalWidth = 100 - sidebarWidth;
+    if (terminalWidth < minTerminal) terminalWidth = minTerminal;
+  }
+
   if (loading || dataLoading || settingsLoading) {
     return (
       <div className="min-h-screen bg-zinc-950">
@@ -510,9 +547,7 @@ NOTES:
       <div className="bg-gradient-to-b from-zinc-800 to-zinc-900 border-b border-zinc-700/50 py-8 px-4">
         <div className="max-w-7xl mx-auto flex items-center justify-between gap-4 pt-12">
           <div className="flex items-center gap-3">
-            <div className="p-3 bg-blue-500/20 rounded-xl">
-              <Terminal className="h-8 w-8 text-blue-400" />
-            </div>
+            <PlaneTakeoff className="h-8 w-8 text-blue-500" />
             <div>
               <h1 className="text-2xl font-bold text-white">
                 {flight?.callsign
@@ -538,18 +573,27 @@ NOTES:
               onClick={handleToggleChartsDrawer}
             >
               <Map className="w-5 h-5" />
-              Charts
+              <span className="hidden sm:inline">Toggle Charts</span>
             </Button>
           </div>
         </div>
       </div>
 
+      {/* Desktop Layout */}
       <div
-        className="hidden md:flex pt-4 px-6 pb-6"
+        className="hidden md:flex gap-4 pt-4 px-6 pb-6"
         style={{ height: 'calc(100vh - 200px)' }}
       >
+        {/* Sidebar */}
         {showSidebar && (
-          <div className="w-80 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl mr-4 overflow-hidden">
+          <div
+            style={{
+              width: `${sidebarWidth}%`,
+              minWidth: sidebarWidth === 0 ? 0 : 120,
+              maxWidth: 400,
+            }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300"
+          >
             <AcarsSidebar
               activeSessions={activeSessions}
               onAtisClick={handleAtisClick}
@@ -557,7 +601,16 @@ NOTES:
           </div>
         )}
 
-        <div className="flex-1 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden mr-4">
+        {/* Terminal */}
+        <div
+          style={{
+            width: `${terminalWidth}%`,
+            minWidth: 200,
+            transition: 'width 0.3s',
+            flex: 'none',
+          }}
+          className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
+        >
           <AcarsTerminal
             flightCallsign={flight?.callsign}
             messages={messages}
@@ -569,9 +622,18 @@ NOTES:
           />
         </div>
 
-        <div className="w-96 bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden">
-          <AcarsNotePanel notes={notes} handleNotesChange={handleNotesChange} />
-        </div>
+        {/* Notes */}
+        {notesEnabled && (
+          <div
+            style={{ width: `${notesWidth}%`, minWidth: 120, maxWidth: 400 }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300"
+          >
+            <AcarsNotePanel
+              notes={notes}
+              handleNotesChange={handleNotesChange}
+            />
+          </div>
+        )}
       </div>
 
       {/* Mobile Layout */}
@@ -596,16 +658,6 @@ NOTES:
             onClick={() => setMobileTab('notes')}
           >
             Notes
-          </button>
-          <button
-            className={`flex-1 py-2 rounded-lg font-mono text-xs ${
-              mobileTab === 'charts'
-                ? 'bg-blue-700 text-white'
-                : 'bg-zinc-800 text-zinc-400'
-            }`}
-            onClick={() => setMobileTab('charts')}
-          >
-            Charts
           </button>
         </div>
         <div className="bg-zinc-900 rounded-2xl shadow-2xl border border-zinc-800 overflow-hidden">
