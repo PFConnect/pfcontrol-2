@@ -102,6 +102,8 @@ export default function AdminUsers() {
       setUsers(sortedUsers);
       setRoles(rolesData);
       setTotalPages(usersData.pagination.pages);
+
+      return sortedUsers;
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to fetch data';
@@ -110,6 +112,7 @@ export default function AdminUsers() {
         message: errorMessage,
         type: 'error',
       });
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -148,7 +151,11 @@ export default function AdminUsers() {
     try {
       await removeRoleFromUser(userId, roleId);
       setToast({ message: 'Role removed successfully', type: 'success' });
-      fetchData();
+      const updatedUsers = await fetchData();
+      const updatedUser = updatedUsers.find((u) => u.id === userId);
+      if (updatedUser) {
+        setSelectedUserForRole(updatedUser);
+      }
     } catch (error) {
       setToast({
         message:
@@ -171,16 +178,19 @@ export default function AdminUsers() {
           type: 'success',
         });
       } else {
-        // Note: With multiple roles, use AdminRoles page to manage role removal
         setToast({
           message: 'Please use the Admin Roles page to remove roles',
           type: 'info',
         });
       }
 
-      setShowRoleModal(false);
-      setSelectedUserForRole(null);
-      fetchData();
+      const updatedUsers = await fetchData(); // Get fresh users data
+      const updatedUser = updatedUsers.find(
+        (u) => u.id === selectedUserForRole.id
+      );
+      if (updatedUser) {
+        setSelectedUserForRole(updatedUser); // Update modal with fresh data
+      }
     } catch (error) {
       setToast({
         message:

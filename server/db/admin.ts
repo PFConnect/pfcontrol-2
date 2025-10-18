@@ -482,3 +482,21 @@ export async function syncUserSessionCounts() {
     throw error;
   }
 }
+
+export async function invalidateAllUsersCache() {
+  try {
+    let cursor = '0';
+    const keysToDelete: string[] = [];
+    do {
+      const [newCursor, keys] = await redisConnection.scan(cursor, 'MATCH', 'allUsers:*', 'COUNT', 100);
+      cursor = newCursor;
+      keysToDelete.push(...keys);
+    } while (cursor !== '0');
+
+    if (keysToDelete.length > 0) {
+      await redisConnection.del(...keysToDelete);
+    }
+  } catch (error) {
+    console.warn('[Redis] Failed to invalidate allUsers cache:', error);
+  }
+}
