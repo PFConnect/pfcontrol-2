@@ -36,7 +36,7 @@ export const getChartsForAirport = (icao: string) => {
             { file: 'EGKK_ARR_2.jpg', name: 'STAR Chart 2', type: 'Arrival', credits: '© PFATC' },
         ],
         GCLP: [
-            { file: 'GCLP_GND_1.jpg', name: 'Airport Diagram', type: 'Ground', credits: '© PFATC' },
+            { file: 'GCLP_GND_1.jpg', name: 'Airport Diagram', type: 'Ground', credits: '© BABAXSON' },
             { file: 'GCLP_DEP_1.jpg', name: 'SID Chart 1', type: 'Departure', credits: '© PFATC' },
             { file: 'GCLP_DEP_2.jpg', name: 'SID Chart 2', type: 'Departure', credits: '© PFATC' },
             { file: 'GCLP_DEP_3.jpg', name: 'SID Chart 3', type: 'Departure', credits: '© PFATC' },
@@ -72,9 +72,10 @@ export const getChartsForAirport = (icao: string) => {
             { file: 'MDCR_GND.png', name: 'Airport Diagram', type: 'Ground', credits: '© PFATC' },
         ],
         MDPC: [
-            { file: 'MDPC_GND_1.jpg', name: 'Airport Diagram', type: 'Ground', credits: '© PFATC' },
+            { file: 'MDPC_OVR.png', name: 'Airport Diagram', type: 'Information', credits: '© iceit PFConnect Studios' },
+            { file: 'MDPC_GND_1.jpg', name: 'Airport Diagram', type: 'Ground', credits: '© CPTMILK' },
             { file: 'MDPC_GND_2.jpg', name: 'Ground Movement', type: 'Ground', credits: '© PFATC' },
-            { file: 'MDPC_DEP_1.png', name: 'SID Chart 1', type: 'Departure', credits: '© PFATC' },
+            { file: 'MDPC_DEP_1.png', name: 'SID Chart 1', type: 'Departure', credits: '© .hykka' },
             { file: 'MDPC_DEP_2.png', name: 'SID Chart 2', type: 'Departure', credits: '© .hykka' },
             { file: 'MDPC_ARR_1.png', name: 'STAR Chart 1', type: 'Arrival', credits: '© .hykka' },
             { file: 'MDPC_ARR_2.png', name: 'STAR Chart 2', type: 'Arrival', credits: '© .hykka' },
