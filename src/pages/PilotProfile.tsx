@@ -34,6 +34,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { SiRoblox } from 'react-icons/si';
 import { fetchPilotProfile } from '../utils/fetch/pilot';
 import { getCurrentUser } from '../utils/fetch/auth';
 import { useAuth } from '../hooks/auth/useAuth';
@@ -42,7 +43,6 @@ import Button from '../components/common/Button';
 import Loader from '../components/common/Loader';
 import Navbar from '../components/Navbar';
 import AccessDenied from '../components/AccessDenied';
-import { SiRoblox } from 'react-icons/si';
 
 ChartJS.register(
   CategoryScale,
