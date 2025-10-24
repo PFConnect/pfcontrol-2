@@ -5,9 +5,11 @@ import { createChatSocket } from '../../sockets/chatSocket';
 import { Send, Trash, X, Flag } from 'lucide-react';
 import type { ChatMessage, ChatMention } from '../../types/chats';
 import type { SessionUser } from '../../types/session';
+import type { ToastType } from '../common/Toast';
 import Button from '../common/Button';
 import Loader from '../common/Loader';
 import Modal from '../common/Modal';
+import Toast from '../common/Toast';
 
 interface ChatSidebarProps {
   sessionId: string;
@@ -42,6 +44,10 @@ export default function ChatSidebar({
   const [reportingMessageId, setReportingMessageId] = useState<number | null>(
     null
   );
+  const [toast, setToast] = useState<{
+    message: string;
+    type: ToastType;
+  } | null>(null);
   const socketRef = useRef<ReturnType<typeof createChatSocket> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingDeleteRef = useRef<ChatMessage | null>(null);
@@ -202,12 +208,12 @@ export default function ChatSidebar({
         reportingMessageId,
         reportReason.trim()
       );
-      alert('Message reported successfully.');
+      setToast({ message: 'Message reported successfully.', type: 'success' }); // Update to use state
       setShowReportModal(false);
       setReportReason('');
       setReportingMessageId(null);
     } catch {
-      alert('Failed to report message.');
+      setToast({ message: 'Failed to report message.', type: 'error' }); // Update to use state
     }
   }
 
@@ -465,10 +471,20 @@ export default function ChatSidebar({
           value={reportReason}
           onChange={(e) => setReportReason(e.target.value)}
           placeholder="Enter reason for reporting..."
-          className="w-full p-2 bg-zinc-800 text-white rounded border border-zinc-700"
+          className="w-full p-2 bg-zinc-800 text-white rounded border border-zinc-700 focus:outline-none focus:ring-2 focus:ring-red-800"
+          maxLength={200}
           rows={4}
         />
       </Modal>
+
+      {/* Add this at the end of the return statement, before the closing </div> */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
     </div>
   );
 }
