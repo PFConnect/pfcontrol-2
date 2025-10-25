@@ -1,21 +1,17 @@
 import express from 'express';
 import { mainDb } from '../../db/connection.js';
-import requireAuth from '../../middleware/auth.js';
 import { logAdminAction } from '../../db/audit.js';
+import { requirePermission } from '../../middleware/rolePermissions.js';
+import requireAuth from '../../middleware/auth.js';
 
 const router = express.Router();
 
 // GET: /api/admin/chat-reports
-router.get('/', requireAuth, async (req, res) => {
+router.get('/', requireAuth, requirePermission('chat_reports'), async (req, res) => {
     try {
-        const user = req.user;
-        if (!user?.isAdmin) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
         await logAdminAction({
-            adminId: user.userId,
-            adminUsername: user.username,
+            adminId: req.user?.userId || '',
+            adminUsername: req.user?.username || '',
             actionType: 'CHAT_REPORTS_ACCESSED',
             details: {
                 page: parseInt(req.query.page as string) || 1,
@@ -57,13 +53,8 @@ router.get('/', requireAuth, async (req, res) => {
 });
 
 // PATCH: /api/admin/chat-reports/:id
-router.patch('/:id', requireAuth, async (req, res) => {
+router.patch('/:id', requireAuth, requirePermission('chat_reports'), async (req, res) => {
     try {
-        const user = req.user;
-        if (!user?.isAdmin) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
         const { status } = req.body;
         if (!['pending', 'resolved'].includes(status)) {
             return res.status(400).json({ error: 'Invalid status' });
@@ -86,8 +77,8 @@ router.patch('/:id', requireAuth, async (req, res) => {
             .execute();
 
         await logAdminAction({
-            adminId: user.userId,
-            adminUsername: user.username,
+            adminId: req.user?.userId || '',
+            adminUsername: req.user?.username || '',
             actionType: 'CHAT_REPORT_STATUS_UPDATED',
             targetUserId: report.reported_user_id,
             details: { reportId: req.params.id, status }
@@ -101,13 +92,8 @@ router.patch('/:id', requireAuth, async (req, res) => {
 });
 
 // DELETE: /api/admin/chat-reports/:id
-router.delete('/:id', requireAuth, async (req, res) => {
+router.delete('/:id', requireAuth, requirePermission('chat_reports'), async (req, res) => {
     try {
-        const user = req.user;
-        if (!user?.isAdmin) {
-            return res.status(403).json({ error: 'Forbidden' });
-        }
-
         const report = await mainDb
             .selectFrom('chat_report')
             .select(['reported_user_id'])
@@ -124,8 +110,8 @@ router.delete('/:id', requireAuth, async (req, res) => {
             .execute();
 
         await logAdminAction({
-            adminId: user.userId,
-            adminUsername: user.username,
+            adminId: req.user?.userId || '',
+            adminUsername: req.user?.username || '',
             actionType: 'CHAT_REPORT_DELETED',
             targetUserId: report.reported_user_id,
             details: { reportId: req.params.id }
