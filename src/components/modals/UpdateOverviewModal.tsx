@@ -2,7 +2,7 @@ import { X } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import Button from '../common/Button';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface UpdateOverviewModalProps {
   isOpen: boolean;
@@ -19,7 +19,8 @@ export default function UpdateOverviewModal({
   content,
   bannerUrl,
 }: UpdateOverviewModalProps) {
-  // Prevent background scrolling when modal is open
+  const [isScrolled, setIsScrolled] = useState(false);
+
   useEffect(() => {
     if (isOpen) {
       document.body.style.overflow = 'hidden';
@@ -27,7 +28,6 @@ export default function UpdateOverviewModal({
       document.body.style.overflow = 'unset';
     }
 
-    // Cleanup on unmount
     return () => {
       document.body.style.overflow = 'unset';
     };
@@ -36,8 +36,8 @@ export default function UpdateOverviewModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl">
+    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-9999 p-4">
+      <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-zinc-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl relative">
         {/* Header */}
         <div className="relative flex-shrink-0">
           {bannerUrl && (
@@ -60,9 +60,20 @@ export default function UpdateOverviewModal({
           </div>
         </div>
 
-        {/* Content - Scrollable */}
-        <div className="p-6 overflow-y-auto flex-1">
-          <h2 className="text-3xl font-bold mb-4 bg-gradient-to-r from-cyan-400 to-blue-400 bg-clip-text text-transparent">
+        <div
+          className={`absolute top-48 left-0 right-0 h-24 bg-gradient-to-b from-black via-black/40 to-transparent pointer-events-none transition-opacity duration-300 z-10 ${
+            isScrolled ? 'opacity-100' : 'opacity-0'
+          }`}
+        />
+
+        {/* Content */}
+        <div
+          className="p-6 overflow-y-auto flex-1 relative"
+          onScroll={(e) =>
+            setIsScrolled((e.target as HTMLElement).scrollTop > 0)
+          }
+        >
+          <h2 className="text-4xl font-extrabold mb-4 bg-gradient-to-r from-blue-400 to-blue-900 bg-clip-text text-transparent">
             {title}
           </h2>
 
@@ -71,17 +82,17 @@ export default function UpdateOverviewModal({
               remarkPlugins={[remarkGfm]}
               components={{
                 h1: ({ children }) => (
-                  <h1 className="text-2xl font-bold text-cyan-400 mt-6 mb-3">
+                  <h1 className="text-2xl font-bold text-blue-400 mt-6 mb-3">
                     {children}
                   </h1>
                 ),
                 h2: ({ children }) => (
-                  <h2 className="text-xl font-bold text-cyan-400 mt-5 mb-2">
+                  <h2 className="text-xl font-bold text-blue-400 mt-5 mb-2">
                     {children}
                   </h2>
                 ),
                 h3: ({ children }) => (
-                  <h3 className="text-lg font-semibold text-cyan-300 mt-4 mb-2">
+                  <h3 className="text-lg font-semibold text-blue-400 mt-4 mb-2">
                     {children}
                   </h3>
                 ),
@@ -95,7 +106,7 @@ export default function UpdateOverviewModal({
                     href={href}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="text-cyan-400 hover:text-cyan-300 underline"
+                    className="text-blue-400 hover:text-blue-300 underline"
                   >
                     {children}
                   </a>
@@ -117,13 +128,13 @@ export default function UpdateOverviewModal({
                   const isInline = !className;
                   if (isInline) {
                     return (
-                      <code className="bg-zinc-800 text-cyan-400 px-1.5 py-0.5 rounded text-sm">
+                      <code className="bg-zinc-800 text-blue-400 px-1.5 py-0.5 rounded text-sm">
                         {children}
                       </code>
                     );
                   }
                   return (
-                    <code className="block bg-zinc-800 text-cyan-400 p-3 rounded-lg overflow-x-auto text-sm">
+                    <code className="block bg-zinc-800 text-blue-400 p-3 rounded-lg overflow-x-auto text-sm">
                       {children}
                     </code>
                   );
@@ -134,7 +145,7 @@ export default function UpdateOverviewModal({
                   </pre>
                 ),
                 blockquote: ({ children }) => (
-                  <blockquote className="border-l-4 border-cyan-500 pl-4 italic text-zinc-400 my-3">
+                  <blockquote className="border-l-4 border-blue-500 pl-4 italic text-zinc-400 my-3">
                     {children}
                   </blockquote>
                 ),
@@ -149,19 +160,14 @@ export default function UpdateOverviewModal({
             >
               {content}
             </ReactMarkdown>
+            <div className="mt-6">
+              <div className="border-t border-zinc-800 py-4 pb-0">
+                <Button onClick={onClose} variant="primary" className="w-full">
+                  Got it!
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-
-        {/* Footer - Always visible */}
-        <div className="border-t border-zinc-700 p-6 bg-zinc-900/50 flex-shrink-0">
-          <Button
-            onClick={onClose}
-            variant="primary"
-            size="lg"
-            className="w-full"
-          >
-            Cool!
-          </Button>
         </div>
       </div>
     </div>

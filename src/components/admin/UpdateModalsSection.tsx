@@ -1,5 +1,13 @@
 import { useState, useEffect } from 'react';
-import { Megaphone, Plus, Edit, Trash2, Send, EyeOff, Upload } from 'lucide-react';
+import {
+  Megaphone,
+  Plus,
+  Edit,
+  Trash2,
+  Send,
+  EyeOff,
+  Upload,
+} from 'lucide-react';
 import Button from '../common/Button';
 import Toast from '../common/Toast';
 import Loader from '../common/Loader';
@@ -43,7 +51,8 @@ export default function UpdateModalsSection() {
       setModals(data);
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : 'Failed to fetch update modals',
+        message:
+          err instanceof Error ? err.message : 'Failed to fetch update modals',
         type: 'error',
       });
     } finally {
@@ -59,13 +68,17 @@ export default function UpdateModalsSection() {
 
     try {
       await createUpdateModal(formData);
-      setToast({ message: 'Update modal created successfully', type: 'success' });
+      setToast({
+        message: 'Update modal created successfully',
+        type: 'success',
+      });
       setShowAddModal(false);
       resetForm();
       fetchModals();
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : 'Failed to create update modal',
+        message:
+          err instanceof Error ? err.message : 'Failed to create update modal',
         type: 'error',
       });
     }
@@ -80,13 +93,17 @@ export default function UpdateModalsSection() {
 
     try {
       await updateUpdateModal(editingModal.id, formData);
-      setToast({ message: 'Update modal updated successfully', type: 'success' });
+      setToast({
+        message: 'Update modal updated successfully',
+        type: 'success',
+      });
       setEditingModal(null);
       resetForm();
       fetchModals();
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : 'Failed to update update modal',
+        message:
+          err instanceof Error ? err.message : 'Failed to update update modal',
         type: 'error',
       });
     }
@@ -97,11 +114,15 @@ export default function UpdateModalsSection() {
 
     try {
       await deleteUpdateModal(id);
-      setToast({ message: 'Update modal deleted successfully', type: 'success' });
+      setToast({
+        message: 'Update modal deleted successfully',
+        type: 'success',
+      });
       fetchModals();
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : 'Failed to delete update modal',
+        message:
+          err instanceof Error ? err.message : 'Failed to delete update modal',
         type: 'error',
       });
     }
@@ -110,7 +131,7 @@ export default function UpdateModalsSection() {
   const handlePublish = async (id: number) => {
     if (
       !confirm(
-        'Publishing this modal will show it to users who haven\'t seen it yet (tracked via localStorage). Continue?'
+        "Publishing this modal will show it to users who haven't seen it yet (tracked via localStorage). Continue?"
       )
     )
       return;
@@ -124,7 +145,8 @@ export default function UpdateModalsSection() {
       fetchModals();
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : 'Failed to publish update modal',
+        message:
+          err instanceof Error ? err.message : 'Failed to publish update modal',
         type: 'error',
       });
     }
@@ -133,11 +155,17 @@ export default function UpdateModalsSection() {
   const handleUnpublish = async (id: number) => {
     try {
       await unpublishUpdateModal(id);
-      setToast({ message: 'Update modal unpublished successfully', type: 'success' });
+      setToast({
+        message: 'Update modal unpublished successfully',
+        type: 'success',
+      });
       fetchModals();
     } catch (err) {
       setToast({
-        message: err instanceof Error ? err.message : 'Failed to unpublish update modal',
+        message:
+          err instanceof Error
+            ? err.message
+            : 'Failed to unpublish update modal',
         type: 'error',
       });
     }
@@ -158,11 +186,14 @@ export default function UpdateModalsSection() {
       formData.append('image', file);
 
       const API_BASE_URL = import.meta.env.VITE_SERVER_URL || '';
-      const response = await fetch(`${API_BASE_URL}/api/uploads/upload-modal-banner`, {
-        method: 'POST',
-        credentials: 'include',
-        body: formData,
-      });
+      const response = await fetch(
+        `${API_BASE_URL}/api/uploads/upload-modal-banner`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          body: formData,
+        }
+      );
 
       if (!response.ok) throw new Error('Upload failed');
 
@@ -215,28 +246,38 @@ export default function UpdateModalsSection() {
             <Megaphone className="w-6 h-6 text-cyan-400" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-white">Update Overview Modals</h2>
+            <h2 className="text-2xl font-bold text-white">
+              Update Overview Modals
+            </h2>
             <p className="text-sm text-zinc-400">
               Manage update announcements shown to users
             </p>
           </div>
         </div>
         <Button variant="outline" onClick={() => setShowAddModal(true)}>
-          <Plus className="w-4 h-4 mr-2"/>
+          <Plus className="w-4 h-4 mr-2" />
           Create Modal
         </Button>
       </div>
 
       {/* Modals List */}
-      <div className="bg-zinc-900/50 border border-zinc-700/50 rounded-xl overflow-hidden">
+      <div className="bg-zinc-900 border-2 border-zinc-700/50 rounded-2xl overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-zinc-800/50 border-b border-zinc-700">
+          <table className="w-full min-w-[600px]">
+            <thead className="bg-zinc-800">
               <tr>
-                <th className="text-left p-4 font-semibold text-zinc-300 w-1/2">Title</th>
-                <th className="text-center p-4 font-semibold text-zinc-300 w-24">Status</th>
-                <th className="text-center p-4 font-semibold text-zinc-300 w-28">Published</th>
-                <th className="text-center p-4 font-semibold text-zinc-300 w-32">Actions</th>
+                <th className="px-6 py-4 text-left text-zinc-400 font-medium">
+                  Title
+                </th>
+                <th className="px-6 py-4 text-center text-zinc-400 font-medium">
+                  Status
+                </th>
+                <th className="px-6 py-4 text-center text-zinc-400 font-medium">
+                  Published
+                </th>
+                <th className="px-6 py-4 text-center text-zinc-400 font-medium">
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -250,19 +291,29 @@ export default function UpdateModalsSection() {
                 modals.map((modal) => (
                   <tr
                     key={modal.id}
-                    className="border-b border-zinc-700/50 hover:bg-zinc-800/30 transition-colors"
+                    className="border-t border-zinc-700/50 hover:bg-zinc-800/50 transition-colors"
                   >
-                    <td className="p-4 w-1/2">
+                    <td className="px-6 py-4 w-1/2">
                       <div className="flex flex-col gap-1">
-                        <h3 className="font-medium text-white truncate" title={modal.title}>
-                          {modal.title.length > 40 ? `${modal.title.substring(0, 40)}...` : modal.title}
+                        <h3
+                          className="font-medium text-white truncate"
+                          title={modal.title}
+                        >
+                          {modal.title.length > 40
+                            ? `${modal.title.substring(0, 40)}...`
+                            : modal.title}
                         </h3>
-                        <p className="text-sm text-zinc-400 truncate" title={modal.content}>
-                          {modal.content.length > 60 ? `${modal.content.substring(0, 60)}...` : modal.content}
+                        <p
+                          className="text-sm text-zinc-400 truncate"
+                          title={modal.content}
+                        >
+                          {modal.content.length > 60
+                            ? `${modal.content.substring(0, 60)}...`
+                            : modal.content}
                         </p>
                       </div>
                     </td>
-                    <td className="p-4 text-center w-24">
+                    <td className="px-6 py-4 text-center w-24">
                       {modal.is_active ? (
                         <span className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-green-500/10 text-green-400 rounded-full text-sm font-medium">
                           <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
@@ -275,16 +326,16 @@ export default function UpdateModalsSection() {
                         </span>
                       )}
                     </td>
-                    <td className="p-4 text-center w-28">
+                    <td className="px-6 py-4 text-center w-28">
                       {modal.published_at
                         ? new Date(modal.published_at).toLocaleDateString()
                         : 'Not published'}
                     </td>
-                    <td className="p-4 text-center w-32">
+                    <td className="px-6 py-4 text-center w-32">
                       <div className="flex items-center justify-center gap-2">
                         {modal.is_active ? (
                           <Button
-                            variant="secondary"
+                            variant="outline"
                             size="sm"
                             onClick={() => handleUnpublish(modal.id)}
                           >
@@ -292,7 +343,7 @@ export default function UpdateModalsSection() {
                           </Button>
                         ) : (
                           <Button
-                            variant="primary"
+                            variant="outline"
                             size="sm"
                             onClick={() => handlePublish(modal.id)}
                           >
@@ -300,7 +351,7 @@ export default function UpdateModalsSection() {
                           </Button>
                         )}
                         <Button
-                          variant="secondary"
+                          variant="outline"
                           size="sm"
                           onClick={() => openEditModal(modal)}
                         >
@@ -362,12 +413,16 @@ export default function UpdateModalsSection() {
                       {uploading ? (
                         <>
                           <Loader />
-                          <span className="text-sm text-zinc-300">Uploading...</span>
+                          <span className="text-sm text-zinc-300">
+                            Uploading...
+                          </span>
                         </>
                       ) : (
                         <>
                           <Upload className="w-4 h-4 text-zinc-400" />
-                          <span className="text-sm text-zinc-300">Upload via Cephie Snap</span>
+                          <span className="text-sm text-zinc-300">
+                            Upload via Cephie Snap
+                          </span>
                         </>
                       )}
                     </div>
@@ -402,7 +457,8 @@ export default function UpdateModalsSection() {
                   />
                 </div>
                 <p className="text-xs text-zinc-500 mt-1">
-                  Supports markdown formatting: **bold**, *italic*, [links](url), lists, etc.
+                  Supports markdown formatting: **bold**, *italic*,
+                  [links](url), lists, etc.
                 </p>
               </div>
             </div>
