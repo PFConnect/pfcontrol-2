@@ -1,14 +1,8 @@
+import { Request, Response, NextFunction } from 'express';
 import { getUserById } from '../db/users.js';
-import { getRoleById } from '../db/roles.js';
 import { isAdmin } from './admin.js';
 
-import { Request, Response, NextFunction } from 'express';
-
 type PermissionKey = string;
-
-interface Role {
-    permissions: { [key: string]: boolean };
-}
 
 export function requirePermission(permission: PermissionKey) {
     return async (req: Request, res: Response, next: NextFunction) => {
@@ -22,20 +16,29 @@ export function requirePermission(permission: PermissionKey) {
             }
 
             const user = await getUserById(req.user.userId);
-            if (!user || !user.roleId) {
-                return res.status(403).json({ error: 'Access denied - insufficient permissions' });
+            if (!user) {
+                return res.status(403).json({ error: 'Access denied - user not found' });
             }
 
-            const dbRole = await getRoleById(user.roleId);
-            const role: Role | null = dbRole
-                ? {
-                    permissions: (typeof dbRole.permissions === 'object' && dbRole.permissions !== null
-                        ? dbRole.permissions
-                        : {}) as { [key: string]: boolean }
+            const { getUserRoles } = await import('../db/roles.js');
+            const userRoles = await getUserRoles(user.id);
+            
+            const mergedPermissions: Record<string, boolean> = {};
+            for (const role of userRoles) {
+                let perms = role.permissions;
+                if (typeof perms === 'string') {
+                    try {
+                        perms = JSON.parse(perms);
+                    } catch {
+                        perms = {};
+                    }
                 }
-                : null;
+                if (perms && typeof perms === 'object') {
+                    Object.assign(mergedPermissions, perms as Record<string, boolean>);
+                }
+            }
 
-            if (!role || !role.permissions[permission]) {
+            if (!mergedPermissions[permission]) {
                 return res.status(403).json({ error: 'Access denied - insufficient permissions' });
             }
 
