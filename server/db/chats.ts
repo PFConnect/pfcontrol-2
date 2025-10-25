@@ -45,7 +45,7 @@ export async function addChatMessage(sessionId: string, { userId, username, avat
             username,
             avatar,
             message: JSON.stringify(encryptedMsg),
-            mentions: mentions.length > 0 ? JSON.stringify(mentions) : undefined
+            mentions: mentions.length > 0 ? sql`${JSON.stringify(mentions)}::jsonb` : undefined,
         })
         .returningAll()
         .executeTakeFirst();
