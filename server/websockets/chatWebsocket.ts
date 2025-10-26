@@ -20,6 +20,7 @@ interface MentionData {
 
 interface SessionUsersWebsocketIO {
     activeUsers?: Map<string, Array<{ id: string; username: string }>>;
+    getActiveUsersForSession?(sessionId: string): Promise<Array<{ id: string; username: string }>>;
     sendMentionToUser(userId: string, mentionData: MentionData): void;
 }
 
@@ -102,9 +103,9 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
                     socket.emit('messageAutomodded', { messageId: chatMsg.id });
                 }
 
-                if (sessionUsersIO?.activeUsers && mentions.length > 0) {
-                    const users = sessionUsersIO.activeUsers.get(sessionId);
-                    if (users) {
+                if (sessionUsersIO?.getActiveUsersForSession && mentions.length > 0) {
+                    try {
+                        const users = await sessionUsersIO.getActiveUsersForSession(sessionId);
                         const messageIdStr = chatMsg.id?.toString() ?? '';
                         const timestampStr = chatMsg.sent_at ? chatMsg.sent_at.toISOString() : new Date().toISOString();
                         for (const username of mentions) {
@@ -120,6 +121,8 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
                                 });
                             }
                         }
+                    } catch (error) {
+                        console.error('Error sending mentions:', error);
                     }
                 }
             } catch (error) {
