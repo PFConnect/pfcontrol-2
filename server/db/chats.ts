@@ -45,7 +45,7 @@ export async function addChatMessage(sessionId: string, { userId, username, avat
             username,
             avatar,
             message: JSON.stringify(encryptedMsg),
-            mentions: mentions.length > 0 ? sql`ARRAY[${mentions.map(m => sql`${m}`).join(', ')}]` : sql`'{}'::text[]`,
+            mentions: JSON.stringify(mentions),
         })
         .returningAll()
         .executeTakeFirst();
@@ -103,7 +103,7 @@ export async function getChatMessages(sessionId: string, limit = 50) {
         username: row.username,
         avatar: row.avatar,
         message: decryptedMsg || '',
-        mentions: row.mentions || [],
+        mentions: row.mentions ? JSON.parse(row.mentions) : [],  // Changed: Parse JSON string back to array
         sent_at: row.sent_at
       };
     })
