@@ -3,10 +3,8 @@ import { encrypt, decrypt } from "../utils/encryption.js";
 import { validateSessionId } from "../utils/validation.js";
 import { incrementStat } from "../utils/statisticsCache.js";
 import { mainDb } from './connection.js';
-import { Filter } from 'bad-words';
+import { containsHateSpeech, getHateSpeechReason } from "../utils/hateSpeechFilter.js";
 import { sql } from "kysely";
-
-const filter = new Filter();
 
 export async function ensureChatTable(sessionId: string) {
   const validSessionId = validateSessionId(sessionId);
@@ -53,8 +51,11 @@ export async function addChatMessage(sessionId: string, { userId, username, avat
     incrementStat(userId, 'total_chat_messages_sent');
 
     let automodded = false;
-    if (filter.isProfane(message)) {
+    let automodReason: string | undefined = undefined;
+    if (containsHateSpeech(message)) {
         automodded = true;
+        const hateSpeechReason = getHateSpeechReason(message);
+        automodReason = hateSpeechReason;
         await mainDb
             .insertInto('chat_report')
             .values({
@@ -67,13 +68,13 @@ export async function addChatMessage(sessionId: string, { userId, username, avat
                 reported_username: username,
                 reported_avatar: avatar || '/assets/app/default/avatar.webp',
                 message,
-                reason: 'Inappropriate language (automod)',
+                reason: `${hateSpeechReason} (automod)`,
                 avatar: '/assets/images/automod.webp',
             })
             .execute();
     }
 
-    return { ...result, message, mentions, automodded };
+    return { ...result, message, mentions, automodded, automodReason };
 }
 
 export async function getChatMessages(sessionId: string, limit = 50) {

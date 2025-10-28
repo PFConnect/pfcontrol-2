@@ -337,12 +337,14 @@ export default function Flights() {
 
   const handleSendContact = async (
     flightId: string | number,
-    message: string
+    message: string,
+    station: string,
+    position: string
   ) => {
     if (!flightsSocket?.socket) {
       throw new Error('No flights socket');
     }
-    flightsSocket.socket.emit('contactMe', { flightId, message });
+    flightsSocket.socket.emit('contactMe', { flightId, message, station, position});
   };
 
   useEffect(() => {

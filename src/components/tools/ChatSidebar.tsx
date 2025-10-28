@@ -48,79 +48,140 @@ export default function ChatSidebar({
     message: string;
     type: ToastType;
   } | null>(null);
-  const [automoddedMessages, setAutomoddedMessages] = useState<Set<number>>(
-    new Set()
+  const [automoddedMessages, setAutomoddedMessages] = useState<Map<number, string>>(
+    new Map()
   );
+  const [messagesLoaded, setMessagesLoaded] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const socketRef = useRef<ReturnType<typeof createChatSocket> | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const pendingDeleteRef = useRef<ChatMessage | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const isAtBottomRef = useRef(true);
 
+  // Socket connection - connects once and stays alive (separate from open/close UI state)
   useEffect(() => {
-    if (!sessionId || !accessId || !open || !user) return;
+    if (!sessionId || !accessId || !user) return;
 
-    setLoading(true);
-    fetchChatMessages(sessionId)
-      .then((fetchedMessages) => {
-        setMessages(fetchedMessages);
-        setLoading(false);
-      })
-      .catch(() => {
-        setMessages([]);
-        setLoading(false);
-      });
-
-    socketRef.current = createChatSocket(
-      sessionId,
-      accessId,
-      user.userId,
-      (msg: ChatMessage) => {
-        setMessages((prev) => [...prev, msg]);
-      },
-      (data: { messageId: number }) => {
-        setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
-      },
-      (data: { messageId: number; error: string }) => {
-        if (
-          pendingDeleteRef.current &&
-          pendingDeleteRef.current.id === data.messageId
-        ) {
+    // Connect to chat socket (stays connected even when chat closes)
+    if (!socketRef.current) {
+      socketRef.current = createChatSocket(
+        sessionId,
+        accessId,
+        user.userId,
+        (msg: ChatMessage) => {
           setMessages((prev) => {
-            const newMessages = [...prev, pendingDeleteRef.current!];
-            return newMessages.sort(
-              (a, b) =>
-                new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
-            );
+            // Prevent duplicates if message already exists
+            if (prev.some((m) => m.id === msg.id)) {
+              return prev;
+            }
+            return [...prev, msg];
           });
-          pendingDeleteRef.current = null;
+        },
+        (data: { messageId: number }) => {
+          setMessages((prev) => prev.filter((m) => m.id !== data.messageId));
+          // Clean up automodded tracking when message is deleted
+          setAutomoddedMessages((prev) => {
+            const newMap = new Map(prev);
+            newMap.delete(data.messageId);
+            return newMap;
+          });
+        },
+        (data: { messageId: number; error: string }) => {
+          if (
+            pendingDeleteRef.current &&
+            pendingDeleteRef.current.id === data.messageId
+          ) {
+            setMessages((prev) => {
+              const newMessages = [...prev, pendingDeleteRef.current!];
+              return newMessages.sort(
+                (a, b) =>
+                  new Date(a.sent_at).getTime() - new Date(b.sent_at).getTime()
+              );
+            });
+            pendingDeleteRef.current = null;
+          }
+        },
+        (users: string[]) => {
+          setActiveChatUsers(users);
+        },
+        (mention: ChatMention) => {
+          if (mention.mentionedUserId === user.userId && onMentionReceived) {
+            onMentionReceived(mention);
+          }
+        },
+        (data: { messageId: number; reason?: string }) => {
+          setAutomoddedMessages((prev) => {
+            const newMap = new Map(prev);
+            newMap.set(data.messageId, data.reason || 'Hate speech detected');
+            return newMap;
+          });
         }
-      },
-      (users: string[]) => {
-        setActiveChatUsers(users);
-      },
-      (mention: ChatMention) => {
-        if (mention.mentionedUserId === user.userId && onMentionReceived) {
-          onMentionReceived(mention);
-        }
-      },
-      (data: { messageId: number }) => {
-        setAutomoddedMessages((prev) => new Set(prev).add(data.messageId));
-      }
-    );
+      );
 
+      // If chat is already open when socket connects, emit chatOpened
+      if (open) {
+        socketRef.current.socket.emit('chatOpened');
+      }
+    }
+
+    // Cleanup only when component unmounts completely (not when chat closes)
     return () => {
       if (socketRef.current) {
         socketRef.current.socket.disconnect();
         socketRef.current = null;
       }
     };
-  }, [sessionId, accessId, open, user]);
+  }, [sessionId, accessId, user, onMentionReceived]); // Socket stays alive when chat closes
 
+  // Notify backend when chat UI opens/closes (for active indicator)
   useEffect(() => {
-    if (messagesEndRef.current) {
+    if (!socketRef.current) return;
+
+    if (open) {
+      // User opened chat UI
+      socketRef.current.socket.emit('chatOpened');
+    } else {
+      // User closed chat UI
+      socketRef.current.socket.emit('chatClosed');
+    }
+  }, [open]);
+
+  // Load messages once when chat is first opened
+  useEffect(() => {
+    if (!sessionId || !open || messagesLoaded) return;
+
+    setLoading(true);
+    setErrorMessage(null);
+    fetchChatMessages(sessionId)
+      .then((fetchedMessages) => {
+        setMessages(fetchedMessages);
+        setLoading(false);
+        setMessagesLoaded(true);
+      })
+      .catch((error) => {
+        console.error('Failed to fetch chat messages:', error);
+        setErrorMessage('Failed to load chat messages');
+        setMessages([]);
+        setLoading(false);
+        setMessagesLoaded(true);
+      });
+  }, [sessionId, open, messagesLoaded]); // Fetch messages only when chat opens for the first time
+
+  // Smart auto-scroll: only scroll if user is already at the bottom
+  useEffect(() => {
+    if (messagesEndRef.current && isAtBottomRef.current) {
       messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
     }
   }, [messages]);
+
+  // Track if user is at the bottom of the scroll area
+  const handleScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const element = e.currentTarget;
+    const isAtBottom =
+      element.scrollHeight - element.scrollTop <= element.clientHeight + 50;
+    isAtBottomRef.current = isAtBottom;
+  };
 
   const handleInputChange = (value: string) => {
     setInput(value);
@@ -266,10 +327,15 @@ export default function ChatSidebar({
         className={`flex-1 ${
           messages.length > 0 ? 'overflow-y-auto' : ''
         } px-5 py-4 space-y-4`}
+        onScroll={handleScroll}
       >
         {loading ? (
           <div className="flex justify-center items-center h-full">
             <Loader />
+          </div>
+        ) : errorMessage ? (
+          <div className="flex justify-center items-center h-full text-red-400">
+            {errorMessage}
           </div>
         ) : messages.length === 0 ? (
           <div className="flex justify-center items-center h-full text-gray-400">
@@ -369,13 +435,23 @@ export default function ChatSidebar({
                       </div>
                     )}
                   </div>
-                  {showHeader && isOwn && automoddedMessages.has(msg.id) && (
-                    <img
-                      src="/assets/images/automod.webp"
-                      alt="Flagged by automod"
-                      title="Your message was flagged by automod for inappropriate language."
-                      className="w-4 h-4 ml-2 hover:cursor-help"
-                    />
+                  {isOwn && automoddedMessages.has(msg.id) && (
+                    <div className="relative group inline-block ml-2">
+                      <img
+                        src="/assets/images/automod.webp"
+                        alt="Flagged by automod"
+                        className="w-4 h-4 cursor-help"
+                      />
+                      <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-[9999] whitespace-nowrap">
+                        <div className="relative p-[1px] rounded-lg bg-gradient-to-r from-red-600 to-orange-600">
+                          <div className="px-3 py-1.5 bg-zinc-900/95 backdrop-blur-md rounded-lg">
+                            <div className="text-xs text-white">
+                              Automod flagged this for <span className="text-yellow-300 font-semibold">{automoddedMessages.get(msg.id)}</span>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
                   )}
                 </div>
                 {!showHeader && isOwn && <div className="w-9 h-9" />}
@@ -396,7 +472,7 @@ export default function ChatSidebar({
       <div className="p-5 border-t border-blue-800 bg-zinc-900 rounded-bl-3xl relative">
         <div className="relative">
           {showMentionSuggestions && mentionSuggestions.length > 0 && (
-            <div className="absolute bottom-full left-0 right-0 mb-2 bg-zinc-800 border border-blue-700 rounded-lg shadow-lg max-h-32 overflow-y-auto">
+            <div className="absolute bottom-full left-0 right-0 mb-2 bg-zinc-800 border border-blue-700 rounded-lg shadow-lg max-h-40 overflow-y-auto">
               {mentionSuggestions.map((suggestedUser, index) => (
                 <button
                   key={suggestedUser.id}
@@ -412,9 +488,14 @@ export default function ChatSidebar({
                     alt={suggestedUser.username}
                     className="w-6 h-6 rounded-full"
                   />
-                  <span>{suggestedUser.username}</span>
+                  <div className="flex flex-col flex-1 min-w-0">
+                    <span className="text-sm font-medium">{suggestedUser.username}</span>
+                    {suggestedUser.position && (
+                      <span className="text-xs text-gray-400">{suggestedUser.position}</span>
+                    )}
+                  </div>
                   <div
-                    className={`w-2 h-2 rounded-full ml-auto ${
+                    className={`w-2 h-2 rounded-full flex-shrink-0 ${
                       isUserInActiveChat(suggestedUser.id)
                         ? 'bg-green-400'
                         : 'bg-gray-400'

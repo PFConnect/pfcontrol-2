@@ -338,18 +338,20 @@ NOTES:
     );
     socket.socket.on(
       'contactMe',
-      (payload: { flightId: string | number; message?: string }) => {
-        if (String(payload.flightId) === String(flightId)) {
-          const contactMsg: AcarsMessage = {
-            id: `${Date.now()}-contact`,
-            timestamp: new Date().toISOString(),
-            station: `${flight?.departure}_TWR`,
-            text: payload.message || 'CONTACT CONTROLLER ON FREQUENCY',
-            type: 'contact',
-          };
-          setMessages((prev) => [...prev, contactMsg]);
-          if (settings) playNotificationSound('contact', settings);
-        }
+      (payload: { flightId: string | number; message?: string; station?: string; position?: string }) => {
+      if (String(payload.flightId) === String(flightId)) {
+        const station = payload.station || flight?.departure || 'UNKNOWN';
+        const position = payload.position || 'TWR';
+        const contactMsg: AcarsMessage = {
+        id: `${Date.now()}-contact`,
+        timestamp: new Date().toISOString(),
+        station: `${station}_${position}`,
+        text: payload.message || 'CONTACT CONTROLLER ON FREQUENCY',
+        type: 'contact',
+        };
+        setMessages((prev) => [...prev, contactMsg]);
+        if (settings) playNotificationSound('contact', settings);
+      }
       }
     );
     return () => {
