@@ -31,6 +31,8 @@ interface PDCRequestData {
 interface ContactMeData {
     flightId: string | number;
     message?: string;
+    station?: string;
+    position?: string;
 }
 
 interface SessionUpdateData {
@@ -288,10 +290,10 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
             }
         });
 
-        socket.on('contactMe', async ({ flightId, message }: ContactMeData) => {
+        socket.on('contactMe', async ({ flightId, message, station, position }: ContactMeData) => {
             const sessionId = socket.data.sessionId;
             if (socket.data.role !== 'controller') {
-                socket.emit('flightError', { action: 'contactMe', flightId, error: 'Not authorized' });
+                socket.emit('flightError', { action: 'contactMe', flightId, station, position, error: 'Not authorized' });
                 return;
             }
             try {
@@ -321,6 +323,8 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
                 io.to(targetSessionId).emit('contactMe', {
                     flightId,
                     message: sanitizedMessage,
+                    station: station ? sanitizeString(station, 50) : undefined,
+                    position: position ? sanitizeString(position, 50) : undefined,
                     ts: new Date().toISOString()
                 });
             } catch {

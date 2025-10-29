@@ -1,16 +1,17 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { X, Radio, Plane, MapPin } from 'lucide-react';
 import { fetchFrequencies } from '../../utils/fetch/data';
 import type { AirportFrequency } from '../../types/airports';
 import type { Flight } from '../../types/flight';
 import Button from '../common/Button';
 import Dropdown from '../common/Dropdown';
+import { containsHateSpeech, containsProfanity } from '../../utils/hateSpeechFilter';
 
 interface ContactAcarsSidebarProps {
   open: boolean;
   onClose: () => void;
   flights: Flight[];
-  onSendContact: (flightId: string | number, message: string) => void;
+  onSendContact: (flightId: string | number, message: string, station: string, position: string) => void;
   activeAcarsFlights: Set<string | number>;
   airportIcao: string;
 }
@@ -32,6 +33,27 @@ export default function ContactAcarsSidebar({
   >([]);
 
   const flightsWithAcars = flights.filter((f) => activeAcarsFlights.has(f.id));
+
+  const getDefaultMessage = () => {
+    const freq = frequencies.find((f) => f.type === selectedPosition);
+    if (freq) {
+      return `CONTACT ME ON ${airportIcao}_${selectedPosition} ${freq.freq}`;
+    }
+    return 'CONTACT ME ON FREQUENCY';
+  };
+
+  // Use useMemo to ensure consistent message evaluation
+  const currentMessage = useMemo(() => {
+    return customMessage.trim() || getDefaultMessage();
+  }, [customMessage, frequencies, selectedPosition, airportIcao]);
+
+  const hasContentViolation = useMemo(() => {
+    return containsProfanity(currentMessage) || containsHateSpeech(currentMessage);
+  }, [currentMessage]);
+
+  const canSendMessage = () => {
+    return selectedFlight && !sending && !hasContentViolation;
+  };
 
   useEffect(() => {
     const loadFrequencies = async () => {
@@ -59,14 +81,6 @@ export default function ContactAcarsSidebar({
     }
   }, [airportIcao]);
 
-  const getDefaultMessage = () => {
-    const freq = frequencies.find((f) => f.type === selectedPosition);
-    if (freq) {
-      return `CONTACT ME ON ${airportIcao}_${selectedPosition} ${freq.freq}`;
-    }
-    return 'CONTACT ME ON FREQUENCY';
-  };
-
   const handleSend = async () => {
     if (!selectedFlight) return;
 
@@ -74,7 +88,9 @@ export default function ContactAcarsSidebar({
     try {
       await onSendContact(
         selectedFlight.id,
-        customMessage || getDefaultMessage()
+        customMessage || getDefaultMessage(),
+        airportIcao,
+        selectedPosition
       );
       setCustomMessage('');
       setSelectedFlight(null);
@@ -231,17 +247,27 @@ export default function ContactAcarsSidebar({
                   value={customMessage}
                   onChange={(e) => setCustomMessage(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && selectedFlight && !sending) {
+                    if (e.key === 'Enter' && canSendMessage()) {
                       handleSend();
                     }
                   }}
                   placeholder={getDefaultMessage()}
-                  className="w-full px-4 py-3 bg-gray-950 border border-gray-800 rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent font-mono text-sm"
+                  className={`w-full px-4 py-3 bg-gray-950 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:border-transparent font-mono text-sm ${
+                    hasContentViolation
+                      ? 'border-red-500 focus:ring-red-500' 
+                      : 'border-gray-800 focus:ring-blue-500'
+                  }`}
                   maxLength={100}
                 />
-                <p className="text-xs text-gray-500 mt-2">
-                  Leave blank to use default message
-                </p>
+                {hasContentViolation ? (
+                  <p className="text-xs text-red-500 mt-2">
+                    This message violates our guidelines and cannot be sent via ACARS
+                  </p>
+                ) : (
+                  <p className="text-xs text-gray-500 mt-2">
+                    Leave blank to use default message
+                  </p>
+                )}
               </div>
             )}
           </>
@@ -260,10 +286,10 @@ export default function ContactAcarsSidebar({
         </Button>
         <Button
           onClick={handleSend}
-          disabled={!selectedFlight || sending}
-          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-800 disabled:text-gray-600"
+          disabled={!canSendMessage()}
+          className="disabled:bg-gray-600"
         >
-          {sending ? 'Sending...' : 'Send Message'}
+          {sending ? 'Sending...' : 'Send ACARS Message'}
         </Button>
       </div>
     </div>

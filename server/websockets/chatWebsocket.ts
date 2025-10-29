@@ -62,13 +62,6 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
 
           socket.join(sessionId);
 
-          if (!activeChatUsers.has(sessionId)) {
-              activeChatUsers.set(sessionId, new Set());
-          }
-          activeChatUsers.get(sessionId).add(userId);
-
-          io.to(sessionId).emit('activeChatUsers', Array.from(activeChatUsers.get(sessionId)));
-
           socket.on('chatMessage', async ({ user, message }) => {
             const sessionId = socket.data.sessionId;
             if (!sessionId || !message || message.length > 500) return;
@@ -76,7 +69,19 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
             const sanitizedMessage = sanitizeMessage(message, 500);
             if (!sanitizedMessage) return;
 
-            const mentions = parseMentions(sanitizedMessage);
+            const mentionedUsernames = parseMentions(sanitizedMessage);
+
+            let mentionedUserIds: string[] = [];
+            if (sessionUsersIO?.getActiveUsersForSession && mentionedUsernames.length > 0) {
+                try {
+                    const users = await sessionUsersIO.getActiveUsersForSession(sessionId);
+                    mentionedUserIds = mentionedUsernames
+                        .map(username => users.find(u => u.username === username)?.id)
+                        .filter((id): id is string => id !== undefined);
+                } catch (error) {
+                    console.error('Error resolving mentions:', error);
+                }
+            }
 
             try {
                 const chatMsg = await addChatMessage(sessionId, {
@@ -84,7 +89,7 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
                     username: user.username,
                     avatar: user.avatar,
                     message: sanitizedMessage,
-                    mentions,
+                    mentions: mentionedUserIds, // Store user IDs, not usernames
                 });
 
                 const formattedMsg = {
@@ -100,26 +105,25 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
                 io.to(sessionId).emit('chatMessage', formattedMsg);
 
                 if (chatMsg.automodded) {
-                    socket.emit('messageAutomodded', { messageId: chatMsg.id });
+                    socket.emit('messageAutomodded', {
+                        messageId: chatMsg.id,
+                        reason: chatMsg.automodReason || 'Hate speech detected'
+                    });
                 }
 
-                if (sessionUsersIO?.getActiveUsersForSession && mentions.length > 0) {
+                if (sessionUsersIO?.sendMentionToUser && mentionedUserIds.length > 0) {
                     try {
-                        const users = await sessionUsersIO.getActiveUsersForSession(sessionId);
                         const messageIdStr = chatMsg.id?.toString() ?? '';
                         const timestampStr = chatMsg.sent_at ? chatMsg.sent_at.toISOString() : new Date().toISOString();
-                        for (const username of mentions) {
-                            const mentionedUser = users.find(u => u.username === username);
-                            if (mentionedUser) {
-                                sessionUsersIO.sendMentionToUser(mentionedUser.id, {
-                                    messageId: messageIdStr,
-                                    mentionedUserId: mentionedUser.id,
-                                    mentionerUsername: user.username,
-                                    message: sanitizedMessage,
-                                    sessionId,
-                                    timestamp: timestampStr,
-                                });
-                            }
+                        for (const userId of mentionedUserIds) {
+                            sessionUsersIO.sendMentionToUser(userId, {
+                                messageId: messageIdStr,
+                                mentionedUserId: userId,
+                                mentionerUsername: user.username,
+                                message: sanitizedMessage,
+                                sessionId,
+                                timestamp: timestampStr,
+                            });
                         }
                     } catch (error) {
                         console.error('Error sending mentions:', error);
@@ -138,6 +142,27 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
                 io.to(sessionId).emit('messageDeleted', { messageId });
             } else {
                 socket.emit('deleteError', { messageId, error: 'Cannot delete this message' });
+            }
+        });
+
+        socket.on('chatOpened', () => {
+            const sessionId = socket.data.sessionId;
+            const userId = socket.data.userId;
+            if (sessionId && userId) {
+                if (!activeChatUsers.has(sessionId)) {
+                    activeChatUsers.set(sessionId, new Set());
+                }
+                activeChatUsers.get(sessionId).add(userId);
+                io.to(sessionId).emit('activeChatUsers', Array.from(activeChatUsers.get(sessionId)));
+            }
+        });
+
+        socket.on('chatClosed', () => {
+            const sessionId = socket.data.sessionId;
+            const userId = socket.data.userId;
+            if (sessionId && userId && activeChatUsers.has(sessionId)) {
+                activeChatUsers.get(sessionId).delete(userId);
+                io.to(sessionId).emit('activeChatUsers', Array.from(activeChatUsers.get(sessionId)));
             }
         });
 
