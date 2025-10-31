@@ -60,14 +60,17 @@ export function useNotifications() {
 
   // Rotate notifications every 10 seconds
   useEffect(() => {
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (filteredNotifications.length > 1) {
-      const interval = setInterval(() => {
+      interval = setInterval(() => {
         setCurrentNotificationIndex(
           (prev) => (prev + 1) % filteredNotifications.length
         );
       }, 10000);
-      return () => clearInterval(interval);
     }
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [filteredNotifications]);
 
   const hideNotification = useCallback((id: number) => {
