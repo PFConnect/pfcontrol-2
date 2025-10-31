@@ -80,7 +80,6 @@ export function useNotifications() {
       localStorage.setItem('hiddenNotifications', JSON.stringify(updatedHidden));
       return updatedHidden;
     });
-    setNotifications((prev) => prev.filter((n) => n.id.toString() !== idStr));
   }, []);
 
   const currentNotification = filteredNotifications[currentNotificationIndex];
