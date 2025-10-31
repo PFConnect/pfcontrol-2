@@ -67,7 +67,7 @@ export async function updateNotification(id: number, { type, text, show, customC
     if (text !== undefined) updateData.text = text;
     if (show !== undefined) updateData.show = show;
     if (customColor !== undefined) {
-      updateData.custom_color = customColor ?? undefined;
+      updateData.custom_color = customColor === null ? undefined : customColor;
     }
     updateData.updated_at = new Date();
 
