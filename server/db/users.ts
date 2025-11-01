@@ -360,10 +360,10 @@ export async function unlinkRobloxAccount(userId: string) {
   await mainDb
     .updateTable('users')
     .set({
-      roblox_user_id: undefined,
-      roblox_username: undefined,
-      roblox_access_token: undefined,
-      roblox_refresh_token: undefined,
+      roblox_user_id: null,
+      roblox_username: null,
+      roblox_access_token: null,
+      roblox_refresh_token: null,
       updated_at: sql`NOW()`
     })
     .where('id', '=', userId)
@@ -394,10 +394,10 @@ export async function unlinkVatsimAccount(userId: string) {
   await mainDb
     .updateTable('users')
     .set({
-      vatsim_cid: undefined,
-      vatsim_rating_id: undefined,
-      vatsim_rating_short: undefined,
-      vatsim_rating_long: undefined,
+      vatsim_cid: null,
+      vatsim_rating_id: null,
+      vatsim_rating_short: null,
+      vatsim_rating_long: null,
       updated_at: sql`NOW()`
     })
     .where('id', '=', userId)

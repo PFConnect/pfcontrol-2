@@ -257,7 +257,9 @@ router.get('/vatsim', requireAuth, (req, res) => {
             res.clearCookie('vatsim_force', { path: '/' });
         }
     }
+    console.log(VATSIM_AUTH_BASE)
     const url = `${VATSIM_AUTH_BASE.replace(/\/$/, '')}/oauth/authorize?${params.toString()}`;
+    //${VATSIM_AUTH_BASE.replace(/\/$/, '')}
     res.redirect(url);
 });
 
@@ -267,6 +269,7 @@ router.get('/vatsim/callback', authLimiter, async (req, res) => {
     const code = typeof req.query.code === 'string' ? req.query.code : '';
     const state = typeof req.query.state === 'string' ? req.query.state : '';
     if (!code || !state) {
+        
         return res.redirect(FRONTEND_URL + '/settings?error=vatsim_auth_failed');
     }
 
@@ -275,6 +278,7 @@ router.get('/vatsim/callback', authLimiter, async (req, res) => {
         try {
             decoded = jwt.verify(String(state), JWT_SECRET as string);
         } catch (err) {
+            console.log(err)
             return res.redirect(FRONTEND_URL + '/settings?error=vatsim_auth_failed');
         }
         let userId: string | undefined;
