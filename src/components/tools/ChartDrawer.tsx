@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   Map,
   ZoomIn,
@@ -43,6 +43,7 @@ interface ChartDrawerProps {
   settings: Settings | null;
   departureAirport?: string;
   arrivalAirport?: string;
+  sectorStation?: string;
 }
 
 export default function ChartDrawer({
@@ -67,6 +68,7 @@ export default function ChartDrawer({
   settings,
   departureAirport,
   arrivalAirport,
+  sectorStation,
 }: ChartDrawerProps) {
   const [selectedAirport, setSelectedAirport] = useState<string>('');
   const [showAllAirports, setShowAllAirports] = useState(false);
@@ -77,7 +79,20 @@ export default function ChartDrawer({
 
   const charts = selectedAirport ? getChartsForAirport(selectedAirport) : [];
   const viewMode = settings?.acars?.chartDrawerViewMode || 'legacy';
+
+  const sectorAirportMap: Record<string, string[]> = {
+    'LECB_CTR': ['LEMH'],
+    'EGTT_CTR': ['EGKK', 'EGHI'],
+    'GCCC_R6_CTR': ['GCLP'],
+    'LCCC_CTR': ['LCLK', 'LCPH', 'LCRA'],
+    'MDCS_CTR': ['MDPC', 'MDST', 'MDAB', 'MDCR', 'MTCA'],
+    'EFIN_CTR': ['EFKT'],
+  };
+
+  const sectorAirports = sectorStation ? sectorAirportMap[sectorStation] || [] : [];
+
   const isLegacyMode = viewMode === 'legacy';
+  const hasSectorAirports = sectorAirports.length > 0;
 
   const departureCharts = departureAirport
     ? getChartsForAirport(departureAirport)
@@ -101,9 +116,22 @@ export default function ChartDrawer({
     'MDST',
     'MTCA',
   ];
-  const otherAirports = availableAirports.filter(
-    (icao) => icao !== departureAirport && icao !== arrivalAirport
-  );
+
+  const otherAirports = hasSectorAirports
+    ? [
+        ...sectorAirports.filter(
+          (icao) => icao !== departureAirport && icao !== arrivalAirport
+        ),
+        ...availableAirports.filter(
+          (icao) =>
+            !sectorAirports.includes(icao) &&
+            icao !== departureAirport &&
+            icao !== arrivalAirport
+        ),
+      ]
+    : availableAirports.filter(
+        (icao) => icao !== departureAirport && icao !== arrivalAirport
+      );
 
   const allChartsForLegacy = [
     ...departureCharts,
@@ -129,7 +157,26 @@ export default function ChartDrawer({
         chart.credits.toLowerCase().includes(searchQuery.toLowerCase())) ||
       arrivalAirport?.toLowerCase().includes(searchQuery.toLowerCase())
   );
+  const sectorAirportsList = hasSectorAirports
+    ? otherAirports
+        .filter((icao) => sectorAirports.includes(icao))
+        .map((icao) => {
+          const airportCharts = getChartsForAirport(icao);
+          const filteredCharts = airportCharts.filter(
+            (chart) =>
+              chart.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              chart.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+              (chart.credits &&
+                chart.credits.toLowerCase().includes(searchQuery.toLowerCase())) ||
+              icao.toLowerCase().includes(searchQuery.toLowerCase())
+          );
+          return { icao, charts: filteredCharts };
+        })
+        .filter(({ charts }) => charts.length > 0)
+    : [];
+
   const filteredOtherAirports = otherAirports
+    .filter((icao) => !hasSectorAirports || !sectorAirports.includes(icao))
     .map((icao) => {
       const airportCharts = getChartsForAirport(icao);
       const filteredCharts = airportCharts.filter(
@@ -172,6 +219,21 @@ export default function ChartDrawer({
       if (arrivalAirport?.toLowerCase().includes(searchQuery.toLowerCase()))
         matchedCategories.add('Airport');
     });
+    sectorAirportsList.forEach(({ icao, charts }) => {
+      charts.forEach((chart) => {
+        if (chart.name.toLowerCase().includes(searchQuery.toLowerCase()))
+          matchedCategories.add('Name');
+        if (chart.type.toLowerCase().includes(searchQuery.toLowerCase()))
+          matchedCategories.add('Type');
+        if (
+          chart.credits &&
+          chart.credits.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+          matchedCategories.add('Author');
+        if (icao.toLowerCase().includes(searchQuery.toLowerCase()))
+          matchedCategories.add('Airport');
+      });
+    });
     filteredOtherAirports.forEach(({ icao, charts }) => {
       charts.forEach((chart) => {
         if (chart.name.toLowerCase().includes(searchQuery.toLowerCase()))
@@ -201,6 +263,20 @@ export default function ChartDrawer({
     window.addEventListener('resize', checkMobile);
     return () => window.removeEventListener('resize', checkMobile);
   }, []);
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      if (e.deltaY < 0) handleZoomIn();
+      else if (e.deltaY > 0) handleZoomOut();
+    };
+
+    container.addEventListener('wheel', handleWheel, { passive: false });
+    return () => container.removeEventListener('wheel', handleWheel);
+  }, [containerRef, handleZoomIn, handleZoomOut]);
 
   return (
     <div
@@ -375,6 +451,50 @@ export default function ChartDrawer({
                       </div>
                     )}
 
+                    {/* Sector Airports Section */}
+                    {sectorAirportsList.length > 0 && (
+                      <div className="py-3 border-b border-zinc-700/50">
+                        <div className="flex items-center gap-2 mb-2 px-1">
+                          <Map className="w-3.5 h-3.5 text-green-500" />
+                          <h3 className="text-xs font-semibold text-green-500 uppercase">
+                            Sector Airports
+                          </h3>
+                        </div>
+                        <div className="space-y-3">
+                          {sectorAirportsList.map(({ icao, charts }) => (
+                            <div key={icao} className="space-y-1.5">
+                              <div className="text-xs font-medium text-green-400 px-1">
+                                {icao}
+                              </div>
+                              {charts.map((chart) => (
+                                <Button
+                                  size="sm"
+                                  variant={
+                                    selectedChart === chart.path
+                                      ? 'primary'
+                                      : 'outline'
+                                  }
+                                  key={chart.path}
+                                  onClick={() => {
+                                    setSelectedChart(chart.path);
+                                    setMobileView('chart');
+                                  }}
+                                  className="w-full text-left py-2 px-3 transition-colors flex flex-col items-start border-[0.5px] rounded-xl"
+                                >
+                                  <span className="text-sm font-medium">
+                                    {chart.name}
+                                  </span>
+                                  <span className="text-xs text-zinc-400">
+                                    {chart.type}
+                                  </span>
+                                </Button>
+                              ))}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
                     {/* Other Airports Section */}
                     {filteredOtherAirports.length > 0 && (
                       <div className="pt-3">
@@ -441,6 +561,7 @@ export default function ChartDrawer({
                     {searchQuery &&
                       filteredDepartureCharts.length === 0 &&
                       filteredArrivalCharts.length === 0 &&
+                      sectorAirportsList.length === 0 &&
                       filteredOtherAirports.length === 0 && (
                         <div className="text-center text-zinc-500 py-8">
                           No charts match your search
@@ -479,11 +600,6 @@ export default function ChartDrawer({
                       }
                       onMouseUp={handleChartMouseUp}
                       onMouseLeave={handleChartMouseUp}
-                      onWheel={(e) => {
-                        e.preventDefault();
-                        if (e.deltaY < 0) handleZoomIn();
-                        else if (e.deltaY > 0) handleZoomOut();
-                      }}
                       style={{ cursor: isChartDragging ? 'grabbing' : 'grab' }}
                     >
                       {imageLoading && (
@@ -625,6 +741,47 @@ export default function ChartDrawer({
                     </div>
                   )}
 
+                  {/* Sector Airports Section */}
+                  {sectorAirportsList.length > 0 && (
+                    <div className="py-3 border-b border-zinc-700/50">
+                      <div className="flex items-center gap-2 mb-2 px-1">
+                        <Map className="w-3.5 h-3.5 text-green-500" />
+                        <h3 className="text-xs font-semibold text-green-500 uppercase">
+                          Sector Airports
+                        </h3>
+                      </div>
+                      <div className="space-y-3">
+                        {sectorAirportsList.map(({ icao, charts }) => (
+                          <div key={icao} className="space-y-1.5">
+                            <div className="text-xs font-medium text-green-400 px-1">
+                              {icao}
+                            </div>
+                            {charts.map((chart) => (
+                              <Button
+                                size="sm"
+                                variant={
+                                  selectedChart === chart.path
+                                    ? 'primary'
+                                    : 'outline'
+                                }
+                                key={chart.path}
+                                onClick={() => setSelectedChart(chart.path)}
+                                className="w-full text-left py-2 px-3 transition-colors flex flex-col items-start border-[0.5px] rounded-xl"
+                              >
+                                <span className="text-sm font-medium">
+                                  {chart.name}
+                                </span>
+                                <span className="text-xs text-zinc-400">
+                                  {chart.type}
+                                </span>
+                              </Button>
+                            ))}
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
                   {/* Other Airports Section */}
                   {filteredOtherAirports.length > 0 && (
                     <div className="pt-3">
@@ -688,6 +845,7 @@ export default function ChartDrawer({
                   {searchQuery &&
                     filteredDepartureCharts.length === 0 &&
                     filteredArrivalCharts.length === 0 &&
+                    sectorAirportsList.length === 0 &&
                     filteredOtherAirports.length === 0 && (
                       <div className="text-center text-zinc-500 py-8">
                         No charts match your search
@@ -715,11 +873,6 @@ export default function ChartDrawer({
                       }
                       onMouseUp={handleChartMouseUp}
                       onMouseLeave={handleChartMouseUp}
-                      onWheel={(e) => {
-                        e.preventDefault();
-                        if (e.deltaY < 0) handleZoomIn();
-                        else if (e.deltaY > 0) handleZoomOut();
-                      }}
                       style={{ cursor: isChartDragging ? 'grabbing' : 'grab' }}
                     >
                       {imageLoading && (
@@ -820,11 +973,6 @@ export default function ChartDrawer({
                       }
                       onMouseUp={handleChartMouseUp}
                       onMouseLeave={handleChartMouseUp}
-                      onWheel={(e) => {
-                        e.preventDefault();
-                        if (e.deltaY < 0) handleZoomIn();
-                        else if (e.deltaY > 0) handleZoomOut();
-                      }}
                       style={{ cursor: isChartDragging ? 'grabbing' : 'grab' }}
                     >
                       {imageLoading && (

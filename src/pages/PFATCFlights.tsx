@@ -1251,6 +1251,7 @@ export default function PFATCFlights() {
         setImageSize={setImageSize}
         airports={[]}
         settings={user?.settings || null}
+        sectorStation={isEventController ? selectedStation : undefined}
       />
 
       {/* Contact ACARS Sidebar */}
