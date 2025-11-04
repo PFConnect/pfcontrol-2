@@ -2,6 +2,7 @@ import express from 'express';
 import { addChatMessage, getChatMessages, deleteChatMessage, reportChatMessage } from '../db/chats.js';
 import { chatMessageLimiter } from '../middleware/rateLimiting.js';
 import requireAuth from '../middleware/auth.js';
+import { chatsDb } from '../db/connection.js';
 
 const router = express.Router();
 
@@ -84,6 +85,60 @@ router.post('/:sessionId/:messageId/report', requireAuth, async (req, res) => {
     } catch (error) {
         console.error('Report error:', error);
         res.status(500).json({ error: 'Failed to report message' });
+    }
+});
+
+// GET: /api/chats/global - Get global chat messages (last 30 minutes)
+router.get('/global/messages', requireAuth, async (req, res) => {
+    try {
+        const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+
+        const messages = await chatsDb
+            .selectFrom('global_chat')
+            .selectAll()
+            .where('sent_at', '>=', thirtyMinutesAgo)
+            .where('deleted_at', 'is', null)
+            .orderBy('sent_at', 'asc')
+            .execute();
+
+        const formattedMessages = messages.map(msg => {
+            let airportMentions = null;
+            let userMentions = null;
+
+            try {
+                if (msg.airport_mentions && typeof msg.airport_mentions === 'string' && msg.airport_mentions.trim()) {
+                    airportMentions = JSON.parse(msg.airport_mentions);
+                }
+            } catch (e) {
+                airportMentions = null;
+            }
+
+            try {
+                if (msg.user_mentions && typeof msg.user_mentions === 'string' && msg.user_mentions.trim()) {
+                    userMentions = JSON.parse(msg.user_mentions);
+                }
+            } catch (e) {
+                userMentions = null;
+            }
+
+            return {
+                id: msg.id,
+                userId: msg.user_id,
+                username: msg.username,
+                avatar: msg.avatar,
+                station: msg.station,
+                position: msg.position,
+                message: msg.message,
+                airportMentions,
+                userMentions,
+                sent_at: msg.sent_at,
+            };
+        });
+
+        res.json(formattedMessages);
+    } catch (error) {
+        console.error('Error fetching global chat messages:', error);
+        res.status(500).json({ error: 'Failed to fetch global chat messages' });
     }
 });
 

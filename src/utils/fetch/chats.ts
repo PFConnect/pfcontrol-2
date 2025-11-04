@@ -38,3 +38,11 @@ export async function reportChatMessage(sessionId: string, messageId: number, re
     if (!res.ok) throw new Error('Failed to report message');
     return res.json();
 }
+
+export async function fetchGlobalChatMessages() {
+    const res = await fetch(`${API_BASE_URL}/api/chats/global/messages`, {
+        credentials: 'include'
+    });
+    if (!res.ok) throw new Error('Failed to fetch global chat messages');
+    return res.json();
+}

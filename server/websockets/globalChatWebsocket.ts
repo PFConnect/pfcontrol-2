@@ -1,0 +1,309 @@
+import { Server as SocketServer } from 'socket.io';
+import { chatsDb, mainDb } from '../db/connection.js';
+import { sanitizeMessage } from '../utils/sanitization.js';
+import { containsHateSpeech, getHateSpeechReason } from '../utils/hateSpeechFilter.js';
+import { sql } from 'kysely';
+import type { Server } from 'http';
+
+const activeGlobalChatUsers = new Set<string>();
+let sessionUsersIO: SessionUsersWebsocketIO | null = null;
+
+interface SessionUsersWebsocketIO {
+    getActiveUsersForSession?(sessionId: string): Promise<Array<{ id: string; username: string; position?: string }>>;
+    sendMentionToUser(userId: string, mentionData: MentionData): void;
+}
+
+interface MentionData {
+    messageId: string;
+    mentionedUserId: string;
+    mentionerUsername: string;
+    message: string;
+    sessionId?: string;
+    airport?: string;
+    timestamp: string;
+    [key: string]: unknown;
+}
+
+interface GlobalChatMessage {
+    id: number;
+    user_id: string;
+    username: string | null;
+    avatar: string | null;
+    station: string | null;
+    position: string | null;
+    message: string;
+    airport_mentions: string[] | null;
+    user_mentions: string[] | null;
+    sent_at: Date;
+    deleted_at: Date | null;
+}
+
+
+export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: SessionUsersWebsocketIO) {
+    sessionUsersIO = sessionUsersWebsocketIO;
+
+    const io = new SocketServer(httpServer, {
+        path: '/sockets/global-chat',
+        cors: {
+            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
+            credentials: true
+        }
+    });
+
+    // Clean up old messages every 5 minutes
+    setInterval(async () => {
+        try {
+            const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
+            await chatsDb
+                .updateTable('global_chat')
+                .set({ deleted_at: new Date() })
+                .where('sent_at', '<', thirtyMinutesAgo)
+                .where('deleted_at', 'is', null)
+                .execute();
+        } catch (error) {
+            console.error('[Global Chat] Error cleaning old messages:', error);
+        }
+    }, 5 * 60 * 1000);
+
+    io.on('connection', async (socket) => {
+        const userId = Array.isArray(socket.handshake.query.userId)
+            ? socket.handshake.query.userId[0]
+            : socket.handshake.query.userId;
+
+        const station = Array.isArray(socket.handshake.query.station)
+            ? socket.handshake.query.station[0]
+            : socket.handshake.query.station;
+
+        const position = Array.isArray(socket.handshake.query.position)
+            ? socket.handshake.query.position[0]
+            : socket.handshake.query.position;
+
+        if (!userId) {
+            socket.disconnect(true);
+            return;
+        }
+
+        socket.data.userId = userId;
+        socket.data.station = station;
+        socket.data.position = position;
+
+        socket.join('global-chat');
+        socket.join(`user-${userId}`); // Join user-specific room for mentions
+
+        socket.on('globalChatMessage', async ({ user, message }) => {
+            if (!message || message.length > 500) return;
+
+            const sanitizedMessage = sanitizeMessage(message, 500);
+            if (!sanitizedMessage) return;
+
+            // Parse @airport and @user mentions
+            const parsedAirportMentions = parseAirportMentions(sanitizedMessage);
+            const parsedUserMentions = parseUserMentions(sanitizedMessage);
+
+            // Check for hate speech
+            const hasHateSpeech = containsHateSpeech(sanitizedMessage);
+            const automodded = hasHateSpeech;
+            const automodReason = hasHateSpeech ? getHateSpeechReason(sanitizedMessage) : undefined;
+
+            try {
+                // Insert message into database
+                const result = await chatsDb
+                    .insertInto('global_chat')
+                    .values({
+                        id: sql`DEFAULT`,
+                        user_id: user.userId,
+                        username: user.username ?? undefined,
+                        avatar: user.avatar ?? undefined,
+                        station: socket.data.station ?? undefined,
+                        position: socket.data.position ?? undefined,
+                        message: sanitizedMessage,
+                        airport_mentions: JSON.stringify(parsedAirportMentions),
+                        user_mentions: JSON.stringify(parsedUserMentions),
+                    })
+                    .returning(['id', 'user_id', 'username', 'avatar', 'station', 'position', 'message', 'airport_mentions', 'user_mentions', 'sent_at'])
+                    .executeTakeFirst();
+
+                if (!result) {
+                    socket.emit('chatError', { message: 'Failed to send message' });
+                    return;
+                }
+
+                let airportMentions = null;
+                let userMentions = null;
+
+                try {
+                    if (result.airport_mentions && typeof result.airport_mentions === 'string' && result.airport_mentions.trim()) {
+                        airportMentions = JSON.parse(result.airport_mentions);
+                    }
+                } catch (e) {
+                    console.error('[Global Chat] Error parsing airport mentions:', e);
+                    airportMentions = null;
+                }
+
+                try {
+                    if (result.user_mentions && typeof result.user_mentions === 'string' && result.user_mentions.trim()) {
+                        userMentions = JSON.parse(result.user_mentions);
+                    }
+                } catch (e) {
+                    console.error('[Global Chat] Error parsing user mentions:', e);
+                    userMentions = null;
+                }
+
+                const chatMsg: GlobalChatMessage = {
+                    id: result.id,
+                    user_id: result.user_id,
+                    username: result.username ?? null,
+                    avatar: result.avatar ?? null,
+                    station: result.station ?? null,
+                    position: result.position ?? null,
+                    message: result.message,
+                    airport_mentions: airportMentions,
+                    user_mentions: userMentions,
+                    sent_at: result.sent_at ? new Date(result.sent_at) : new Date(),
+                    deleted_at: null,
+                };
+
+                const formattedMsg = {
+                    id: chatMsg.id,
+                    userId: chatMsg.user_id,
+                    username: chatMsg.username,
+                    avatar: chatMsg.avatar,
+                    station: chatMsg.station,
+                    position: chatMsg.position,
+                    message: chatMsg.message,
+                    airportMentions: chatMsg.airport_mentions,
+                    userMentions: chatMsg.user_mentions,
+                    sent_at: chatMsg.sent_at,
+                    automodded,
+                };
+
+                // Broadcast message to all users in global chat
+                io.to('global-chat').emit('globalChatMessage', formattedMsg);
+
+                // If message was automodded, notify sender
+                if (automodded) {
+                    socket.emit('messageAutomodded', {
+                        messageId: chatMsg.id,
+                        reason: automodReason || 'Content violation detected'
+                    });
+                }
+
+                // Send @user mentions
+                if (userMentions && userMentions.length > 0) {
+                    // Resolve usernames to user IDs
+                    try {
+                        const users = await mainDb
+                            .selectFrom('users')
+                            .select(['id', 'username'])
+                            .where('username', 'in', userMentions)
+                            .execute();
+
+                        // Send mention notification to each mentioned user
+                        for (const mentionedUser of users) {
+                            io.to(`user-${mentionedUser.id}`).emit('globalChatMention', {
+                                messageId: String(chatMsg.id),
+                                mentionedUserId: mentionedUser.id,
+                                mentionerUsername: user.username || 'Unknown',
+                                message: chatMsg.message,
+                                timestamp: chatMsg.sent_at.toISOString(),
+                            });
+                        }
+                    } catch (error) {
+                        console.error('[Global Chat] Error sending user mentions:', error);
+                    }
+                }
+
+                // Send @airport mentions to controllers at that airport
+                if (airportMentions && airportMentions.length > 0) {
+                    // Broadcast to all connected global chat users that they might be mentioned
+                    // Note: Client-side filtering can be done based on user's current airport
+                    for (const airport of airportMentions) {
+                        io.to('global-chat').emit('airportMention', {
+                            airport: airport.toUpperCase(),
+                            messageId: String(chatMsg.id),
+                            mentionerUsername: user.username || 'Unknown',
+                            message: chatMsg.message,
+                            timestamp: chatMsg.sent_at.toISOString(),
+                        });
+                    }
+                }
+            } catch (error) {
+                console.error('[Global Chat] Error adding message:', error);
+                socket.emit('chatError', { message: 'Failed to send message' });
+            }
+        });
+
+        socket.on('deleteGlobalMessage', async ({ messageId, userId }) => {
+            try {
+                const result = await chatsDb
+                    .updateTable('global_chat')
+                    .set({ deleted_at: new Date() })
+                    .where('id', '=', messageId)
+                    .where('user_id', '=', userId)
+                    .where('deleted_at', 'is', null)
+                    .executeTakeFirst();
+
+                if (result.numUpdatedRows > 0) {
+                    io.to('global-chat').emit('globalMessageDeleted', { messageId });
+                } else {
+                    socket.emit('deleteError', { messageId, error: 'Cannot delete this message' });
+                }
+            } catch (error) {
+                console.error('[Global Chat] Error deleting message:', error);
+                socket.emit('deleteError', { messageId, error: 'Failed to delete message' });
+            }
+        });
+
+        socket.on('globalChatOpened', () => {
+            const userId = socket.data.userId;
+            if (userId) {
+                activeGlobalChatUsers.add(userId);
+                io.to('global-chat').emit('activeGlobalChatUsers', Array.from(activeGlobalChatUsers));
+            }
+        });
+
+        socket.on('globalChatClosed', () => {
+            const userId = socket.data.userId;
+            if (userId) {
+                activeGlobalChatUsers.delete(userId);
+                io.to('global-chat').emit('activeGlobalChatUsers', Array.from(activeGlobalChatUsers));
+            }
+        });
+
+        socket.on('disconnect', () => {
+            const userId = socket.data.userId;
+            if (userId) {
+                activeGlobalChatUsers.delete(userId);
+                io.to('global-chat').emit('activeGlobalChatUsers', Array.from(activeGlobalChatUsers));
+            }
+        });
+    });
+
+    return io;
+}
+
+// Parse @airport mentions (e.g., @lclk, @LCLK)
+function parseAirportMentions(message: string): string[] {
+    const airportRegex = /@([A-Za-z]{4})\b/g;
+    const mentions: string[] = [];
+    let match;
+    while ((match = airportRegex.exec(message)) !== null) {
+        mentions.push(match[1].toUpperCase());
+    }
+    return mentions;
+}
+
+// Parse @user mentions (e.g., @username)
+function parseUserMentions(message: string): string[] {
+    const userRegex = /@(\w+)/g;
+    const mentions: string[] = [];
+    let match;
+    while ((match = userRegex.exec(message)) !== null) {
+        // Exclude 4-letter all-caps mentions (airports)
+        const mention = match[1];
+        if (!(mention.length === 4 && mention === mention.toUpperCase())) {
+            mentions.push(mention);
+        }
+    }
+    return mentions;
+}

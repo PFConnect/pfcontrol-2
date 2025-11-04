@@ -593,6 +593,8 @@ export default function Toolbar({
           onClose={handleChatClose}
           sessionUsers={activeUsers}
           onMentionReceived={handleChatSidebarMention}
+          station={icao ?? undefined}
+          position={position as string}
         />
 
         <Button

@@ -12,6 +12,7 @@ import { createAdapter } from '@socket.io/redis-adapter';
 
 import { setupSessionUsersWebsocket } from './websockets/sessionUsersWebsocket.js';
 import { setupChatWebsocket } from './websockets/chatWebsocket.js';
+import { setupGlobalChatWebsocket } from './websockets/globalChatWebsocket.js';
 import { setupFlightsWebsocket } from './websockets/flightsWebsocket.js';
 import { setupOverviewWebsocket } from './websockets/overviewWebsocket.js';
 import { setupArrivalsWebsocket } from './websockets/arrivalsWebsocket.js';
@@ -94,6 +95,9 @@ sessionUsersIO.adapter(createAdapter(pubClient, subClient));
 
 const chatIO = setupChatWebsocket(server, sessionUsersIO);
 chatIO.adapter(createAdapter(pubClient, subClient));
+
+const globalChatIO = setupGlobalChatWebsocket(server, sessionUsersIO);
+globalChatIO.adapter(createAdapter(pubClient, subClient));
 
 const flightsIO = setupFlightsWebsocket(server);
 flightsIO.adapter(createAdapter(pubClient, subClient));
