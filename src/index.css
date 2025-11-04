@@ -8,6 +8,7 @@
 html, body {
   background-color: #1a1a1a;
   color: #f2f2f2;
+  overscroll-behavior: none;
 }
 
 button {
