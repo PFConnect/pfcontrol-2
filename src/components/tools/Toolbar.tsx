@@ -353,22 +353,17 @@ export default function Toolbar({
     }
   }, [chatOpen]);
 
-  useEffect(() => {
-    const loadInitialAtisData = async () => {
-      if (!sessionId || !accessId) return;
-
-      try {
-        const sessionData = await fetchSession(sessionId, accessId);
-        if (sessionData?.atis?.letter) {
-          setAtisLetter(sessionData.atis.letter);
-        }
-      } catch (error) {
-        console.error('Error loading initial ATIS data:', error);
-      }
-    };
-
-    loadInitialAtisData();
-  }, [sessionId, accessId]);
+  const handleMentionCleared = (mentionType: 'session' | 'global' | 'all') => {
+    if (mentionType === 'session') {
+      setUnreadSessionMentions([]);
+    } else if (mentionType === 'global') {
+      setUnreadGlobalMentions([]);
+    } else {
+      setUnreadMentions([]);
+      setUnreadSessionMentions([]);
+      setUnreadGlobalMentions([]);
+    }
+  };
 
   const getStatusIcon = () => {
     switch (connectionStatus) {
@@ -637,6 +632,7 @@ export default function Toolbar({
           onClose={handleChatClose}
           sessionUsers={activeUsers}
           onMentionReceived={handleChatSidebarMention}
+          onMentionCleared={handleMentionCleared}
           station={icao ?? undefined}
           position={position as string}
           isPFATC={isPFATC}

@@ -49,7 +49,11 @@ export function createGlobalChatSocket(
     const socket = io(SOCKET_URL, {
         withCredentials: true,
         path: '/sockets/global-chat',
-        query: { userId, station: station || '', position: position || '' },
+        query: {
+            userId,
+            station: station || '',
+            position: position || ''
+        },
         transports: ['websocket', 'polling'],
         upgrade: true,
         reconnection: true,
