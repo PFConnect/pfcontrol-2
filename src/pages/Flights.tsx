@@ -309,6 +309,12 @@ export default function Flights() {
       throw new Error('No flights socket');
     }
     flightsSocket.socket.emit('issuePDC', { flightId, pdcText });
+
+    setFlashingPDCIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(flightId));
+      return next;
+    });
   };
 
   useEffect(() => {
@@ -987,10 +993,11 @@ export default function Flights() {
                   onFlightDelete={handleFlightDelete}
                   onFlightChange={handleFlightUpdate}
                   backgroundStyle={backgroundStyle}
-                  onIssuePDC={handleIssuePDC}
                   flashFlightId={null}
+                  onIssuePDC={handleIssuePDC}
                   onToggleClearance={handleToggleClearance}
                   flashingPDCIds={flashingPDCIds}
+                  setFlashingPDCIds={setFlashingPDCIds}
                 />
                 <div className="flex justify-center gap-4 mt-4 mb-6">
                   <Button
@@ -1044,17 +1051,18 @@ export default function Flights() {
                   <>
                     <DepartureTable
                       flights={filteredFlights}
-                      onFlightDelete={handleFlightDelete}
                       onFlightChange={handleFlightUpdate}
+                      onFlightDelete={handleFlightDelete}
                       backgroundStyle={backgroundStyle}
                       departureColumns={departureColumns}
                       fieldEditingStates={fieldEditingStates}
                       onFieldEditingStart={handleFieldEditingStart}
                       onFieldEditingStop={handleFieldEditingStop}
-                      flashFlightId={null}
+                      onIssuePDC={handleIssuePDC}
                       onToggleClearance={handleToggleClearance}
                       flashingPDCIds={flashingPDCIds}
-                      onIssuePDC={handleIssuePDC}
+                      setFlashingPDCIds={setFlashingPDCIds}
+                      flashFlightId={null}
                       id="departure-table"
                     />
                     <div className="flex justify-center mt-4 mb-6">

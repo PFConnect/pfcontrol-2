@@ -23,6 +23,8 @@ interface DepartureTableProps {
   backgroundStyle?: React.CSSProperties;
   departureColumns?: DepartureTableColumnSettings;
   onPDCOpen?: (flight: Flight) => void;
+  flashingPDCIds?: Set<string>;
+  onStopFlashing?: (flightId: string | number) => void;
 }
 
 export default function DepartureTableMobile({
@@ -51,6 +53,8 @@ export default function DepartureTableMobile({
     delete: true,
   },
   onPDCOpen,
+  flashingPDCIds = new Set(),
+  onStopFlashing,
 }: DepartureTableProps) {
   const [showHidden, setShowHidden] = useState(false);
   const [pdcModalOpen, setPdcModalOpen] = useState(false);
@@ -60,6 +64,10 @@ export default function DepartureTableMobile({
   >({});
 
   const handlePDCClick = (flight: Flight) => {
+    if (onStopFlashing) {
+      onStopFlashing(flight.id);
+    }
+
     if (onPDCOpen) {
       onPDCOpen(flight);
     } else {
@@ -98,16 +106,19 @@ export default function DepartureTableMobile({
     }
   };
 
-  const isClearanceChecked = (
-    clearance: boolean | string | undefined
-  ): boolean => {
-    if (typeof clearance === 'boolean') {
-      return clearance;
+  const generateRandomSquawk = (): string => {
+    let squawk = '';
+    for (let i = 0; i < 4; i++) {
+      squawk += Math.floor(Math.random() * 6) + 1;
     }
-    if (typeof clearance === 'string') {
-      return clearance.toLowerCase() === 'true';
+    return squawk;
+  };
+
+  const handleRegenerateSquawk = (flightId: string | number) => {
+    const newSquawk = generateRandomSquawk();
+    if (onFlightChange) {
+      onFlightChange(flightId, { squawk: newSquawk });
     }
-    return false;
   };
 
   const handleRemarkChange = (flightId: string | number, remark: string) => {
@@ -200,19 +211,16 @@ export default function DepartureTableMobile({
     );
   }
 
-  const generateRandomSquawk = (): string => {
-    let squawk = '';
-    for (let i = 0; i < 4; i++) {
-      squawk += Math.floor(Math.random() * 6) + 1;
+  const isClearanceChecked = (
+    clearance: boolean | string | undefined
+  ): boolean => {
+    if (typeof clearance === 'boolean') {
+      return clearance;
     }
-    return squawk;
-  };
-
-  const handleRegenerateSquawk = (flightId: string | number) => {
-    const newSquawk = generateRandomSquawk();
-    if (onFlightChange) {
-      onFlightChange(flightId, { squawk: newSquawk });
+    if (typeof clearance === 'string') {
+      return clearance.toLowerCase() === 'true';
     }
+    return false;
   };
 
   return (
@@ -448,11 +456,23 @@ export default function DepartureTableMobile({
             <div className="flex gap-2 mt-4">
               {departureColumns.pdc !== false && (
                 <button
-                  className="text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors"
+                  className={`text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors ${
+                    flashingPDCIds.has(String(flight.id)) &&
+                    !isClearanceChecked(flight.clearance)
+                      ? 'animate-pulse'
+                      : ''
+                  }`}
                   onClick={() => handlePDCClick(flight)}
                   title="Generate PDC"
                 >
-                  <FileSpreadsheet className="w-4 h-4" />
+                  <FileSpreadsheet
+                    className={`w-4 h-4 ${
+                      flashingPDCIds.has(String(flight.id)) &&
+                      !isClearanceChecked(flight.clearance)
+                        ? 'text-orange-400'
+                        : ''
+                    }`}
+                  />
                 </button>
               )}
               {departureColumns.hide !== false && (

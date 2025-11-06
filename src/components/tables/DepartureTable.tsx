@@ -32,6 +32,7 @@ interface DepartureTableProps {
   ) => Promise<void> | void;
   onToggleClearance: (flightId: string | number, checked: boolean) => void;
   flashingPDCIds: Set<string>;
+  setFlashingPDCIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   id?: string;
 }
 
@@ -64,9 +65,9 @@ export default function DepartureTable({
   onFieldEditingStart,
   onFieldEditingStop,
   onIssuePDC,
-
   onToggleClearance,
   flashingPDCIds,
+  setFlashingPDCIds,
   id,
 }: DepartureTableProps) {
   const [showHidden, setShowHidden] = useState(false);
@@ -246,6 +247,11 @@ export default function DepartureTable({
   const handlePDCOpen = (flight: Flight) => {
     setSelectedFlight(flight);
     setPdcModalOpen(true);
+    setFlashingPDCIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(flight.id));
+      return next;
+    });
   };
 
   const handlePDCClose = () => {
@@ -290,6 +296,14 @@ export default function DepartureTable({
     }
   };
 
+  const handleStopFlashing = (flightId: string | number) => {
+    setFlashingPDCIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(flightId));
+      return next;
+    });
+  };
+
   if (isMobile) {
     return (
       <>
@@ -300,6 +314,8 @@ export default function DepartureTable({
           backgroundStyle={backgroundStyle}
           departureColumns={departureColumns}
           onPDCOpen={handlePDCOpen}
+          flashingPDCIds={flashingPDCIds}
+          onStopFlashing={handleStopFlashing}
         />
         <PDCModal
           isOpen={pdcModalOpen}
@@ -620,7 +636,6 @@ export default function DepartureTable({
                           }
                           label=""
                           checkedClass="bg-green-600 border-green-600"
-                          flashing={isFlashing}
                         />
                       </td>
                     )}
@@ -664,11 +679,15 @@ export default function DepartureTable({
                     {departureColumns.pdc !== false && (
                       <td className="py-2 px-4 column-pdc">
                         <button
-                          className="text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors"
+                          className={`text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors ${
+                            isFlashing ? 'animate-pulse' : ''
+                          }`}
                           onClick={() => handlePDCOpen(flight)}
                           title="Generate PDC"
                         >
-                          <FileSpreadsheet />
+                          <FileSpreadsheet
+                            className={isFlashing ? 'text-orange-400' : ''}
+                          />
                         </button>
                       </td>
                     )}

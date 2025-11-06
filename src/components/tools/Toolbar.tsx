@@ -632,7 +632,6 @@ export default function Toolbar({
           onClose={handleChatClose}
           sessionUsers={activeUsers}
           onMentionReceived={handleChatSidebarMention}
-          onMentionCleared={handleMentionCleared}
           station={icao ?? undefined}
           position={position as string}
           isPFATC={isPFATC}
