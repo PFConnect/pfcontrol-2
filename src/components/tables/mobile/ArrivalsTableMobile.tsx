@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { EyeOff, Eye } from 'lucide-react';
+import { EyeOff, Eye, Route } from 'lucide-react';
 import type { Flight } from '../../../types/flight';
 import type { ArrivalsTableColumnSettings } from '../../../types/settings';
 import TextInput from '../../common/TextInput';
@@ -7,6 +7,7 @@ import StarDropdown from '../../dropdowns/StarDropdown';
 import AltitudeDropdown from '../../dropdowns/AltitudeDropdown';
 import StatusDropdown from '../../dropdowns/StatusDropdown';
 import Button from '../../common/Button';
+import RouteModal from '../../tools/RouteModal';
 
 interface ArrivalsTableMobileProps {
   flights: Flight[];
@@ -37,13 +38,28 @@ export default function ArrivalsTableMobile({
     squawk: true,
     status: true,
     remark: true,
+    route: true,
     hide: true,
   },
 }: ArrivalsTableMobileProps) {
   const [showHidden, setShowHidden] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
+  const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [remarkValues, setRemarkValues] = useState<
     Record<string | number, string>
   >({});
+
+  const handleRouteClick = (flight: Flight) => {
+    if (flight.route && flight.route.trim()) {
+      setSelectedFlight(flight);
+      setRouteModalOpen(true);
+    }
+  };
+
+  const handleRouteClose = () => {
+    setRouteModalOpen(false);
+    setSelectedFlight(null);
+  };
 
   const handleHideFlight = async (flightId: string | number) => {
     if (onFlightChange) {
@@ -116,6 +132,24 @@ export default function ArrivalsTableMobile({
                   )}
                 </div>
                 <div className="flex gap-2">
+                  {arrivalsColumns.route !== false && (
+                    <button
+                      onClick={() => handleRouteClick(flight)}
+                      className={`transition-colors ${
+                        flight.route && flight.route.trim()
+                          ? 'text-gray-400 hover:text-blue-500'
+                          : 'text-red-500 cursor-not-allowed'
+                      }`}
+                      title={
+                        flight.route && flight.route.trim()
+                          ? 'View Route'
+                          : 'No route specified'
+                      }
+                      disabled={!flight.route || !flight.route.trim()}
+                    >
+                      <Route className="w-5 h-5" />
+                    </button>
+                  )}
                   {arrivalsColumns.hide !== false && (
                     <button
                       onClick={() =>
@@ -298,6 +332,12 @@ export default function ArrivalsTableMobile({
           ))}
         </div>
       )}
+
+      <RouteModal
+        isOpen={routeModalOpen}
+        onClose={handleRouteClose}
+        flight={selectedFlight}
+      />
     </div>
   );
 }

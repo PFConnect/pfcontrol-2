@@ -30,6 +30,7 @@ export interface DepartureTableColumnSettings {
     clearance: boolean;
     status: boolean;
     remark: boolean;
+    route?: boolean;
     pdc: boolean;
     hide: boolean;
     delete: boolean;
@@ -50,6 +51,7 @@ export interface ArrivalsTableColumnSettings {
     squawk: boolean;
     status: boolean;
     remark: boolean;
+    route?: boolean;
     hide: boolean;
 }
 

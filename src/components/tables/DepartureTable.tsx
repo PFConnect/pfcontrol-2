@@ -1,6 +1,13 @@
 import { useState, useCallback, useRef } from 'react';
 import { useMediaQuery } from 'react-responsive';
-import { EyeOff, Eye, Trash2, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import {
+  EyeOff,
+  Eye,
+  Trash2,
+  FileSpreadsheet,
+  RefreshCw,
+  Route,
+} from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { DepartureTableColumnSettings } from '../../types/settings';
 import type { FieldEditingState } from '../../sockets/sessionUsersSocket';
@@ -15,6 +22,7 @@ import StatusDropdown from '../dropdowns/StatusDropdown';
 import Button from '../common/Button';
 import DepartureTableMobile from './mobile/DepartureTableMobile';
 import PDCModal from '../tools/PDCModal';
+import RouteModal from '../tools/RouteModal';
 
 interface DepartureTableProps {
   flights: Flight[];
@@ -57,6 +65,7 @@ export default function DepartureTable({
     clearance: true,
     status: true,
     remark: true,
+    route: true,
     pdc: true,
     hide: true,
     delete: true,
@@ -72,6 +81,7 @@ export default function DepartureTable({
 }: DepartureTableProps) {
   const [showHidden, setShowHidden] = useState(false);
   const [pdcModalOpen, setPdcModalOpen] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const isMobile = useMediaQuery({ maxWidth: 1000 });
 
@@ -259,6 +269,18 @@ export default function DepartureTable({
     setSelectedFlight(null);
   };
 
+  const handleRouteOpen = (flight: Flight) => {
+    if (flight.route && flight.route.trim()) {
+      setSelectedFlight(flight);
+      setRouteModalOpen(true);
+    }
+  };
+
+  const handleRouteClose = () => {
+    setRouteModalOpen(false);
+    setSelectedFlight(null);
+  };
+
   const getFieldEditingState = (
     flightId: string | number,
     fieldName: string
@@ -322,6 +344,11 @@ export default function DepartureTable({
           onClose={handlePDCClose}
           flight={selectedFlight}
           onIssuePDC={onIssuePDC}
+        />
+        <RouteModal
+          isOpen={routeModalOpen}
+          onClose={handleRouteClose}
+          flight={selectedFlight}
         />
       </>
     );
@@ -403,6 +430,9 @@ export default function DepartureTable({
                 )}
                 {departureColumns.remark !== false && (
                   <th className="py-2.5 px-4 text-left w-64 column-rmk">RMK</th>
+                )}
+                {departureColumns.route !== false && (
+                  <th className="py-2.5 px-4 text-left column-route">RTE</th>
                 )}
                 {departureColumns.pdc !== false && (
                   <th className="py-2.5 px-4 text-left column-pdc">PDC</th>
@@ -676,6 +706,26 @@ export default function DepartureTable({
                         />
                       </td>
                     )}
+                    {departureColumns.route !== false && (
+                      <td className="py-2 px-4 column-route">
+                        <button
+                          className={`px-2 py-1 rounded transition-colors ${
+                            flight.route && flight.route.trim()
+                              ? 'text-gray-400 hover:text-blue-500'
+                              : 'text-red-500 cursor-not-allowed'
+                          }`}
+                          onClick={() => handleRouteOpen(flight)}
+                          title={
+                            flight.route && flight.route.trim()
+                              ? 'View Route'
+                              : 'No route specified'
+                          }
+                          disabled={!flight.route || !flight.route.trim()}
+                        >
+                          <Route />
+                        </button>
+                      </td>
+                    )}
                     {departureColumns.pdc !== false && (
                       <td className="py-2 px-4 column-pdc">
                         <button
@@ -730,6 +780,12 @@ export default function DepartureTable({
         onClose={handlePDCClose}
         flight={selectedFlight}
         onIssuePDC={onIssuePDC}
+      />
+
+      <RouteModal
+        isOpen={routeModalOpen}
+        onClose={handleRouteClose}
+        flight={selectedFlight}
       />
     </div>
   );

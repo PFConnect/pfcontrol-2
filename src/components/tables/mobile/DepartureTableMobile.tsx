@@ -1,5 +1,12 @@
 import { useState } from 'react';
-import { EyeOff, Eye, Trash2, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import {
+  EyeOff,
+  Eye,
+  Trash2,
+  FileSpreadsheet,
+  RefreshCw,
+  Route,
+} from 'lucide-react';
 import type { Flight } from '../../../types/flight';
 import type { DepartureTableColumnSettings } from '../../../types/settings';
 import Checkbox from '../../common/Checkbox';
@@ -12,6 +19,7 @@ import AltitudeDropdown from '../../dropdowns/AltitudeDropdown';
 import StatusDropdown from '../../dropdowns/StatusDropdown';
 import Button from '../../common/Button';
 import PDCModal from '../../tools/PDCModal';
+import RouteModal from '../../tools/RouteModal';
 
 interface DepartureTableProps {
   flights: Flight[];
@@ -48,6 +56,7 @@ export default function DepartureTableMobile({
     clearance: true,
     status: true,
     remark: true,
+    route: true,
     pdc: true,
     hide: true,
     delete: true,
@@ -58,10 +67,23 @@ export default function DepartureTableMobile({
 }: DepartureTableProps) {
   const [showHidden, setShowHidden] = useState(false);
   const [pdcModalOpen, setPdcModalOpen] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [remarkValues, setRemarkValues] = useState<
     Record<string | number, string>
   >({});
+
+  const handleRouteClick = (flight: Flight) => {
+    if (flight.route && flight.route.trim()) {
+      setSelectedFlight(flight);
+      setRouteModalOpen(true);
+    }
+  };
+
+  const handleRouteClose = () => {
+    setRouteModalOpen(false);
+    setSelectedFlight(null);
+  };
 
   const handlePDCClick = (flight: Flight) => {
     if (onStopFlashing) {
@@ -454,6 +476,24 @@ export default function DepartureTableMobile({
               </div>
             </div>
             <div className="flex gap-2 mt-4">
+              {departureColumns.route !== false && (
+                <button
+                  className={`px-2 py-1 rounded transition-colors ${
+                    flight.route && flight.route.trim()
+                      ? 'text-gray-400 hover:text-blue-500'
+                      : 'text-red-500 cursor-not-allowed'
+                  }`}
+                  onClick={() => handleRouteClick(flight)}
+                  title={
+                    flight.route && flight.route.trim()
+                      ? 'View Route'
+                      : 'No route specified'
+                  }
+                  disabled={!flight.route || !flight.route.trim()}
+                >
+                  <Route className="w-4 h-4" />
+                </button>
+              )}
               {departureColumns.pdc !== false && (
                 <button
                   className={`text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors ${
@@ -513,6 +553,12 @@ export default function DepartureTableMobile({
           flight={selectedFlight}
         />
       )}
+
+      <RouteModal
+        isOpen={routeModalOpen}
+        onClose={handleRouteClose}
+        flight={selectedFlight}
+      />
     </div>
   );
 }
