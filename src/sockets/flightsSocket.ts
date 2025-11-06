@@ -7,6 +7,7 @@ export function createFlightsSocket(
     sessionId: string,
     accessId: string,
     userId: string,
+    username: string,
     onFlightUpdated: (flight: Flight) => void,
     onFlightAdded: (flight: Flight) => void,
     onFlightDeleted: (data: { flightId: string | number }) => void,
@@ -20,6 +21,7 @@ export function createFlightsSocket(
             sessionId,
             accessId,
             userId,
+            username,
             ...(isEventController && { isEventController: 'true' })
         },
         transports: ['websocket', 'polling'],

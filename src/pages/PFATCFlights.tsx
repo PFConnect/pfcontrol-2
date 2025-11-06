@@ -28,6 +28,7 @@ import WindDisplay from '../components/tools/WindDisplay';
 import FrequencyDisplay from '../components/tools/FrequencyDisplay';
 import ChartDrawer from '../components/tools/ChartDrawer';
 import ContactAcarsSidebar from '../components/tools/ContactAcarsSidebar';
+import ChatSidebar from '../components/tools/ChatSidebar';
 import Button from '../components/common/Button';
 import Dropdown from '../components/common/Dropdown';
 import TextInput from '../components/common/TextInput';
@@ -89,6 +90,23 @@ export default function PFATCFlights() {
   const [isContactSidebarOpen, setIsContactSidebarOpen] = useState(false);
   const [activeAcarsFlights, setActiveAcarsFlights] = useState<Set<string | number>>(new Set());
   const [eventControllerViewEnabled, setEventControllerViewEnabled] = useState(false);
+
+  const [chatOpen, setChatOpen] = useState(false);
+  const [unreadMentions, setUnreadMentions] = useState(0);
+
+  // Clear unread mentions when chat opens
+  useEffect(() => {
+    if (chatOpen) {
+      setUnreadMentions(0);
+    }
+  }, [chatOpen]);
+
+  // Close chat when station is deselected
+  useEffect(() => {
+    if (!selectedStation && chatOpen) {
+      setChatOpen(false);
+    }
+  }, [selectedStation, chatOpen]);
 
   const isEventController =
     user?.rolePermissions?.['event_controller'] ||
@@ -179,11 +197,11 @@ export default function PFATCFlights() {
       for (const session of realSessions) {
         if (!currentSockets.has(session.sessionId)) {
           try {
-            console.log(`Creating socket for session: ${session.sessionId}`);
             const socket = createFlightsSocket(
               session.sessionId,
               '',
               user?.userId || '',
+              user?.username || '',
               (flight: Flight) => {
                 setOverviewData((prev) => {
                   if (!prev) return prev;
@@ -855,14 +873,19 @@ export default function PFATCFlights() {
               </Button>
 
               <Button
-                className="flex items-center gap-2 px-4 py-2"
+                className="flex items-center gap-2 px-4 py-2 relative"
                 aria-label="Chat"
                 size="sm"
-                onClick={() => alert('Global Chat - Coming soon!')}
+                onClick={() => setChatOpen(true)}
                 disabled={!selectedStation}
               >
                 <MessageSquare className="w-5 h-5" />
                 <span className="hidden sm:inline font-medium">Chat</span>
+                {unreadMentions > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadMentions}
+                  </span>
+                )}
               </Button>
 
               <Button
@@ -1265,6 +1288,22 @@ export default function PFATCFlights() {
         activeAcarsFlights={activeAcarsFlights}
         airportIcao={selectedStation}
         fallbackFrequency={sectorStations.find(s => s.value === selectedStation)?.frequency}
+      />
+
+      <ChatSidebar
+        sessionId="" // No session ID for PFATC page
+        accessId="" // No access ID for PFATC page
+        open={chatOpen}
+        onClose={() => setChatOpen(false)}
+        sessionUsers={[]} // No session users on PFATC page
+        onMentionReceived={() => {
+          setUnreadMentions((prev) => prev + 1);
+        }}
+        station={selectedStation}
+        position={selectedStation ? selectedStation.split('_').slice(1).join('_') : ''} // Extract position from station (e.g., "LECB_CTR" -> "CTR")
+        isPFATC={true} // Need this true to connect to global chat socket
+        unreadSessionCount={0}
+        unreadGlobalCount={0}
       />
     </div>
   );

@@ -18,6 +18,7 @@ router.get('/', createAuditLogger('ADMIN_FLIGHT_LOGS_ACCESSED'), async (req, res
         const flightIdParam = req.query.flightId;
         const dateFromParam = req.query.dateFrom;
         const dateToParam = req.query.dateTo;
+        const textParam = req.query.text;
 
         const page = typeof pageParam === 'string' ? parseInt(pageParam) : 1;
         const limit = typeof limitParam === 'string' ? parseInt(limitParam) : 50;
@@ -28,8 +29,9 @@ router.get('/', createAuditLogger('ADMIN_FLIGHT_LOGS_ACCESSED'), async (req, res
         const flightId = typeof flightIdParam === 'string' ? flightIdParam : undefined;
         const dateFrom = typeof dateFromParam === 'string' ? dateFromParam : undefined;
         const dateTo = typeof dateToParam === 'string' ? dateToParam : undefined;
+        const text = typeof textParam === 'string' ? textParam : undefined;
 
-        const data = await getFlightLogs(page, limit, { user, action, session, flightId, dateFrom, dateTo });
+        const data = await getFlightLogs(page, limit, { user, action, session, flightId, dateFrom, dateTo, text });
         res.json(data);
     } catch (error) {
         console.error('Error fetching flight logs:', error);

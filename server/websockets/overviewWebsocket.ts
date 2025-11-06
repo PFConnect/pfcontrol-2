@@ -53,7 +53,7 @@ export function setupOverviewWebsocket(httpServer: HTTPServer, sessionUsersIO: S
                 console.error('Error broadcasting overview data:', error);
             }
         }
-    }, 30000);
+    }, 10000); // Broadcast every 10 seconds
 
     return io;
 }

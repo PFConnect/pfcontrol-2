@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
-import { fetchChatMessages, reportChatMessage, fetchGlobalChatMessages } from '../../utils/fetch/chats';
+import { fetchChatMessages, reportChatMessage, fetchGlobalChatMessages, reportGlobalChatMessage } from '../../utils/fetch/chats';
 import { useAuth } from '../../hooks/auth/useAuth';
+import { useData } from '../../hooks/data/useData';
 import { createChatSocket } from '../../sockets/chatSocket';
-import { createGlobalChatSocket, type GlobalChatMessage } from '../../sockets/globalChatSocket';
-import { Send, Trash, X, Flag, MessageCircle, Radio } from 'lucide-react';
+import { createGlobalChatSocket, type GlobalChatMessage, type ConnectedGlobalChatUser } from '../../sockets/globalChatSocket';
+import { Send, Trash, X, Flag, MessageCircle, Radio, MapPin } from 'lucide-react';
 import type { ChatMessage, ChatMention } from '../../types/chats';
 import type { SessionUser } from '../../types/session';
 import type { ToastType } from '../common/Toast';
@@ -21,6 +22,9 @@ interface ChatSidebarProps {
   onMentionReceived?: (mention: ChatMention) => void;
   station?: string;
   position?: string;
+  isPFATC?: boolean;
+  unreadSessionCount?: number;
+  unreadGlobalCount?: number;
 }
 
 export default function ChatSidebar({
@@ -32,8 +36,12 @@ export default function ChatSidebar({
   onMentionReceived,
   station,
   position,
+  isPFATC = false,
+  unreadSessionCount = 0,
+  unreadGlobalCount = 0,
 }: ChatSidebarProps) {
   const { user } = useAuth();
+  const { airports } = useData();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [input, setInput] = useState('');
@@ -49,6 +57,7 @@ export default function ChatSidebar({
   const [reportingMessageId, setReportingMessageId] = useState<number | null>(
     null
   );
+  const [reportingGlobalMessage, setReportingGlobalMessage] = useState(false);
   const [toast, setToast] = useState<{
     message: string;
     type: ToastType;
@@ -65,18 +74,58 @@ export default function ChatSidebar({
   const isAtBottomRef = useRef(true);
 
   // PFATC Global Chat state
-  const [activeTab, setActiveTab] = useState<'session' | 'pfatc'>('session');
+  // Default to 'pfatc' tab if there's no sessionId (PFATC page standalone)
+  const [activeTab, setActiveTab] = useState<'session' | 'pfatc'>(sessionId ? 'session' : 'pfatc');
   const [globalMessages, setGlobalMessages] = useState<GlobalChatMessage[]>([]);
-  const [globalLoading, setGlobalLoading] = useState(true);
+  const [globalLoading, setGlobalLoading] = useState(false);
   const [globalInput, setGlobalInput] = useState('');
-  const [activeGlobalChatUsers, setActiveGlobalChatUsers] = useState<string[]>([]);
-  const [showGlobalMentionSuggestions, setShowGlobalMentionSuggestions] = useState(false);
-  const [globalMentionSuggestions, setGlobalMentionSuggestions] = useState<SessionUser[]>([]);
+  const [connectedGlobalChatUsers, setConnectedGlobalChatUsers] = useState<ConnectedGlobalChatUser[]>([]);
+  const [showGlobalSuggestions, setShowGlobalSuggestions] = useState(false);
+  const [globalSuggestions, setGlobalSuggestions] = useState<Array<{type: 'user' | 'airport'; data: SessionUser | {icao: string; name: string} | {id: string; username: string; position?: string; avatar?: string; station?: string}}>>([]);
   const [selectedGlobalSuggestionIndex, setSelectedGlobalSuggestionIndex] = useState(-1);
   const globalSocketRef = useRef<ReturnType<typeof createGlobalChatSocket> | null>(null);
   const globalMessagesEndRef = useRef<HTMLDivElement>(null);
   const globalPendingDeleteRef = useRef<GlobalChatMessage | null>(null);
   const globalTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const onMentionReceivedRef = useRef(onMentionReceived);
+
+  // Update the ref when callback changes
+  useEffect(() => {
+    onMentionReceivedRef.current = onMentionReceived;
+  }, [onMentionReceived]);
+
+  // Helper function to format station display
+  const formatStationDisplay = (station: string | null, position: string | null): string => {
+    if (!station) return '';
+
+    // Only show position if it's DEL, GND, TWR, or ALL
+    const showablePositions = ['DEL', 'GND', 'TWR', 'ALL'];
+
+    // Check if this is a session controller (station doesn't contain underscores, position is separate)
+    if (station && !station.includes('_') && position && showablePositions.includes(position.toUpperCase())) {
+      // Convert ALL to APP for display
+      const displayPosition = position.toUpperCase() === 'ALL' ? 'APP' : position.toUpperCase();
+      return `${station}_${displayPosition}`;
+    }
+
+    // For sector controllers (station includes underscores like GCCC_R6_CTR)
+    // Just return the full station identifier
+    return station;
+  };
+
+  // Prevent body scroll when chat is open
+  useEffect(() => {
+    if (open) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [open]);
 
   // Socket connection - connects once and stays alive (separate from open/close UI state)
   useEffect(() => {
@@ -189,7 +238,7 @@ export default function ChatSidebar({
 
   // Global Chat Socket Connection
   useEffect(() => {
-    if (!user) return;
+    if (!user || !isPFATC) return;
 
     // Connect to global chat socket (stays connected)
     if (!globalSocketRef.current) {
@@ -219,9 +268,7 @@ export default function ChatSidebar({
             globalPendingDeleteRef.current = null;
           }
         },
-        (users: string[]) => {
-          setActiveGlobalChatUsers(users);
-        },
+        undefined, // onActiveGlobalChatUsers - not used, we use onConnectedGlobalChatUsers instead
         (data: { messageId: number; reason: string }) => {
           setAutomoddedMessages((prev) => {
             const newMap = new Map(prev);
@@ -230,17 +277,34 @@ export default function ChatSidebar({
           });
         },
         (mention) => {
-          // Pass global chat mentions up to parent component
-          if (mention.mentionedUserId === user.userId && onMentionReceived) {
-            onMentionReceived({
-              id: mention.messageId,
-              userId: mention.mentionedUserId,
-              username: mention.mentionerUsername,
+          // Pass global chat user mentions up to parent component
+          if (mention.mentionedUserId === user.userId && onMentionReceivedRef.current) {
+            onMentionReceivedRef.current({
+              messageId: parseInt(mention.messageId, 10),
+              mentionedUserId: mention.mentionedUserId,
+              mentionerUsername: mention.mentionerUsername,
               message: mention.message,
-              timestamp: new Date(mention.timestamp).getTime(),
+              timestamp: mention.timestamp,
               sessionId: 'global-chat', // Special identifier for global chat mentions
             });
           }
+        },
+        (mention) => {
+          // Pass global chat airport mentions up to parent component
+          // Only trigger if the user is controlling at this airport
+          if (mention.airport && station && mention.airport.toUpperCase() === station.toUpperCase() && onMentionReceivedRef.current) {
+            onMentionReceivedRef.current({
+              messageId: parseInt(mention.messageId, 10),
+              mentionedUserId: user.userId,
+              mentionerUsername: mention.mentionerUsername,
+              message: mention.message,
+              timestamp: mention.timestamp,
+              sessionId: 'global-chat', // Special identifier for global chat mentions
+            });
+          }
+        },
+        (users: ConnectedGlobalChatUser[]) => {
+          setConnectedGlobalChatUsers(users);
         }
       );
 
@@ -257,7 +321,7 @@ export default function ChatSidebar({
         globalSocketRef.current = null;
       }
     };
-  }, [user, station, position, onMentionReceived]); // Socket stays alive
+  }, [user?.userId, station, position, isPFATC]); // Socket stays alive and reconnects when station/position changes
 
   // Notify backend when global chat tab opens/closes
   useEffect(() => {
@@ -410,21 +474,56 @@ export default function ChatSidebar({
 
     if (mentionMatch) {
       const searchTerm = mentionMatch[1].toLowerCase();
-      // For global chat, show all session users as potential mentions
-      const suggestions = sessionUsers.filter(
-        (u) =>
-          u.username.toLowerCase().includes(searchTerm) && u.id !== user?.userId
+
+      // Get unique active airports from global messages with active controllers
+      const activeAirports = Array.from(
+        new Set(
+          globalMessages
+            .filter((msg) => msg.station && msg.station.length === 4)
+            .map((msg) => msg.station!.toUpperCase())
+        )
       );
-      setGlobalMentionSuggestions(suggestions);
-      setShowGlobalMentionSuggestions(suggestions.length > 0);
-      setSelectedGlobalSuggestionIndex(suggestions.length > 0 ? 0 : -1);
+
+      // Get airport suggestions - filter by active airports only
+      const airportSugs = airports
+        .filter((a) =>
+          a.icao.toLowerCase().startsWith(searchTerm) &&
+          activeAirports.includes(a.icao.toUpperCase())
+        )
+        .slice(0, 10)
+        .map((a) => ({ type: 'airport' as const, data: { icao: a.icao, name: a.name } }));
+
+      // Get user suggestions - use connectedGlobalChatUsers for global chat, sessionUsers for session chat
+      const usersToSearch = connectedGlobalChatUsers.length > 0
+        ? connectedGlobalChatUsers.map(u => ({
+            id: u.id,
+            username: u.username,
+            position: u.position || undefined,
+            avatar: u.avatar || undefined,
+            station: u.station || undefined
+          }))
+        : sessionUsers;
+
+      const userSugs = usersToSearch
+        .filter((u) =>
+          u.username.toLowerCase().includes(searchTerm) && u.id !== user?.userId
+        )
+        .slice(0, 10)
+        .map((u) => ({ type: 'user' as const, data: u as SessionUser }));
+
+      // Combine suggestions: airports first, then users
+      const combinedSuggestions = [...airportSugs, ...userSugs].slice(0, 10);
+
+      setGlobalSuggestions(combinedSuggestions);
+      setShowGlobalSuggestions(combinedSuggestions.length > 0);
+      setSelectedGlobalSuggestionIndex(combinedSuggestions.length > 0 ? 0 : -1);
     } else {
-      setShowGlobalMentionSuggestions(false);
+      setShowGlobalSuggestions(false);
       setSelectedGlobalSuggestionIndex(-1);
     }
   };
 
-  const insertGlobalMention = (username: string) => {
+  const insertGlobalMention = (value: string) => {
     const cursorPos = globalTextareaRef.current?.selectionStart || 0;
     const textBeforeCursor = globalInput.substring(0, cursorPos);
     const textAfterCursor = globalInput.substring(cursorPos);
@@ -432,13 +531,14 @@ export default function ChatSidebar({
 
     if (mentionMatch) {
       const beforeMention = mentionMatch[1];
-      const newText = beforeMention + `@${username} ` + textAfterCursor;
+      const newText = beforeMention + `@${value} ` + textAfterCursor;
       setGlobalInput(newText);
-      setShowGlobalMentionSuggestions(false);
+      setShowGlobalSuggestions(false);
+      setSelectedGlobalSuggestionIndex(-1);
 
       setTimeout(() => {
         if (globalTextareaRef.current) {
-          const newCursorPos = beforeMention.length + username.length + 2;
+          const newCursorPos = beforeMention.length + value.length + 2;
           globalTextareaRef.current.focus();
           globalTextareaRef.current.setSelectionRange(newCursorPos, newCursorPos);
         }
@@ -451,35 +551,42 @@ export default function ChatSidebar({
     setShowReportModal(true);
   }
 
+  async function handleGlobalReport(msgId: number) {
+    setReportingMessageId(msgId);
+    setReportingGlobalMessage(true);
+    setShowReportModal(true);
+  }
+
   async function handleSubmitReport() {
     if (!reportingMessageId || !reportReason.trim()) return;
 
     try {
-      await reportChatMessage(
-        sessionId,
-        reportingMessageId,
-        reportReason.trim()
-      );
-      setToast({ message: 'Message reported successfully.', type: 'success' }); // Update to use state
+      if (reportingGlobalMessage) {
+        await reportGlobalChatMessage(reportingMessageId, reportReason.trim());
+      } else {
+        await reportChatMessage(sessionId, reportingMessageId, reportReason.trim());
+      }
+      setToast({ message: 'Message reported successfully.', type: 'success' });
       setShowReportModal(false);
       setReportReason('');
       setReportingMessageId(null);
+      setReportingGlobalMessage(false);
     } catch {
-      setToast({ message: 'Failed to report message.', type: 'error' }); // Update to use state
+      setToast({ message: 'Failed to report message.', type: 'error' });
     }
   }
 
   return (
     <div
       className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white transition-transform duration-300 ${
-        open ? 'translate-x-0 shadow-2xl' : 'translate-x-full'
+        open ? 'translate-x-[] shadow-2xl shadow-black/90' : 'translate-x-full'
       } rounded-l-3xl border-l-2 border-blue-800 flex flex-col`}
       style={{ zIndex: 100 }}
     >
       <div className="flex justify-between items-center p-5 border-b border-blue-800 rounded-tl-3xl">
         <div className="flex items-center gap-3">
           <span className="font-extrabold text-xl text-blue-300">
-            Chat
+            {isPFATC && sessionId ? (activeTab === 'session' ? 'Session Chat' : 'PFATC Chat') : (sessionId ? 'Session Chat' : 'PFATC Chat')}
           </span>
         </div>
         <button
@@ -490,38 +597,50 @@ export default function ChatSidebar({
         </button>
       </div>
 
-      {/* Chat Tabs */}
-      <div className="px-5 pt-3 border-b border-blue-800 bg-zinc-900">
-        <div className="flex gap-0 mb-3">
-          <button
-            onClick={() => setActiveTab('session')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-t-lg font-semibold transition-colors ${
-              activeTab === 'session'
-                ? 'bg-blue-600 text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            <MessageCircle className="w-4 h-4" />
-            <span>Session</span>
-          </button>
-          <button
-            onClick={() => setActiveTab('pfatc')}
-            className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-t-lg font-semibold transition-colors ${
-              activeTab === 'pfatc'
-                ? 'bg-blue-600 text-white'
-                : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-            }`}
-          >
-            <Radio className="w-4 h-4" />
-            <span>PFATC</span>
-          </button>
+      {/* Chat Tabs - Only show in PFATC sessions with a valid sessionId */}
+      {isPFATC && sessionId && (
+        <div className="px-1 pt-3 border-b border-blue-800 bg-zinc-900">
+          <div className="flex gap-1 mb-2">
+            <button
+              onClick={() => setActiveTab('session')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-t-lg font-semibold transition-colors relative ${
+                activeTab === 'session'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Session</span>
+              {unreadSessionCount > 0 && activeTab !== 'session' && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadSessionCount}
+                </span>
+              )}
+            </button>
+            <button
+              onClick={() => setActiveTab('pfatc')}
+              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 rounded-t-lg font-semibold transition-colors relative ${
+                activeTab === 'pfatc'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+              }`}
+            >
+              <Radio className="w-4 h-4" />
+              <span>PFATC</span>
+              {unreadGlobalCount > 0 && activeTab !== 'pfatc' && (
+                <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                  {unreadGlobalCount}
+                </span>
+              )}
+            </button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Active Users */}
       <div className="px-5 py-2 border-b border-blue-800 bg-zinc-900">
         <div className="flex flex-wrap gap-1">
-          {activeTab === 'session' ? (
+          {(isPFATC ? activeTab === 'session' : true) ? (
             sessionUsers.map((sessionUser) => (
               <img
                 key={sessionUser.id}
@@ -537,14 +656,14 @@ export default function ChatSidebar({
             ))
           ) : (
             <div className="text-xs text-zinc-400">
-              {activeGlobalChatUsers.length} controller{activeGlobalChatUsers.length !== 1 ? 's' : ''} online
+              {connectedGlobalChatUsers.length} controller{connectedGlobalChatUsers.length !== 1 ? 's' : ''} online
             </div>
           )}
         </div>
       </div>
 
-      {/* Session Chat Messages */}
-      {activeTab === 'session' && (
+      {/* Session Chat Messages - Only show if we have a sessionId */}
+      {sessionId && (isPFATC ? activeTab === 'session' : true) && (
         <div
           className={`flex-1 ${
             messages.length > 0 ? 'overflow-y-auto' : ''
@@ -581,9 +700,9 @@ export default function ChatSidebar({
             return (
               <div
                 key={msg.id}
-                className={`flex items-start gap-3 relative ${
-                  isOwn ? 'justify-end' : ''
-                } ${isMentioned ? 'bg-blue-900/20 rounded-lg p-2 -m-2' : ''}`}
+                className={`flex items-start gap-1 relative ${
+                  isOwn ? 'justify-end' : 'gap-3'
+                } ${isMentioned ? 'bg-blue-900/20 rounded-lg py-3 my-1' : 'gap-3'}`}
                 onMouseEnter={() => setHoveredMessage(msg.id)}
                 onMouseLeave={() => setHoveredMessage(null)}
               >
@@ -662,7 +781,7 @@ export default function ChatSidebar({
                       <img
                         src="/assets/images/automod.webp"
                         alt="Flagged by automod"
-                        className="w-4 h-4 cursor-help"
+                        className="w-4 h-4 cursor-help rounded-full shadow-lg"
                       />
                       <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-[9999] whitespace-nowrap">
                         <div className="relative p-[1px] rounded-lg bg-gradient-to-r from-red-600 to-orange-600">
@@ -692,12 +811,12 @@ export default function ChatSidebar({
       </div>
       )}
 
-      {/* Global Chat Messages */}
-      {activeTab === 'pfatc' && (
+      {/* Global Chat Messages - Only in PFATC sessions */}
+      {isPFATC && activeTab === 'pfatc' && (
         <div
           className={`flex-1 ${
             globalMessages.length > 0 ? 'overflow-y-auto' : ''
-          } px-5 py-4 space-y-4`}
+          } px-5 py-4 space-y-2`}
         >
           {globalLoading ? (
             <div className="flex justify-center items-center h-full">
@@ -717,14 +836,23 @@ export default function ChatSidebar({
                   new Date(prevMsg.sent_at).getTime() >=
                   60000;
               const isOwn = String(msg.userId) === String(user?.userId);
-              const isAutomodded = automoddedMessages.has(msg.id);
+              const isMentionedByUser =
+                msg.userMentions &&
+                Array.isArray(msg.userMentions) &&
+                msg.userMentions.some((username: string) => username.toLowerCase() === user?.username?.toLowerCase());
+              const isMentionedByAirport =
+                msg.airportMentions &&
+                Array.isArray(msg.airportMentions) &&
+                station &&
+                msg.airportMentions.some((icao: string) => icao.toUpperCase() === station.toUpperCase());
+              const isMentioned = isMentionedByUser || isMentionedByAirport;
 
               return (
                 <div
                   key={msg.id}
-                  className={`flex items-start gap-3 relative ${
+                  className={`flex items-start gap-2 relative ${
                     isOwn ? 'justify-end' : ''
-                  }`}
+                  } ${isMentioned ? 'bg-blue-900/20 rounded-lg p-1 my-1' : 'gap-3'}`}
                   onMouseEnter={() => setHoveredMessage(msg.id)}
                   onMouseLeave={() => setHoveredMessage(null)}
                 >
@@ -736,15 +864,15 @@ export default function ChatSidebar({
                     />
                   )}
                   {!showHeader && !isOwn && <div className="w-9 h-9" />}
-                  <div className={`${isOwn ? 'text-right' : ''} relative group`}>
+                  <div className={`${isOwn ? 'text-right' : ''}`}>
                     {showHeader && (
                       <div className="text-xs text-gray-400 mb-1">
                         <span className="font-semibold text-blue-300">
                           {msg.username || 'Unknown'}
                         </span>
-                        {msg.station && msg.position && (
+                        {msg.station && (
                           <span className="text-green-400">
-                            {' - '}{msg.station}_{msg.position}
+                            {' - '}{formatStationDisplay(msg.station, msg.position)}
                           </span>
                         )}
                         {' • '}
@@ -754,34 +882,73 @@ export default function ChatSidebar({
                         })}
                       </div>
                     )}
-                    <div className="relative">
+                    <div
+                      className={`rounded-l-2xl rounded-tr-2xl px-3 py-2 text-sm shadow relative ${
+                        isOwn
+                          ? 'bg-blue-800 text-white ml-auto max-w-[19rem]'
+                          : 'bg-zinc-800 text-white max-w-[19rem]'
+                      } break-words overflow-wrap-anywhere`}
+                      style={
+                        isOwn
+                          ? {
+                              borderTopRightRadius: '1rem',
+                              borderBottomRightRadius: '0rem',
+                            }
+                          : {
+                              borderTopLeftRadius: '1rem',
+                              borderBottomLeftRadius: '0rem',
+                              borderBottomRightRadius: '1rem',
+                            }
+                      }
+                    >
                       <div
-                        className={`inline-block px-4 py-2 rounded-2xl ${
-                          isOwn
-                            ? 'bg-blue-600 text-white'
-                            : 'bg-zinc-800 text-white'
-                        } ${
-                          isAutomodded ? 'opacity-50' : ''
-                        } break-words max-w-md`}
-                        dangerouslySetInnerHTML={{ __html: renderMessage(msg.message) }}
+                        className="break-words whitespace-pre-wrap"
+                        dangerouslySetInnerHTML={{
+                          __html: renderMessage(msg.message),
+                        }}
                       />
-                      {isAutomodded && (
-                        <div className="text-xs text-red-400 mt-1">
-                          {automoddedMessages.get(msg.id)}
-                        </div>
-                      )}
-                      {hoveredMessage === msg.id && isOwn && (
-                        <div className="absolute -left-14 top-0 flex gap-1">
-                          <button
-                            onClick={() => handleGlobalDelete(msg.id)}
-                            className="p-2 bg-red-600/80 hover:bg-red-600 rounded-full transition-colors"
-                            title="Delete message"
-                          >
-                            <Trash className="w-4 h-4 text-white" />
-                          </button>
+
+                      {hoveredMessage === msg.id && (
+                        <div className="absolute -top-2 -right-2 flex space-x-1">
+                          {!isOwn && (
+                            <button
+                              className="bg-zinc-700 hover:bg-yellow-600 text-gray-300 hover:text-white rounded-full p-1.5 shadow-lg transition-colors duration-200"
+                              onClick={() => handleGlobalReport(msg.id)}
+                              title="Report message"
+                            >
+                              <Flag className="h-3 w-3" />
+                            </button>
+                          )}
+                          {isOwn && (
+                            <button
+                              className="bg-zinc-700 hover:bg-red-600 text-gray-300 hover:text-white rounded-full p-1.5 shadow-lg transition-colors duration-200"
+                              onClick={() => handleGlobalDelete(msg.id)}
+                              title="Delete message"
+                            >
+                              <Trash className="h-3 w-3" />
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>
+                    {isOwn && automoddedMessages.has(msg.id) && (
+                      <div className="relative group inline-block ml-2">
+                        <img
+                          src="/assets/images/automod.webp"
+                          alt="Flagged by automod"
+                          className="w-4 h-4 cursor-help rounded-full shadow-lg"
+                        />
+                        <div className="absolute bottom-full right-0 mb-2 opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none shadow-lg z-[9999] whitespace-nowrap">
+                          <div className="relative p-[1px] rounded-lg bg-gradient-to-r from-red-600 to-orange-600">
+                            <div className="px-3 py-1.5 bg-zinc-900/95 backdrop-blur-md rounded-lg">
+                              <div className="text-xs text-white">
+                                Automod flagged this for <span className="text-yellow-300 font-semibold">{automoddedMessages.get(msg.id)}</span>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
                   </div>
                   {!showHeader && isOwn && <div className="w-9 h-9" />}
                   {showHeader && isOwn && (
@@ -894,33 +1061,58 @@ export default function ChatSidebar({
           )}
 
           {/* Global Chat Input */}
-          {activeTab === 'pfatc' && (
+          {isPFATC && activeTab === 'pfatc' && (
             <>
-              {showGlobalMentionSuggestions && globalMentionSuggestions.length > 0 && (
+              {/* Unified Mention Suggestions (Airports + Users) */}
+              {showGlobalSuggestions && globalSuggestions.length > 0 && (
                 <div className="absolute bottom-full left-0 right-0 mb-2 bg-zinc-800 border border-blue-700 rounded-lg shadow-lg max-h-40 overflow-y-auto">
-                  {globalMentionSuggestions.map((suggestedUser, index) => (
-                    <button
-                      key={suggestedUser.id}
-                      className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-600/20 text-left ${
-                        index === selectedGlobalSuggestionIndex ? 'bg-blue-600/40' : ''
-                      }`}
-                      onClick={() => insertGlobalMention(suggestedUser.username)}
-                    >
-                      <img
-                        src={
-                          suggestedUser.avatar || '/assets/app/default/avatar.webp'
-                        }
-                        alt={suggestedUser.username}
-                        className="w-6 h-6 rounded-full"
-                      />
-                      <div className="flex flex-col flex-1 min-w-0">
-                        <span className="text-sm font-medium">{suggestedUser.username}</span>
-                        {suggestedUser.position && (
-                          <span className="text-xs text-gray-400">{suggestedUser.position}</span>
-                        )}
-                      </div>
-                    </button>
-                  ))}
+                  {globalSuggestions.map((suggestion, index) => {
+                    if (suggestion.type === 'airport') {
+                      const airport = suggestion.data as { icao: string; name: string };
+                      return (
+                        <button
+                          key={`airport-${airport.icao}`}
+                          className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-600/20 text-left ${
+                            index === selectedGlobalSuggestionIndex ? 'bg-blue-600/40' : ''
+                          }`}
+                          onClick={() => insertGlobalMention(airport.icao.toLowerCase())}
+                        >
+                          <MapPin className="w-5 h-5 text-green-400 flex-shrink-0" />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-sm font-medium font-mono">{airport.icao}</span>
+                            <span className="text-xs text-gray-400 truncate">{airport.name}</span>
+                          </div>
+                        </button>
+                      );
+                    } else {
+                      const userSuggestion = suggestion.data as SessionUser | {id: string; username: string; position?: string; avatar?: string; station?: string};
+                      const station = 'station' in userSuggestion ? userSuggestion.station : undefined;
+                      const position = 'position' in userSuggestion && typeof userSuggestion.position === 'string' ? userSuggestion.position : undefined;
+                      const displayStation = formatStationDisplay(station || null, position || null);
+
+                      return (
+                        <button
+                          key={`user-${userSuggestion.id}`}
+                          className={`w-full flex items-center gap-2 px-3 py-2 hover:bg-blue-600/20 text-left ${
+                            index === selectedGlobalSuggestionIndex ? 'bg-blue-600/40' : ''
+                          }`}
+                          onClick={() => insertGlobalMention(userSuggestion.username)}
+                        >
+                          <img
+                            src={userSuggestion.avatar || '/assets/app/default/avatar.webp'}
+                            alt={userSuggestion.username}
+                            className="w-6 h-6 rounded-full"
+                          />
+                          <div className="flex flex-col flex-1 min-w-0">
+                            <span className="text-sm font-medium">{userSuggestion.username}</span>
+                            {displayStation && (
+                              <span className="text-xs text-gray-400">{displayStation}</span>
+                            )}
+                          </div>
+                        </button>
+                      );
+                    }
+                  })}
                 </div>
               )}
               <textarea
@@ -929,28 +1121,35 @@ export default function ChatSidebar({
                 value={globalInput}
                 onChange={(e) => handleGlobalInputChange(e.target.value)}
                 onKeyDown={(e) => {
-                  if (showGlobalMentionSuggestions) {
+                  const hasSuggestions = showGlobalSuggestions && globalSuggestions.length > 0;
+
+                  if (hasSuggestions) {
                     if (e.key === 'ArrowDown') {
                       e.preventDefault();
                       setSelectedGlobalSuggestionIndex(
-                        (prev) => (prev + 1) % globalMentionSuggestions.length
+                        (prev) => (prev + 1) % globalSuggestions.length
                       );
                     } else if (e.key === 'ArrowUp') {
                       e.preventDefault();
                       setSelectedGlobalSuggestionIndex(
                         (prev) =>
-                          (prev - 1 + globalMentionSuggestions.length) %
-                          globalMentionSuggestions.length
+                          (prev - 1 + globalSuggestions.length) % globalSuggestions.length
                       );
                     } else if (e.key === 'Enter' && !e.shiftKey) {
                       e.preventDefault();
-                      if (selectedGlobalSuggestionIndex >= 0) {
-                        insertGlobalMention(
-                          globalMentionSuggestions[selectedGlobalSuggestionIndex].username
-                        );
+                      if (selectedGlobalSuggestionIndex >= 0 && selectedGlobalSuggestionIndex < globalSuggestions.length) {
+                        const suggestion = globalSuggestions[selectedGlobalSuggestionIndex];
+                        if (suggestion.type === 'airport') {
+                          const airport = suggestion.data as { icao: string; name: string };
+                          insertGlobalMention(airport.icao.toLowerCase());
+                        } else {
+                          const user = suggestion.data as SessionUser;
+                          insertGlobalMention(user.username);
+                        }
                       }
                     } else if (e.key === 'Escape') {
-                      setShowGlobalMentionSuggestions(false);
+                      setShowGlobalSuggestions(false);
+                      setSelectedGlobalSuggestionIndex(-1);
                     }
                   } else if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
@@ -959,7 +1158,7 @@ export default function ChatSidebar({
                 }}
                 maxLength={500}
                 rows={3}
-                placeholder="Type a message... Use @ICAO for airport mentions, @username for user mentions"
+                placeholder="Type a message... Use @ICAO or @username for mentions"
                 aria-label="Type a global message"
               />
 

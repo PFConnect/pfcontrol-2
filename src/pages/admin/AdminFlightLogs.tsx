@@ -11,6 +11,7 @@ import {
   Database,
   X,
   NotebookPen,
+  Search,
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
@@ -39,6 +40,7 @@ export default function AdminFlightLogs() {
   const [flightIdFilter, setFlightIdFilter] = useState('');
   const [dateFromFilter, setDateFromFilter] = useState('');
   const [dateToFilter, setDateToFilter] = useState('');
+  const [textFilter, setTextFilter] = useState('');
   const [selectedLog, setSelectedLog] = useState<FlightLog | null>(null);
   const [showDetails, setShowDetails] = useState(false);
   const [toast, setToast] = useState<{
@@ -64,6 +66,7 @@ export default function AdminFlightLogs() {
     flightIdFilter,
     dateFromFilter,
     dateToFilter,
+    textFilter,
   ]);
 
   useEffect(() => {
@@ -75,6 +78,7 @@ export default function AdminFlightLogs() {
     flightIdFilter,
     dateFromFilter,
     dateToFilter,
+    textFilter,
   ]);
 
   const fetchLogs = async () => {
@@ -89,6 +93,7 @@ export default function AdminFlightLogs() {
         flightId: flightIdFilter || undefined,
         dateFrom: dateFromFilter || undefined,
         dateTo: dateToFilter || undefined,
+        text: textFilter || undefined,
       };
 
       let allLogs: FlightLog[] = [];
@@ -165,6 +170,7 @@ export default function AdminFlightLogs() {
     setFlightIdFilter('');
     setDateFromFilter('');
     setDateToFilter('');
+    setTextFilter('');
   };
 
   const formatActionType = (action: string) => {
@@ -339,6 +345,17 @@ export default function AdminFlightLogs() {
                     placeholder="Filter by flight ID..."
                     value={flightIdFilter}
                     onChange={handleFlightIdFilterChange}
+                    className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                  />
+                </div>
+                {/* Text Search Filter */}
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400" />
+                  <input
+                    type="text"
+                    placeholder="Search in flight data..."
+                    value={textFilter}
+                    onChange={(e) => setTextFilter(e.target.value)}
                     className="w-full pl-10 pr-4 py-2 bg-zinc-900 border-2 border-zinc-700 rounded-lg text-white placeholder-zinc-400 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   />
                 </div>

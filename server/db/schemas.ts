@@ -233,7 +233,7 @@ export async function createGlobalChatTable() {
     .addColumn('avatar', 'varchar(255)')
     .addColumn('station', 'varchar(50)')
     .addColumn('position', 'varchar(50)')
-    .addColumn('message', 'text', (col) => col.notNull())
+    .addColumn('message', 'jsonb', (col) => col.notNull()) // Encrypted: {iv, data, authTag}
     .addColumn('airport_mentions', 'jsonb')
     .addColumn('user_mentions', 'jsonb')
     .addColumn('sent_at', 'timestamp', (col) => col.defaultTo('now()'))

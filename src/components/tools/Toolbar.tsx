@@ -118,6 +118,8 @@ export default function Toolbar({
   const [atisOpen, setAtisOpen] = useState(false);
   const [activeUsers, setActiveUsers] = useState<SessionUser[]>([]);
   const [unreadMentions, setUnreadMentions] = useState<ChatMention[]>([]);
+  const [unreadSessionMentions, setUnreadSessionMentions] = useState<ChatMention[]>([]);
+  const [unreadGlobalMentions, setUnreadGlobalMentions] = useState<ChatMention[]>([]);
   const [connectionStatus, setConnectionStatus] = useState<
     'Connected' | 'Reconnecting' | 'Disconnected'
   >('Disconnected');
@@ -200,6 +202,14 @@ export default function Toolbar({
 
   const handleChatSidebarMention = (mention: ChatMention) => {
     setUnreadMentions((prev) => [...prev, mention]);
+
+    // Separate mentions by chat type
+    if (mention.sessionId === 'global-chat') {
+      setUnreadGlobalMentions((prev) => [...prev, mention]);
+    } else {
+      setUnreadSessionMentions((prev) => [...prev, mention]);
+    }
+
     if (user) {
       playSoundWithSettings('chatNotificationSound', user.settings, 0.7).catch(
         (error) => {
@@ -301,9 +311,12 @@ export default function Toolbar({
     }
   }, [activeRunway]);
 
+  // Clear all unread mentions when chat opens
   useEffect(() => {
     if (chatOpen) {
       setUnreadMentions([]);
+      setUnreadSessionMentions([]);
+      setUnreadGlobalMentions([]);
     }
   }, [chatOpen]);
 
@@ -595,6 +608,9 @@ export default function Toolbar({
           onMentionReceived={handleChatSidebarMention}
           station={icao ?? undefined}
           position={position as string}
+          isPFATC={isPFATC}
+          unreadSessionCount={unreadSessionMentions.length}
+          unreadGlobalCount={unreadGlobalMentions.length}
         />
 
         <Button

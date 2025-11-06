@@ -267,6 +267,7 @@ export default function Flights() {
       sessionId,
       accessId,
       user?.userId || '',
+      user?.username || '',
       (flight: Flight) => {
         setFlights((prev) =>
           prev.map((f) => (f.id === flight.id ? flight : f))

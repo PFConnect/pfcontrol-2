@@ -24,6 +24,42 @@ interface ExternalATISResponse {
     };
 }
 
+async function fetchWithRetry(url: string, options: RequestInit, maxRetries = 2): Promise<Response> {
+    let lastError: Error | null = null;
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+        try {
+            const response = await fetch(url, {
+                ...options,
+                signal: controller.signal,
+            });
+            clearTimeout(timeoutId);
+            return response;
+        } catch (fetchError) {
+            clearTimeout(timeoutId);
+
+            if (fetchError instanceof Error) {
+                lastError = fetchError;
+
+                if (attempt === maxRetries) {
+                    if (fetchError.name === 'AbortError') {
+                        throw new Error('ATIS generation timed out. The external service is taking too long to respond. Please try again.');
+                    }
+                    throw new Error(`Failed to connect to ATIS generator after ${maxRetries + 1} attempts: ${fetchError.message}`);
+                }
+
+                // Wait before retrying (exponential backoff: 1s, 2s)
+                await new Promise(resolve => setTimeout(resolve, 1000 * (attempt + 1)));
+            }
+        }
+    }
+
+    throw lastError || new Error('Unknown error during fetch');
+}
+
 // POST: /api/atis/generate
 router.post('/generate', requireAuth, async (req, res) => {
     try {
@@ -59,13 +95,16 @@ router.post('/generate', requireAuth, async (req, res) => {
             metar: metar || undefined,
         };
 
-        const response = await fetch(`https://atisgenerator.com/api/v1/airports/${icao}/atis`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-        });
+        const response = await fetchWithRetry(
+            `https://atisgenerator.com/api/v1/airports/${icao}/atis`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            }
+        );
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => 'Unknown error');

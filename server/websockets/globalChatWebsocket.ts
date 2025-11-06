@@ -1,11 +1,14 @@
 import { Server as SocketServer } from 'socket.io';
 import { chatsDb, mainDb } from '../db/connection.js';
+import { reportGlobalChatMessage } from '../db/chats.js';
 import { sanitizeMessage } from '../utils/sanitization.js';
 import { containsHateSpeech, getHateSpeechReason } from '../utils/hateSpeechFilter.js';
+import { encrypt, decrypt } from '../utils/encryption.js';
 import { sql } from 'kysely';
 import type { Server } from 'http';
 
 const activeGlobalChatUsers = new Set<string>();
+const connectedGlobalChatUsers = new Map<string, { id: string; username: string; avatar: string | null; station: string | null; position: string | null }>();
 let sessionUsersIO: SessionUsersWebsocketIO | null = null;
 
 interface SessionUsersWebsocketIO {
@@ -90,20 +93,53 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
         socket.join('global-chat');
         socket.join(`user-${userId}`); // Join user-specific room for mentions
 
+        // Track connected users (all users in PFATC sessions)
+        // Only add users who have a station selected
+        if (station && !connectedGlobalChatUsers.has(userId)) {
+            connectedGlobalChatUsers.set(userId, {
+                id: userId,
+                username: '', // Will be updated on first message
+                avatar: null,
+                station: station,
+                position: position || null,
+            });
+            io.to('global-chat').emit('connectedGlobalChatUsers', Array.from(connectedGlobalChatUsers.values()));
+        }
+
         socket.on('globalChatMessage', async ({ user, message }) => {
             if (!message || message.length > 500) return;
 
             const sanitizedMessage = sanitizeMessage(message, 500);
             if (!sanitizedMessage) return;
 
-            // Parse @airport and @user mentions
+            // Update connected user data with full info from message
+            // Only include users who have a station selected
+            if (socket.data.station) {
+                connectedGlobalChatUsers.set(user.userId, {
+                    id: user.userId,
+                    username: user.username || '',
+                    avatar: user.avatar || null,
+                    station: socket.data.station,
+                    position: socket.data.position || null,
+                });
+                io.to('global-chat').emit('connectedGlobalChatUsers', Array.from(connectedGlobalChatUsers.values()));
+            }
+
+            // Parse @airport and @user mentions (before encryption)
             const parsedAirportMentions = parseAirportMentions(sanitizedMessage);
             const parsedUserMentions = parseUserMentions(sanitizedMessage);
 
-            // Check for hate speech
+            // Check for hate speech (before encryption)
             const hasHateSpeech = containsHateSpeech(sanitizedMessage);
             const automodded = hasHateSpeech;
             const automodReason = hasHateSpeech ? getHateSpeechReason(sanitizedMessage) : undefined;
+
+            // Encrypt the message
+            const encryptedMsg = encrypt(sanitizedMessage);
+            if (!encryptedMsg) {
+                socket.emit('chatError', { message: 'Failed to encrypt message' });
+                return;
+            }
 
             try {
                 // Insert message into database
@@ -116,9 +152,10 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
                         avatar: user.avatar ?? undefined,
                         station: socket.data.station ?? undefined,
                         position: socket.data.position ?? undefined,
-                        message: sanitizedMessage,
-                        airport_mentions: JSON.stringify(parsedAirportMentions),
-                        user_mentions: JSON.stringify(parsedUserMentions),
+                        message: JSON.stringify(encryptedMsg), // Store encrypted message as JSON
+                        airport_mentions: parsedAirportMentions.length > 0 ? JSON.stringify(parsedAirportMentions) : undefined,
+                        user_mentions: parsedUserMentions.length > 0 ? JSON.stringify(parsedUserMentions) : undefined,
+                        sent_at: new Date(), // Explicitly set timestamp to fix timezone issues
                     })
                     .returning(['id', 'user_id', 'username', 'avatar', 'station', 'position', 'message', 'airport_mentions', 'user_mentions', 'sent_at'])
                     .executeTakeFirst();
@@ -128,25 +165,49 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
                     return;
                 }
 
+                // Decrypt the message
+                let decryptedMessage = '';
+                try {
+                    if (result.message) {
+                        const encryptedData = typeof result.message === 'string'
+                            ? JSON.parse(result.message)
+                            : result.message;
+                        decryptedMessage = decrypt(encryptedData) || '';
+                    }
+                } catch (e) {
+                    console.error('[Global Chat] Error decrypting message:', e);
+                    decryptedMessage = '';
+                }
+
                 let airportMentions = null;
                 let userMentions = null;
 
-                try {
-                    if (result.airport_mentions && typeof result.airport_mentions === 'string' && result.airport_mentions.trim()) {
-                        airportMentions = JSON.parse(result.airport_mentions);
+                // Handle airport mentions (could be array if jsonb column, or string if text column)
+                if (result.airport_mentions) {
+                    if (Array.isArray(result.airport_mentions)) {
+                        airportMentions = result.airport_mentions;
+                    } else if (typeof result.airport_mentions === 'string' && result.airport_mentions.trim()) {
+                        try {
+                            airportMentions = JSON.parse(result.airport_mentions);
+                        } catch (e) {
+                            console.error('[Global Chat] Error parsing airport mentions:', e);
+                            airportMentions = null;
+                        }
                     }
-                } catch (e) {
-                    console.error('[Global Chat] Error parsing airport mentions:', e);
-                    airportMentions = null;
                 }
 
-                try {
-                    if (result.user_mentions && typeof result.user_mentions === 'string' && result.user_mentions.trim()) {
-                        userMentions = JSON.parse(result.user_mentions);
+                // Handle user mentions (could be array if jsonb column, or string if text column)
+                if (result.user_mentions) {
+                    if (Array.isArray(result.user_mentions)) {
+                        userMentions = result.user_mentions;
+                    } else if (typeof result.user_mentions === 'string' && result.user_mentions.trim()) {
+                        try {
+                            userMentions = JSON.parse(result.user_mentions);
+                        } catch (e) {
+                            console.error('[Global Chat] Error parsing user mentions:', e);
+                            userMentions = null;
+                        }
                     }
-                } catch (e) {
-                    console.error('[Global Chat] Error parsing user mentions:', e);
-                    userMentions = null;
                 }
 
                 const chatMsg: GlobalChatMessage = {
@@ -170,7 +231,7 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
                     avatar: chatMsg.avatar,
                     station: chatMsg.station,
                     position: chatMsg.position,
-                    message: chatMsg.message,
+                    message: decryptedMessage, // Send decrypted message to clients
                     airportMentions: chatMsg.airport_mentions,
                     userMentions: chatMsg.user_mentions,
                     sent_at: chatMsg.sent_at,
@@ -180,12 +241,23 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
                 // Broadcast message to all users in global chat
                 io.to('global-chat').emit('globalChatMessage', formattedMsg);
 
-                // If message was automodded, notify sender
+                // If message was automodded, notify sender and report to chat_report
                 if (automodded) {
                     socket.emit('messageAutomodded', {
                         messageId: chatMsg.id,
                         reason: automodReason || 'Content violation detected'
                     });
+
+                    // Report the message to automod chat report
+                    try {
+                        await reportGlobalChatMessage(
+                            chatMsg.id,
+                            'automod', // Special user ID for automod
+                            automodReason || 'Content violation detected'
+                        );
+                    } catch (error) {
+                        console.error('[Global Chat] Error reporting automodded message:', error);
+                    }
                 }
 
                 // Send @user mentions
@@ -274,7 +346,9 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
             const userId = socket.data.userId;
             if (userId) {
                 activeGlobalChatUsers.delete(userId);
+                connectedGlobalChatUsers.delete(userId);
                 io.to('global-chat').emit('activeGlobalChatUsers', Array.from(activeGlobalChatUsers));
+                io.to('global-chat').emit('connectedGlobalChatUsers', Array.from(connectedGlobalChatUsers.values()));
             }
         });
     });

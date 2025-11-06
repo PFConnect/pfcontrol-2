@@ -25,6 +25,14 @@ export interface GlobalChatMention {
     airport?: string;
 }
 
+export interface ConnectedGlobalChatUser {
+    id: string;
+    username: string;
+    avatar: string | null;
+    station: string | null;
+    position: string | null;
+}
+
 export function createGlobalChatSocket(
     userId: string,
     station: string | null,
@@ -34,7 +42,9 @@ export function createGlobalChatSocket(
     onDeleteError?: (data: { messageId: number; error: string }) => void,
     onActiveGlobalChatUsers?: (users: string[]) => void,
     onMessageAutomodded?: (data: { messageId: number; reason: string }) => void,
-    onMention?: (mention: GlobalChatMention) => void
+    onMention?: (mention: GlobalChatMention) => void,
+    onAirportMention?: (mention: GlobalChatMention) => void,
+    onConnectedGlobalChatUsers?: (users: ConnectedGlobalChatUser[]) => void
 ) {
     const socket = io(SOCKET_URL, {
         withCredentials: true,
@@ -68,6 +78,14 @@ export function createGlobalChatSocket(
 
     if (onMention) {
         socket.on('globalChatMention', onMention);
+    }
+
+    if (onAirportMention) {
+        socket.on('airportMention', onAirportMention);
+    }
+
+    if (onConnectedGlobalChatUsers) {
+        socket.on('connectedGlobalChatUsers', onConnectedGlobalChatUsers);
     }
 
     return {
