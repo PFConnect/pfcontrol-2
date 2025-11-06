@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import { useMediaQuery } from 'react-responsive';
 import {
   EyeOff,
@@ -98,6 +98,105 @@ export default function DepartureTable({
     Record<string | number, string>
   >({});
   const debounceTimeouts = useRef<Record<string | number, NodeJS.Timeout>>({});
+
+  const [draggedFlightId, setDraggedFlightId] = useState<
+    string | number | null
+  >(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [customFlightOrder, setCustomFlightOrder] = useState<
+    (string | number)[]
+  >([]);
+
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('flight-strip-order');
+    if (savedOrder) {
+      try {
+        setCustomFlightOrder(JSON.parse(savedOrder));
+      } catch (error) {
+        console.error('Failed to parse saved flight order:', error);
+      }
+    }
+  }, []);
+
+  const orderedFlights = useMemo(() => {
+    if (customFlightOrder.length === 0) {
+      return flights;
+    }
+
+    const orderedList: Flight[] = [];
+    const remainingFlights = [...flights];
+
+    customFlightOrder.forEach((flightId) => {
+      const flightIndex = remainingFlights.findIndex((f) => f.id === flightId);
+      if (flightIndex !== -1) {
+        orderedList.push(remainingFlights[flightIndex]);
+        remainingFlights.splice(flightIndex, 1);
+      }
+    });
+
+    orderedList.push(...remainingFlights);
+
+    return orderedList;
+  }, [flights, customFlightOrder]);
+
+  const saveFlightOrder = useCallback((flightIds: (string | number)[]) => {
+    localStorage.setItem('flight-strip-order', JSON.stringify(flightIds));
+    setCustomFlightOrder(flightIds);
+  }, []);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, flightId: string | number) => {
+      setDraggedFlightId(flightId);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(flightId));
+    },
+    []
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, dropIndex: number) => {
+      e.preventDefault();
+
+      if (draggedFlightId === null) return;
+
+      const currentFlights = orderedFlights;
+      const draggedIndex = currentFlights.findIndex(
+        (f) => f.id === draggedFlightId
+      );
+
+      if (draggedIndex === -1 || draggedIndex === dropIndex) {
+        setDraggedFlightId(null);
+        setDragOverIndex(null);
+        return;
+      }
+
+      const newFlights = [...currentFlights];
+      const [draggedFlight] = newFlights.splice(draggedIndex, 1);
+      newFlights.splice(dropIndex, 0, draggedFlight);
+
+      const newOrder = newFlights.map((f) => f.id);
+      saveFlightOrder(newOrder);
+
+      setDraggedFlightId(null);
+      setDragOverIndex(null);
+    },
+    [draggedFlightId, orderedFlights, saveFlightOrder]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedFlightId(null);
+    setDragOverIndex(null);
+  }, []);
 
   const debouncedHandleRemarkChange = useCallback(
     (flightId: string | number, remark: string) => {
@@ -250,9 +349,9 @@ export default function DepartureTable({
   };
 
   const visibleFlights = showHidden
-    ? flights
-    : flights.filter((flight) => !flight.hidden);
-  const hasHiddenFlights = flights.some((flight) => flight.hidden);
+    ? orderedFlights
+    : orderedFlights.filter((flight) => !flight.hidden);
+  const hasHiddenFlights = orderedFlights.some((flight) => flight.hidden);
 
   const handlePDCOpen = (flight: Flight) => {
     setSelectedFlight(flight);
@@ -446,7 +545,7 @@ export default function DepartureTable({
               </tr>
             </thead>
             <tbody>
-              {visibleFlights.map((flight) => {
+              {visibleFlights.map((flight, index) => {
                 const callsignEditingState = getFieldEditingState(
                   flight.id,
                   'callsign'
@@ -466,11 +565,22 @@ export default function DepartureTable({
                 const isFlashing =
                   flashingPDCIds?.has(String(flight.id)) &&
                   !isClearanceChecked(flight.clearance);
+                const isDragging = draggedFlightId === flight.id;
+                const isDragOver = dragOverIndex === index;
+
                 return (
                   <tr
                     key={flight.id}
-                    className={`flight-row ${
+                    draggable={true}
+                    onDragStart={(e) => handleDragStart(e, flight.id)}
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`flight-row cursor-move select-none ${
                       flight.hidden ? 'opacity-60 text-gray-400' : ''
+                    } ${isDragging ? 'opacity-50' : ''} ${
+                      isDragOver ? 'border-t-2 border-blue-400' : ''
                     }`}
                     style={backgroundStyle}
                   >
