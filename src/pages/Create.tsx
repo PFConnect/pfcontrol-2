@@ -101,13 +101,22 @@ export default function Create() {
 
       setSessionCount((prev) => prev + 1);
 
-      const atisResponse = await generateATIS({
-        sessionId: newSession.sessionId,
-        ident: 'A',
-        icao: selectedAirport,
-        landing_runways: [selectedRunway],
-        departing_runways: [selectedRunway],
-      });
+      let atisResponse = null;
+      try {
+        atisResponse = await generateATIS({
+          sessionId: newSession.sessionId,
+          ident: 'A',
+          icao: selectedAirport,
+          landing_runways: [selectedRunway],
+          departing_runways: [selectedRunway],
+        });
+      } catch (atisError) {
+        console.warn(
+          'Failed to generate ATIS during session creation:',
+          atisError
+        );
+        // Continue with session creation even if ATIS generation fails
+      }
 
       if (isPFATCNetwork && atisResponse?.atisText) {
         setCreatedSession({

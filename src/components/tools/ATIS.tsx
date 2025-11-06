@@ -3,8 +3,8 @@ import { X, Loader, Info, RefreshCw, Copy } from 'lucide-react';
 import { useData } from '../../hooks/data/useData';
 import { fetchMetar } from '../../utils/fetch/metar';
 import { generateATIS } from '../../utils/fetch/atis';
-import type { Socket } from 'socket.io-client';
 import { fetchSession } from '../../utils/fetch/sessions';
+import type { Socket } from 'socket.io-client';
 import Checkbox from '../common/Checkbox';
 import TextInput from '../common/TextInput';
 import Button from '../common/Button';
@@ -225,11 +225,12 @@ export default function ATIS({
             setMetar(data);
           } else {
             console.warn('Unexpected METAR data structure:', data);
-            setMetar('METAR unavailable');
+            setMetar('');
           }
         })
-        .catch(() => {
-          setMetar('METAR unavailable');
+        .catch((error) => {
+          console.warn('Failed to fetch METAR data:', error);
+          setMetar('');
         });
     }
   }, [icao, open]);
@@ -380,10 +381,11 @@ export default function ATIS({
         setMetar(data);
       } else {
         console.warn('Unexpected METAR data structure:', data);
-        setMetar('METAR unavailable');
+        setMetar('');
       }
-    } catch {
-      setMetar('METAR unavailable');
+    } catch (error) {
+      console.warn('Failed to refresh METAR data:', error);
+      setMetar('');
     } finally {
       const elapsed = Date.now() - start;
       const minDelay = 500;
