@@ -69,12 +69,12 @@ export default function RouteModal({
         style={{
           left: `${position.x}px`,
           top: `${position.y}px`,
-          cursor: isDragging ? 'grabbing' : 'default',
+          cursor: 'default'
         }}
       >
         {/* Header */}
         <div
-          className="flex items-center justify-between p-4 border-b border-zinc-700 bg-zinc-800 rounded-t-lg cursor-grab"
+          className="flex items-center justify-between p-4 border-b border-zinc-700 bg-zinc-800 rounded-t-lg cursor-pointer"
           onMouseDown={handleMouseDown}
         >
           <div className="flex items-center gap-2">

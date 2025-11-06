@@ -227,7 +227,11 @@ export const isMessageMentioned = (
 };
 
 export const getMessageTimeString = (timestamp: string | Date): string => {
-  return new Date(timestamp).toLocaleTimeString([], {
+  const date = typeof timestamp === 'string'
+    ? new Date(timestamp.endsWith('Z') ? timestamp : timestamp + 'Z')
+    : timestamp;
+
+  return date.toLocaleTimeString([], {
     hour: '2-digit',
     minute: '2-digit',
   });

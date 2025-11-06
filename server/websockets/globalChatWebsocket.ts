@@ -59,7 +59,7 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
             const thirtyMinutesAgo = new Date(Date.now() - 30 * 60 * 1000);
             await chatsDb
                 .updateTable('global_chat')
-                .set({ deleted_at: new Date() })
+                .set({ deleted_at: sql`NOW()` })
                 .where('sent_at', '<', thirtyMinutesAgo)
                 .where('deleted_at', 'is', null)
                 .execute();
@@ -178,7 +178,7 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
                         message: JSON.stringify(encryptedMsg),
                         airport_mentions: parsedAirportMentions.length > 0 ? JSON.stringify(parsedAirportMentions) : undefined,
                         user_mentions: parsedUserMentions.length > 0 ? JSON.stringify(parsedUserMentions) : undefined,
-                        sent_at: new Date(),
+                        sent_at: sql`NOW()`,
                     })
                     .returning(['id', 'user_id', 'username', 'avatar', 'station', 'position', 'message', 'airport_mentions', 'user_mentions', 'sent_at'])
                     .executeTakeFirst();
@@ -324,7 +324,7 @@ export function setupGlobalChatWebsocket(httpServer: Server, sessionUsersWebsock
             try {
                 const result = await chatsDb
                     .updateTable('global_chat')
-                    .set({ deleted_at: new Date() })
+                    .set({ deleted_at: sql`NOW()` })
                     .where('id', '=', messageId)
                     .where('user_id', '=', userId)
                     .where('deleted_at', 'is', null)

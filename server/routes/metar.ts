@@ -10,7 +10,12 @@ async function fetchWithRetry(url: string, maxRetries = 2, timeoutMs = 10000): P
         const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
 
         try {
-            const response = await fetch(url, { signal: controller.signal });
+            const response = await fetch(url, {
+                signal: controller.signal,
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+                }
+            });
             clearTimeout(timeoutId);
             return response;
         } catch (fetchError) {
@@ -52,7 +57,7 @@ router.get('/:icao', async (req, res) => {
 
         const text = await response.text();
         if (!text || text.trim() === '') {
-            console.warn(`Empty response for ${icao}`);
+            console.warn(`Empty response for ${icao} - Status: ${response.status}, Headers:`, Object.fromEntries(response.headers.entries()));
             return res.status(404).json({ error: 'No METAR data found' });
         }
 
