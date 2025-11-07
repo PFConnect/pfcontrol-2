@@ -15,10 +15,21 @@ import { SiGithub } from 'react-icons/si';
 import { useAuth } from '../hooks/auth/useAuth';
 import { useState, useEffect } from 'react';
 
+interface VersionData {
+  version: string;
+  updated_at: string | null;
+  updated_by: string;
+}
+
 export default function Footer() {
   const { user } = useAuth();
   const year = new Date().getFullYear();
-  const [version, setVersion] = useState('2.0.0.3');
+  const [versionData, setVersionData] = useState<VersionData>({
+    version: '2.0.0.3',
+    updated_at: null,
+    updated_by: 'system',
+  });
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const fetchVersion = async () => {
@@ -27,11 +38,13 @@ export default function Footer() {
           `${import.meta.env.VITE_SERVER_URL || ''}/api/version`
         );
         if (response.ok) {
-          const data = await response.json();
-          setVersion(data.version || '2.0.0.3');
+          const data: VersionData = await response.json();
+          setVersionData(data);
         }
       } catch (error) {
         console.error('Failed to fetch version:', error);
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -241,7 +254,7 @@ export default function Footer() {
             </p>
           </div>
           <div className="flex items-center space-x-2 text-gray-500 text-sm">
-            <span>Version {version}</span>
+            <span>Version {isLoading ? '...' : versionData.version}</span>
           </div>
         </div>
       </div>
