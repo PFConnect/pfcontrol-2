@@ -222,3 +222,29 @@ export async function createChatsTable(sessionId: string) {
     .addColumn('sent_at', 'timestamp', (col) => col.defaultTo('now()'))
     .execute();
 }
+
+export async function createGlobalChatTable() {
+  await chatsDb.schema
+    .createTable('global_chat')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_id', 'varchar(255)', (col) => col.notNull())
+    .addColumn('username', 'varchar(255)')
+    .addColumn('avatar', 'varchar(255)')
+    .addColumn('station', 'varchar(50)')
+    .addColumn('position', 'varchar(50)')
+    .addColumn('message', 'jsonb', (col) => col.notNull()) // Encrypted: {iv, data, authTag}
+    .addColumn('airport_mentions', 'jsonb')
+    .addColumn('user_mentions', 'jsonb')
+    .addColumn('sent_at', 'timestamp', (col) => col.defaultTo('now()'))
+    .addColumn('deleted_at', 'timestamp')
+    .execute();
+
+  // Create index for efficient deletion of old messages
+  await chatsDb.schema
+    .createIndex('global_chat_sent_at_idx')
+    .ifNotExists()
+    .on('global_chat')
+    .column('sent_at')
+    .execute();
+}

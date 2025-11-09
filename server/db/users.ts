@@ -197,6 +197,7 @@ export async function createOrUpdateUser(userData: {
       clearance: true,
       status: true,
       remark: true,
+      route: true,
       pdc: true,
       hide: true,
       delete: true
@@ -216,6 +217,7 @@ export async function createOrUpdateUser(userData: {
       squawk: true,
       status: true,
       remark: true,
+      route: true,
       hide: true
     },
     acars: {

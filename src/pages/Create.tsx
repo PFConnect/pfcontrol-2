@@ -4,6 +4,10 @@ import { AlertCircle, Info, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/auth/useAuth';
 import { createSession, fetchMySessions } from '../utils/fetch/sessions';
 import { generateATIS } from '../utils/fetch/atis';
+import { updateTutorialStatus } from '../utils/fetch/auth';
+import { steps } from '../components/tutorial/TutorialStepsCreate';
+import { useData } from '../hooks/data/useData';
+import Joyride, { type CallBackProps, STATUS } from 'react-joyride';
 import Navbar from '../components/Navbar';
 import AirportDropdown from '../components/dropdowns/AirportDropdown';
 import RunwayDropdown from '../components/dropdowns/RunwayDropdown';
@@ -11,16 +15,14 @@ import Checkbox from '../components/common/Checkbox';
 import Button from '../components/common/Button';
 import WindDisplay from '../components/tools/WindDisplay';
 import AtisReminderModal from '../components/modals/AtisReminderModal';
-import Joyride, { type CallBackProps, STATUS } from 'react-joyride';
 import CustomTooltip from '../components/tutorial/CustomTooltip';
-import { updateTutorialStatus } from '../utils/fetch/auth';
-import { steps } from '../components/tutorial/TutorialStepsCreate';
-import { useData } from '../hooks/data/useData';
 
 export default function Create() {
   const navigate = useNavigate();
   const [selectedAirport, setSelectedAirport] = useState<string>('');
   const [selectedRunway, setSelectedRunway] = useState<string>('');
+  const [selectedArrivalRunway, setSelectedArrivalRunway] =
+    useState<string>('');
   const [isPFATCNetwork, setIsPFATCNetwork] = useState<boolean>(false);
   const [isCreating, setIsCreating] = useState<boolean>(false);
   const [error, setError] = useState<string>('');
@@ -75,7 +77,7 @@ export default function Create() {
 
   const handleCreateSession = async () => {
     if (!selectedAirport || !selectedRunway) {
-      setError('Please select both airport and runway');
+      setError('Please select both airport and departure runway');
       return;
     }
 
@@ -101,13 +103,27 @@ export default function Create() {
 
       setSessionCount((prev) => prev + 1);
 
-      const atisResponse = await generateATIS({
-        sessionId: newSession.sessionId,
-        ident: 'A',
-        icao: selectedAirport,
-        landing_runways: [selectedRunway],
-        departing_runways: [selectedRunway],
-      });
+      let atisResponse = null;
+      try {
+        const landingRunways = selectedArrivalRunway
+          ? [selectedArrivalRunway]
+          : [selectedRunway];
+        const departingRunways = [selectedRunway];
+
+        atisResponse = await generateATIS({
+          sessionId: newSession.sessionId,
+          ident: 'A',
+          icao: selectedAirport,
+          landing_runways: landingRunways,
+          departing_runways: departingRunways,
+        });
+      } catch (atisError) {
+        console.warn(
+          'Failed to generate ATIS during session creation:',
+          atisError
+        );
+        // Continue with session creation even if ATIS generation fails
+      }
 
       if (isPFATCNetwork && atisResponse?.atisText) {
         setCreatedSession({
@@ -217,6 +233,7 @@ export default function Create() {
                 onChange={(airport) => {
                   setSelectedAirport(airport);
                   setSelectedRunway('');
+                  setSelectedArrivalRunway('');
                   setError('');
                 }}
                 disabled={isCreating}
@@ -235,6 +252,23 @@ export default function Create() {
                   setError('');
                 }}
                 disabled={isCreating || !selectedAirport}
+              />
+            </div>
+
+            <div id="arrival-runway-dropdown" className="space-y-2">
+              <label className="block text-sm font-medium text-gray-300">
+                Select Arrival Runway{' '}
+                <span className="text-gray-500">(Optional)</span>
+              </label>
+              <RunwayDropdown
+                airportIcao={selectedAirport}
+                value={selectedArrivalRunway}
+                onChange={(runway) => {
+                  setSelectedArrivalRunway(runway);
+                  setError('');
+                }}
+                disabled={isCreating || !selectedAirport}
+                placeholder="Same as departure"
               />
             </div>
 

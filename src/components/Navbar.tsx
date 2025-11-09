@@ -46,8 +46,11 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
 
-  const notificationMode = isMobile ? 'list' : (settings?.notificationViewMode || 'list');
-  const hasLegacyBanner = notificationMode === 'legacy' && filteredNotifications.length > 0;
+  const notificationMode = isMobile
+    ? 'list'
+    : settings?.notificationViewMode || 'list';
+  const hasLegacyBanner =
+    notificationMode === 'legacy' && filteredNotifications.length > 0;
 
   useEffect(() => {
     const handleScroll = () => {
@@ -60,7 +63,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
     window.addEventListener('scroll', handleScroll);
     handleScroll();
     return () => window.removeEventListener('scroll', handleScroll);
-  }, []);
+  },[]);
 
   useEffect(() => {
     const handleResize = () => {
@@ -115,7 +118,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
   const navTopPosition = hasLegacyBanner && atTop ? 'top-[42px]' : 'top-0';
 
   const navClass = [
-    `fixed ${navTopPosition} w-full z-50 transition-all duration-150 ease-in-out`,
+    `fixed ${navTopPosition} w-full z-[9999] transition-all duration-150 ease-in-out`,
     atTop
       ? 'bg-transparent border-none'
       : 'bg-black/30 backdrop-blur-md border-white/10',
@@ -126,11 +129,33 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
 
   const handleCopy = async (text: string) => {
     try {
+      // Try modern clipboard API first
       await navigator.clipboard.writeText(text);
       setCopied(text);
       setTimeout(() => setCopied(null), 2000);
-    } catch {
-      console.error('Failed to copy text to clipboard');
+    } catch (error) {
+      // Fallback to older method
+      try {
+        const textArea = document.createElement('textarea');
+        textArea.value = text;
+        textArea.style.position = 'fixed';
+        textArea.style.left = '-999999px';
+        textArea.style.top = '-999999px';
+        document.body.appendChild(textArea);
+        textArea.focus();
+        textArea.select();
+        const successful = document.execCommand('copy');
+        document.body.removeChild(textArea);
+
+        if (successful) {
+          setCopied(text);
+          setTimeout(() => setCopied(null), 2000);
+        } else {
+          console.error('Fallback copy method failed');
+        }
+      } catch (fallbackError) {
+        console.error('Failed to copy text to clipboard', fallbackError);
+      }
     }
   };
 
@@ -189,91 +214,93 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
   return (
     <>
       {/* Mobile Notification Banner (Bottom - List Mode) */}
-      {filteredNotifications.length > 0 && isMobile && notificationMode === 'list' && (
-        <div className="fixed bottom-4 left-4 right-4 z-40">
-          <div className="flex items-start space-x-2">
-            {/* Control Circle */}
-            {filteredNotifications.length > 1 && (
-              <button
-                onClick={() => setShowAllNotifications(!showAllNotifications)}
-                className="flex-shrink-0 w-8 h-8 rounded-full backdrop-blur-lg border flex items-center justify-center"
-                style={{
-                  backgroundColor: currentNotification.custom_color
-                    ? `${currentNotification.custom_color}B3`
-                    : currentNotification.type === 'info'
-                      ? 'rgba(59, 130, 246, 0.7)'
-                      : currentNotification.type === 'warning'
-                        ? 'rgba(245, 158, 11, 0.7)'
-                        : currentNotification.type === 'success'
-                          ? 'rgba(16, 185, 129, 0.7)'
-                          : currentNotification.type === 'error'
-                            ? 'rgba(239, 68, 68, 0.7)'
-                            : 'rgba(107, 114, 128, 0.7)',
-                  borderColor: currentNotification.custom_color
-                    ? `${currentNotification.custom_color}80`
-                    : currentNotification.type === 'info'
-                      ? 'rgba(96, 165, 250, 0.5)'
-                      : currentNotification.type === 'warning'
-                        ? 'rgba(251, 191, 36, 0.5)'
-                        : currentNotification.type === 'success'
-                          ? 'rgba(52, 211, 153, 0.5)'
-                          : currentNotification.type === 'error'
-                            ? 'rgba(248, 113, 113, 0.5)'
-                            : 'rgba(156, 163, 175, 0.5)',
-                }}
-              >
-                {showAllNotifications ? (
-                  <ChevronUp className="h-4 w-4 text-white" />
-                ) : (
-                  <ChevronDown className="h-4 w-4 text-white" />
-                )}
-              </button>
-            )}
+      {filteredNotifications.length > 0 &&
+        isMobile &&
+        notificationMode === 'list' && (
+          <div className="fixed bottom-4 left-4 right-4 z-40">
+            <div className="flex items-start space-x-2">
+              {/* Control Circle */}
+              {filteredNotifications.length > 1 && (
+                <button
+                  onClick={() => setShowAllNotifications(!showAllNotifications)}
+                  className="flex-shrink-0 w-8 h-8 rounded-full backdrop-blur-lg border flex items-center justify-center"
+                  style={{
+                    backgroundColor: currentNotification.custom_color
+                      ? `${currentNotification.custom_color}B3`
+                      : currentNotification.type === 'info'
+                        ? 'rgba(59, 130, 246, 0.7)'
+                        : currentNotification.type === 'warning'
+                          ? 'rgba(245, 158, 11, 0.7)'
+                          : currentNotification.type === 'success'
+                            ? 'rgba(16, 185, 129, 0.7)'
+                            : currentNotification.type === 'error'
+                              ? 'rgba(239, 68, 68, 0.7)'
+                              : 'rgba(107, 114, 128, 0.7)',
+                    borderColor: currentNotification.custom_color
+                      ? `${currentNotification.custom_color}80`
+                      : currentNotification.type === 'info'
+                        ? 'rgba(96, 165, 250, 0.5)'
+                        : currentNotification.type === 'warning'
+                          ? 'rgba(251, 191, 36, 0.5)'
+                          : currentNotification.type === 'success'
+                            ? 'rgba(52, 211, 153, 0.5)'
+                            : currentNotification.type === 'error'
+                              ? 'rgba(248, 113, 113, 0.5)'
+                              : 'rgba(156, 163, 175, 0.5)',
+                  }}
+                >
+                  {showAllNotifications ? (
+                    <ChevronUp className="h-4 w-4 text-white" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4 text-white" />
+                  )}
+                </button>
+              )}
 
-            {/* Notifications */}
-            <div className="flex-1">
-              <div
-                className="transition-all duration-300 ease-in-out overflow-hidden"
-                style={{
-                  maxHeight: showAllNotifications ? '300px' : '60px',
-                }}
-              >
-                <div className={showAllNotifications ? 'space-y-2' : ''}>
-                  {filteredNotifications.map((notification, index) => (
-                    <div
-                      key={index}
-                      className={`backdrop-blur-lg border rounded-2xl px-3 py-2 ${
-                        showAllNotifications ||
-                        index === currentNotificationIndex
-                          ? ''
-                          : 'hidden'
-                      }`}
-                      style={getNotificationStyle(notification)}
-                    >
-                      <div className="flex items-start space-x-2">
-                        <div className="flex-shrink-0 mt-0.5">
-                          {notification.custom_icon ||
-                            getNotificationIcon(notification.type)}
+              {/* Notifications */}
+              <div className="flex-1">
+                <div
+                  className="transition-all duration-300 ease-in-out overflow-hidden"
+                  style={{
+                    maxHeight: showAllNotifications ? '300px' : 'auto',
+                  }}
+                >
+                  <div className={showAllNotifications ? 'space-y-2' : ''}>
+                    {filteredNotifications.map((notification, index) => (
+                      <div
+                        key={index}
+                        className={`backdrop-blur-lg border rounded-2xl px-3 py-2 ${
+                          showAllNotifications ||
+                          index === currentNotificationIndex
+                            ? ''
+                            : 'hidden'
+                        }`}
+                        style={getNotificationStyle(notification)}
+                      >
+                        <div className="flex items-start space-x-2">
+                          <div className="flex-shrink-0 mt-0.5">
+                            {notification.custom_icon ||
+                              getNotificationIcon(notification.type)}
+                          </div>
+                          <p className="text-sm font-medium text-white leading-tight flex-1 overflow-wrap-anywhere break-words">
+                            {linkify(notification.text)}
+                          </p>
+                          <button
+                            onClick={() => hideNotification(notification.id)}
+                            className="flex-shrink-0 ml-2 text-white hover:text-gray-300 transition-colors"
+                            aria-label="Hide notification"
+                          >
+                            <X className="h-4 w-4" />
+                          </button>
                         </div>
-                        <p className="text-sm font-medium text-white leading-tight flex-1">
-                          {linkify(notification.text)}
-                        </p>
-                        <button
-                          onClick={() => hideNotification(notification.id)}
-                          className="flex-shrink-0 ml-2 text-white hover:text-gray-300 transition-colors"
-                          aria-label="Hide notification"
-                        >
-                          <X className="h-4 w-4" />
-                        </button>
                       </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      )}
+        )}
 
       <nav className={navClass}>
         <div className="max-w-7xl mx-auto px-6 lg:px-8">
@@ -334,7 +361,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
                       )}
                     </div>
                     {copied === submitLink && (
-                      <div className="absolute inset-0 bg-emerald-400/20 animate-pulse rounded-lg"></div>
+                      <div className="absolute inset-0 bg-emerald-400/20 animate-pulse rounded-lg pointer-events-none"></div>
                     )}
                   </Button>
                 </div>
@@ -376,7 +403,7 @@ export default function Navbar({ sessionId, accessId }: NavbarProps) {
                       )}
                     </div>
                     {copied === viewLink && (
-                      <div className="absolute inset-0 bg-emerald-400/20 animate-pulse rounded-lg"></div>
+                      <div className="absolute inset-0 bg-emerald-400/20 animate-pulse rounded-lg pointer-events-none"></div>
                     )}
                   </Button>
                 </div>

@@ -58,6 +58,9 @@ interface ToolbarProps {
   onPositionChange: (position: Position) => void;
   onContactAcarsClick?: () => void;
   onChartClick?: () => void;
+  showChartsDrawer?: boolean;
+  showContactAcarsModal?: boolean;
+  onCloseAllSidebars?: () => void;
 }
 
 const getIconComponent = (iconName: string) => {
@@ -112,12 +115,21 @@ export default function Toolbar({
   onPositionChange,
   onContactAcarsClick,
   onChartClick,
+  showChartsDrawer = false,
+  showContactAcarsModal = false,
+  onCloseAllSidebars,
 }: ToolbarProps) {
   const [runway, setRunway] = useState(activeRunway || '');
   const [chatOpen, setChatOpen] = useState(false);
   const [atisOpen, setAtisOpen] = useState(false);
   const [activeUsers, setActiveUsers] = useState<SessionUser[]>([]);
   const [unreadMentions, setUnreadMentions] = useState<ChatMention[]>([]);
+  const [unreadSessionMentions, setUnreadSessionMentions] = useState<
+    ChatMention[]
+  >([]);
+  const [unreadGlobalMentions, setUnreadGlobalMentions] = useState<
+    ChatMention[]
+  >([]);
   const [connectionStatus, setConnectionStatus] = useState<
     'Connected' | 'Reconnecting' | 'Disconnected'
   >('Disconnected');
@@ -200,6 +212,14 @@ export default function Toolbar({
 
   const handleChatSidebarMention = (mention: ChatMention) => {
     setUnreadMentions((prev) => [...prev, mention]);
+
+    // Separate mentions by chat type
+    if (mention.sessionId === 'global-chat') {
+      setUnreadGlobalMentions((prev) => [...prev, mention]);
+    } else {
+      setUnreadSessionMentions((prev) => [...prev, mention]);
+    }
+
     if (user) {
       playSoundWithSettings('chatNotificationSound', user.settings, 0.7).catch(
         (error) => {
@@ -236,24 +256,50 @@ export default function Toolbar({
     }
   };
 
-  const handleAtisOpen = () => {
-    setAtisOpen(true);
-    setChatOpen(false);
+  const handleAtisToggle = () => {
+    setAtisOpen((prev) => !prev);
     setAtisFlash(false);
+    if (!atisOpen) {
+      setChatOpen(false);
+      onCloseAllSidebars?.();
+    }
   };
 
   const handleAtisClose = () => {
     setAtisOpen(false);
   };
 
-  const handleChatOpen = () => {
-    setChatOpen(true);
-    setAtisOpen(false);
+  const handleChatToggle = () => {
+    setChatOpen((prev) => !prev);
+    if (!chatOpen) {
+      // Only close others when opening
+      setAtisOpen(false);
+      onCloseAllSidebars?.();
+    }
   };
 
   const handleChatClose = () => {
     setChatOpen(false);
   };
+
+  const handleChartsClick = () => {
+    setChatOpen(false);
+    setAtisOpen(false);
+    onChartClick?.();
+  };
+
+  const handleContactClick = () => {
+    setChatOpen(false);
+    setAtisOpen(false);
+    onContactAcarsClick?.();
+  };
+
+  useEffect(() => {
+    if (showChartsDrawer || showContactAcarsModal) {
+      setChatOpen(false);
+      setAtisOpen(false);
+    }
+  }, [showChartsDrawer, showContactAcarsModal]);
 
   useEffect(() => {
     if (!sessionId || !accessId || !user) return;
@@ -301,37 +347,24 @@ export default function Toolbar({
     }
   }, [activeRunway]);
 
+  // Clear all unread mentions when chat opens
   useEffect(() => {
     if (chatOpen) {
       setUnreadMentions([]);
+      setUnreadSessionMentions([]);
+      setUnreadGlobalMentions([]);
     }
   }, [chatOpen]);
 
-  useEffect(() => {
-    const loadInitialAtisData = async () => {
-      if (!sessionId || !accessId) return;
-
-      try {
-        const sessionData = await fetchSession(sessionId, accessId);
-        if (sessionData?.atis?.letter) {
-          setAtisLetter(sessionData.atis.letter);
-        }
-      } catch (error) {
-        console.error('Error loading initial ATIS data:', error);
-      }
-    };
-
-    loadInitialAtisData();
-  }, [sessionId, accessId]);
-
-  const getStatusColor = () => {
-    switch (connectionStatus) {
-      case 'Connected':
-        return 'text-green-500';
-      case 'Reconnecting':
-        return 'text-yellow-500';
-      case 'Disconnected':
-        return 'text-red-500';
+  const handleMentionCleared = (mentionType: 'session' | 'global' | 'all') => {
+    if (mentionType === 'session') {
+      setUnreadSessionMentions([]);
+    } else if (mentionType === 'global') {
+      setUnreadGlobalMentions([]);
+    } else {
+      setUnreadMentions([]);
+      setUnreadSessionMentions([]);
+      setUnreadGlobalMentions([]);
     }
   };
 
@@ -529,7 +562,7 @@ export default function Toolbar({
           aria-label="ATIS"
           size="sm"
           variant="outline"
-          onClick={handleAtisOpen}
+          onClick={handleAtisToggle}
           id="atis-button"
         >
           <Info className="w-5 h-5" />
@@ -542,7 +575,7 @@ export default function Toolbar({
           className="flex items-center gap-2 px-4 py-2 relative"
           aria-label="Chat"
           size="sm"
-          onClick={handleChatOpen}
+          onClick={handleChatToggle}
           id="chat-button"
         >
           <MessageCircle className="w-5 h-5" />
@@ -558,11 +591,7 @@ export default function Toolbar({
           className="flex items-center gap-2 px-4 py-2"
           aria-label="Charts"
           size="sm"
-          onClick={() => {
-            setChatOpen(false);
-            setAtisOpen(false);
-            onChartClick?.();
-          }}
+          onClick={handleChartsClick}
           id="chart-button"
         >
           <Map className="w-5 h-5" />
@@ -574,26 +603,13 @@ export default function Toolbar({
             className="flex items-center gap-2 px-4 py-2"
             aria-label="Contact"
             size="sm"
-            onClick={() => {
-              setChatOpen(false);
-              setAtisOpen(false);
-              onContactAcarsClick?.();
-            }}
+            onClick={handleContactClick}
             id="contact-button"
           >
             <Radio className="w-5 h-5" />
             <span className="hidden sm:inline font-medium">Contact</span>
           </Button>
         )}
-
-        <ChatSidebar
-          sessionId={sessionId ?? ''}
-          accessId={accessId ?? ''}
-          open={chatOpen}
-          onClose={handleChatClose}
-          sessionUsers={activeUsers}
-          onMentionReceived={handleChatSidebarMention}
-        />
 
         <Button
           className="flex items-center gap-2 px-4 py-2"
@@ -611,6 +627,20 @@ export default function Toolbar({
           <Settings className="w-5 h-5" />
           <span className="hidden sm:inline font-medium">Settings</span>
         </Button>
+
+        <ChatSidebar
+          sessionId={sessionId ?? ''}
+          accessId={accessId ?? ''}
+          open={chatOpen}
+          onClose={handleChatClose}
+          sessionUsers={activeUsers}
+          onMentionReceived={handleChatSidebarMention}
+          station={icao ?? undefined}
+          position={position as string}
+          isPFATC={isPFATC}
+          unreadSessionCount={unreadSessionMentions.length}
+          unreadGlobalCount={unreadGlobalMentions.length}
+        />
 
         <ATIS
           icao={icao ?? ''}

@@ -100,6 +100,7 @@ export interface FlightLogFilters {
   flightId?: string;
   dateFrom?: string;
   dateTo?: string;
+  text?: string;
 }
 
 export async function getFlightLogs(
@@ -132,6 +133,15 @@ export async function getFlightLogs(
     }
     if (filters.dateTo) {
       query = query.where('timestamp', '<=', new Date(filters.dateTo));
+    }
+    if (filters.text) {
+      const searchPattern = `%${filters.text}%`;
+      query = query.where((eb) =>
+        eb.or([
+          eb(sql`old_data::text`, 'ilike', searchPattern),
+          eb(sql`new_data::text`, 'ilike', searchPattern),
+        ])
+      );
     }
 
     const logs = await query.execute();

@@ -1,6 +1,16 @@
-import { useState, useCallback, useRef } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useMediaQuery } from 'react-responsive';
-import { EyeOff, Eye, Trash2, FileSpreadsheet, RefreshCw } from 'lucide-react';
+import {
+  EyeOff,
+  Eye,
+  Trash2,
+  FileSpreadsheet,
+  RefreshCw,
+  Route,
+  GripVertical,
+  MoreVertical,
+} from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { DepartureTableColumnSettings } from '../../types/settings';
 import type { FieldEditingState } from '../../sockets/sessionUsersSocket';
@@ -15,6 +25,8 @@ import StatusDropdown from '../dropdowns/StatusDropdown';
 import Button from '../common/Button';
 import DepartureTableMobile from './mobile/DepartureTableMobile';
 import PDCModal from '../tools/PDCModal';
+import RouteModal from '../tools/RouteModal';
+import ConfirmationDialog from '../common/ConfirmationDialog';
 
 interface DepartureTableProps {
   flights: Flight[];
@@ -32,6 +44,7 @@ interface DepartureTableProps {
   ) => Promise<void> | void;
   onToggleClearance: (flightId: string | number, checked: boolean) => void;
   flashingPDCIds: Set<string>;
+  setFlashingPDCIds: React.Dispatch<React.SetStateAction<Set<string>>>;
   id?: string;
 }
 
@@ -56,6 +69,7 @@ export default function DepartureTable({
     clearance: true,
     status: true,
     remark: true,
+    route: true,
     pdc: true,
     hide: true,
     delete: true,
@@ -64,14 +78,19 @@ export default function DepartureTable({
   onFieldEditingStart,
   onFieldEditingStop,
   onIssuePDC,
-
   onToggleClearance,
   flashingPDCIds,
+  setFlashingPDCIds,
   id,
 }: DepartureTableProps) {
   const [showHidden, setShowHidden] = useState(false);
   const [pdcModalOpen, setPdcModalOpen] = useState(false);
+  const [routeModalOpen, setRouteModalOpen] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [flightToDelete, setFlightToDelete] = useState<string | number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | number | null>(null);
+  const buttonRefs = useRef<Record<string | number, HTMLButtonElement | null>>({});
   const isMobile = useMediaQuery({ maxWidth: 1000 });
 
   const [remarkValues, setRemarkValues] = useState<
@@ -87,6 +106,105 @@ export default function DepartureTable({
     Record<string | number, string>
   >({});
   const debounceTimeouts = useRef<Record<string | number, NodeJS.Timeout>>({});
+
+  const [draggedFlightId, setDraggedFlightId] = useState<
+    string | number | null
+  >(null);
+  const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
+  const [customFlightOrder, setCustomFlightOrder] = useState<
+    (string | number)[]
+  >([]);
+
+  useEffect(() => {
+    const savedOrder = localStorage.getItem('flight-strip-order');
+    if (savedOrder) {
+      try {
+        setCustomFlightOrder(JSON.parse(savedOrder));
+      } catch (error) {
+        console.error('Failed to parse saved flight order:', error);
+      }
+    }
+  }, []);
+
+  const orderedFlights = useMemo(() => {
+    if (customFlightOrder.length === 0) {
+      return flights;
+    }
+
+    const orderedList: Flight[] = [];
+    const remainingFlights = [...flights];
+
+    customFlightOrder.forEach((flightId) => {
+      const flightIndex = remainingFlights.findIndex((f) => f.id === flightId);
+      if (flightIndex !== -1) {
+        orderedList.push(remainingFlights[flightIndex]);
+        remainingFlights.splice(flightIndex, 1);
+      }
+    });
+
+    orderedList.push(...remainingFlights);
+
+    return orderedList;
+  }, [flights, customFlightOrder]);
+
+  const saveFlightOrder = useCallback((flightIds: (string | number)[]) => {
+    localStorage.setItem('flight-strip-order', JSON.stringify(flightIds));
+    setCustomFlightOrder(flightIds);
+  }, []);
+
+  const handleDragStart = useCallback(
+    (e: React.DragEvent, flightId: string | number) => {
+      setDraggedFlightId(flightId);
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', String(flightId));
+    },
+    []
+  );
+
+  const handleDragOver = useCallback((e: React.DragEvent, index: number) => {
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'move';
+    setDragOverIndex(index);
+  }, []);
+
+  const handleDragLeave = useCallback(() => {
+    setDragOverIndex(null);
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent, dropIndex: number) => {
+      e.preventDefault();
+
+      if (draggedFlightId === null) return;
+
+      const currentFlights = orderedFlights;
+      const draggedIndex = currentFlights.findIndex(
+        (f) => f.id === draggedFlightId
+      );
+
+      if (draggedIndex === -1 || draggedIndex === dropIndex) {
+        setDraggedFlightId(null);
+        setDragOverIndex(null);
+        return;
+      }
+
+      const newFlights = [...currentFlights];
+      const [draggedFlight] = newFlights.splice(draggedIndex, 1);
+      newFlights.splice(dropIndex, 0, draggedFlight);
+
+      const newOrder = newFlights.map((f) => f.id);
+      saveFlightOrder(newOrder);
+
+      setDraggedFlightId(null);
+      setDragOverIndex(null);
+    },
+    [draggedFlightId, orderedFlights, saveFlightOrder]
+  );
+
+  const handleDragEnd = useCallback(() => {
+    setDraggedFlightId(null);
+    setDragOverIndex(null);
+  }, []);
 
   const debouncedHandleRemarkChange = useCallback(
     (flightId: string | number, remark: string) => {
@@ -172,8 +290,22 @@ export default function DepartureTable({
     }
   };
 
-  const handleDeleteFlight = async (flightId: string | number) => {
-    onFlightDelete(flightId);
+  const handleDeleteClick = (flightId: string | number) => {
+    setFlightToDelete(flightId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (flightToDelete !== null) {
+      onFlightDelete(flightToDelete);
+      setFlightToDelete(null);
+    }
+    setDeleteConfirmOpen(false);
+  };
+
+  const handleCancelDelete = () => {
+    setFlightToDelete(null);
+    setDeleteConfirmOpen(false);
   };
 
   const isClearanceChecked = (v: boolean | string | undefined) => {
@@ -239,17 +371,34 @@ export default function DepartureTable({
   };
 
   const visibleFlights = showHidden
-    ? flights
-    : flights.filter((flight) => !flight.hidden);
-  const hasHiddenFlights = flights.some((flight) => flight.hidden);
+    ? orderedFlights
+    : orderedFlights.filter((flight) => !flight.hidden);
+  const hasHiddenFlights = orderedFlights.some((flight) => flight.hidden);
 
   const handlePDCOpen = (flight: Flight) => {
     setSelectedFlight(flight);
     setPdcModalOpen(true);
+    setFlashingPDCIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(flight.id));
+      return next;
+    });
   };
 
   const handlePDCClose = () => {
     setPdcModalOpen(false);
+    setSelectedFlight(null);
+  };
+
+  const handleRouteOpen = (flight: Flight) => {
+    if (flight.route && flight.route.trim()) {
+      setSelectedFlight(flight);
+      setRouteModalOpen(true);
+    }
+  };
+
+  const handleRouteClose = () => {
+    setRouteModalOpen(false);
     setSelectedFlight(null);
   };
 
@@ -290,6 +439,14 @@ export default function DepartureTable({
     }
   };
 
+  const handleStopFlashing = (flightId: string | number) => {
+    setFlashingPDCIds((prev) => {
+      const next = new Set(prev);
+      next.delete(String(flightId));
+      return next;
+    });
+  };
+
   if (isMobile) {
     return (
       <>
@@ -300,12 +457,20 @@ export default function DepartureTable({
           backgroundStyle={backgroundStyle}
           departureColumns={departureColumns}
           onPDCOpen={handlePDCOpen}
+          flashingPDCIds={flashingPDCIds}
+          onStopFlashing={handleStopFlashing}
         />
         <PDCModal
           isOpen={pdcModalOpen}
           onClose={handlePDCClose}
           flight={selectedFlight}
           onIssuePDC={onIssuePDC}
+        />
+        <RouteModal
+          isOpen={routeModalOpen}
+          onClose={handleRouteClose}
+          flight={selectedFlight}
+          onFlightChange={onFlightChange}
         />
       </>
     );
@@ -376,6 +541,9 @@ export default function DepartureTable({
                 {departureColumns.cfl !== false && (
                   <th className="py-2.5 px-4 text-left column-cfl">CFL</th>
                 )}
+                {departureColumns.route !== false && (
+                  <th className="py-2.5 px-4 text-left column-route">RTE</th>
+                )}
                 {departureColumns.squawk !== false && (
                   <th className="py-2.5 px-4 text-left w-28">ASSR</th>
                 )}
@@ -391,16 +559,11 @@ export default function DepartureTable({
                 {departureColumns.pdc !== false && (
                   <th className="py-2.5 px-4 text-left column-pdc">PDC</th>
                 )}
-                {departureColumns.hide !== false && (
-                  <th className="py-2.5 px-4 text-left column-hide">HIDE</th>
-                )}
-                {departureColumns.delete !== false && (
-                  <th className="py-2.5 px-4 text-left column-del">DEL</th>
-                )}
+                <th className="py-2.5 px-4 text-left w-16">MORE</th>
               </tr>
             </thead>
             <tbody>
-              {visibleFlights.map((flight) => {
+              {visibleFlights.map((flight, index) => {
                 const callsignEditingState = getFieldEditingState(
                   flight.id,
                   'callsign'
@@ -420,26 +583,46 @@ export default function DepartureTable({
                 const isFlashing =
                   flashingPDCIds?.has(String(flight.id)) &&
                   !isClearanceChecked(flight.clearance);
+                const isDragging = draggedFlightId === flight.id;
+                const isDragOver = dragOverIndex === index;
+
                 return (
                   <tr
                     key={flight.id}
-                    className={`flight-row ${
+                    onDragOver={(e) => handleDragOver(e, index)}
+                    onDragLeave={handleDragLeave}
+                    onDrop={(e) => handleDrop(e, index)}
+                    onDragEnd={handleDragEnd}
+                    className={`flight-row select-none ${
                       flight.hidden ? 'opacity-60 text-gray-400' : ''
+                    } ${isDragging ? 'opacity-50' : ''} ${
+                      isDragOver ? 'border-t-2 border-blue-400' : ''
                     }`}
                     style={backgroundStyle}
                   >
-                    {/* Time column is always visible */}
+                    {/* Time column */}
                     <td className="py-2 px-4 column-time">
-                      {flight.timestamp
-                        ? new Date(flight.timestamp).toLocaleTimeString(
-                            'en-GB',
-                            {
-                              hour: '2-digit',
-                              minute: '2-digit',
-                              timeZone: 'UTC',
-                            }
-                          )
-                        : '-'}
+                      <div className="flex items-center gap-2">
+                        <div
+                          draggable={true}
+                          onDragStart={(e) => handleDragStart(e, flight.id)}
+                          className="cursor-move text-zinc-500 hover:text-zinc-300 transition-colors"
+                        >
+                          <GripVertical className="w-4 h-4" />
+                        </div>
+                        <span>
+                          {flight.timestamp
+                            ? new Date(flight.timestamp).toLocaleTimeString(
+                                'en-GB',
+                                {
+                                  hour: '2-digit',
+                                  minute: '2-digit',
+                                  timeZone: 'UTC',
+                                }
+                              )
+                            : '-'}
+                        </span>
+                      </div>
                     </td>
                     {departureColumns.callsign !== false && (
                       <td className="py-2 px-4">
@@ -571,6 +754,26 @@ export default function DepartureTable({
                         />
                       </td>
                     )}
+                    {departureColumns.route !== false && (
+                      <td className="py-2 px-4 column-route">
+                        <button
+                          className={`px-2 py-1 rounded transition-colors ${
+                            flight.route && flight.route.trim()
+                              ? 'text-gray-400 hover:text-blue-500'
+                              : 'text-red-500 cursor-not-allowed'
+                          }`}
+                          onClick={() => handleRouteOpen(flight)}
+                          title={
+                            flight.route && flight.route.trim()
+                              ? 'View Route'
+                              : 'No route specified'
+                          }
+                          disabled={!flight.route || !flight.route.trim()}
+                        >
+                          <Route />
+                        </button>
+                      </td>
+                    )}
                     {departureColumns.squawk !== false && (
                       <td className="py-2 px-4">
                         <div className="flex items-center gap-0.5 w-full">
@@ -620,7 +823,6 @@ export default function DepartureTable({
                           }
                           label=""
                           checkedClass="bg-green-600 border-green-600"
-                          flashing={isFlashing}
                         />
                       </td>
                     )}
@@ -633,6 +835,7 @@ export default function DepartureTable({
                           }
                           size="xs"
                           placeholder="-"
+                          controllerType="departure"
                         />
                       </td>
                     )}
@@ -663,40 +866,94 @@ export default function DepartureTable({
                     {departureColumns.pdc !== false && (
                       <td className="py-2 px-4 column-pdc">
                         <button
-                          className="text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors"
+                          className={`text-gray-400 hover:text-blue-500 px-2 py-1 rounded transition-colors ${
+                            isFlashing ? 'animate-pulse' : ''
+                          }`}
                           onClick={() => handlePDCOpen(flight)}
                           title="Generate PDC"
                         >
-                          <FileSpreadsheet />
+                          <FileSpreadsheet
+                            className={isFlashing ? 'text-orange-400' : ''}
+                          />
                         </button>
                       </td>
                     )}
-                    {departureColumns.hide !== false && (
-                      <td className="py-2 px-4 column-hide">
-                        <button
-                          title={flight.hidden ? 'Unhide' : 'Hide'}
-                          className="text-gray-400 hover:text-blue-500"
-                          onClick={() =>
-                            flight.hidden
-                              ? handleUnhideFlight(flight.id)
-                              : handleHideFlight(flight.id)
+                    <td className="py-2 px-4 relative">
+                      <button
+                        type="button"
+                        ref={(el) => {
+                          if (el) {
+                            buttonRefs.current[flight.id] = el;
                           }
-                        >
-                          {flight.hidden ? <Eye /> : <EyeOff />}
-                        </button>
-                      </td>
-                    )}
-                    {departureColumns.delete !== false && (
-                      <td className="py-2 px-4 column-del">
-                        <button
-                          title="Delete"
-                          className="text-gray-400 hover:text-red-500 edit-del"
-                          onClick={() => handleDeleteFlight(flight.id)}
-                        >
-                          <Trash2 />
-                        </button>
-                      </td>
-                    )}
+                        }}
+                        className="flex items-center justify-center w-full text-gray-400 hover:text-white transition-colors"
+                        onClick={() => {
+                          setOpenDropdownId(openDropdownId === flight.id ? null : flight.id);
+                        }}
+                        title="Actions"
+                      >
+                        <MoreVertical className="h-5 w-5" strokeWidth={2.5} />
+                      </button>
+                      {openDropdownId === flight.id && createPortal(
+                        <>
+                          <div
+                            className="fixed inset-0"
+                            style={{ zIndex: 9997 }}
+                            onClick={() => setOpenDropdownId(null)}
+                          />
+                          <div
+                            className="fixed w-40 bg-gray-800 border border-blue-600 rounded-2xl shadow-lg py-1"
+                            style={{
+                              zIndex: 9998,
+                              top: (() => {
+                                const btn = buttonRefs.current[flight.id];
+                                if (btn) {
+                                  const rect = btn.getBoundingClientRect();
+                                  return `${rect.bottom + 4}px`;
+                                }
+                                return '0px';
+                              })(),
+                              left: (() => {
+                                const btn = buttonRefs.current[flight.id];
+                                if (btn) {
+                                  const rect = btn.getBoundingClientRect();
+                                  return `${rect.right - 160}px`;
+                                }
+                                return '0px';
+                              })(),
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-600 hover:text-white flex items-center gap-2"
+                              onClick={() => {
+                                if (flight.hidden) {
+                                  handleUnhideFlight(flight.id);
+                                } else {
+                                  handleHideFlight(flight.id);
+                                }
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              {flight.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                              {flight.hidden ? 'Unhide' : 'Hide'}
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-blue-600 hover:text-white flex items-center gap-2"
+                              onClick={() => {
+                                handleDeleteClick(flight.id);
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </>,
+                        document.body
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -710,6 +967,24 @@ export default function DepartureTable({
         onClose={handlePDCClose}
         flight={selectedFlight}
         onIssuePDC={onIssuePDC}
+      />
+
+      <RouteModal
+        isOpen={routeModalOpen}
+        onClose={handleRouteClose}
+        flight={selectedFlight}
+        onFlightChange={onFlightChange}
+      />
+
+      <ConfirmationDialog
+        isOpen={deleteConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        title="Delete Flight Plan"
+        description="This will delete the flight plan for all controllers and is not recommended if you are handing the strip off. It's recommended to hide it instead."
+        confirmText="Delete Anyway"
+        cancelText="Cancel"
+        variant="danger"
       />
     </div>
   );

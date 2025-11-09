@@ -37,7 +37,6 @@ export interface ClientFlight {
   squawk?: string;
   wtc?: string;
   hidden?: boolean;
-  acars_token?: string;
   pdc_remarks?: string;
   user?: {
     id: string;
@@ -47,6 +46,16 @@ export interface ClientFlight {
 }
 
 function sanitizeFlightForClient(flight: FlightsDatabase[string]): ClientFlight {
+    const { user_id, ip_address, acars_token, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
+    return {
+        ...sanitizedFlight,
+        cruisingFL: cruisingfl,
+        clearedFL: clearedfl,
+    };
+}
+
+// Sanitize flight for owner - includes ACARS token
+function sanitizeFlightForOwner(flight: FlightsDatabase[string]): ClientFlight & { acars_token?: string } {
     const { user_id, ip_address, cruisingfl, clearedfl, ...sanitizedFlight } = flight;
     return {
         ...sanitizedFlight,
@@ -63,7 +72,8 @@ function validateFlightFields(updates: Partial<FlightsDatabase>) {
         throw new Error('Stand must be 8 characters or less');
     }
     if (typeof updates.squawk === "string") {
-        if ((updates.squawk as string).length > 4 || !/^\d{1,4}$/.test(updates.squawk as string)) {
+        const squawk = updates.squawk as string;
+        if (squawk.length > 0 && (squawk.length > 4 || !/^\d{1,4}$/.test(squawk))) {
             throw new Error('Squawk must be up to 4 numeric digits');
         }
     }
@@ -226,7 +236,51 @@ export async function getFlightsBySessionWithTime(sessionId: string, hoursBack =
       .orderBy('timestamp', 'asc')
       .execute();
 
-    return flights.map(flight => sanitizeFlightForClient(flight as unknown as FlightsDatabase[string]));
+    // Enrich flights with user data
+    const userIds = [...new Set(flights.map(f => f.user_id).filter((id): id is string => typeof id === 'string'))];
+
+    const usersMap = new Map<string, { id: string; discord_username: string; discord_avatar_url: string | null }>();
+    if (userIds.length > 0) {
+      try {
+        const users = await mainDb
+          .selectFrom('users')
+          .select([
+            'id',
+            'username as discord_username',
+            'avatar as discord_avatar_url'
+          ])
+          .where('id', 'in', userIds)
+          .execute();
+
+        users.forEach(user => {
+          usersMap.set(user.id, {
+            id: user.id,
+            discord_username: user.discord_username,
+            discord_avatar_url: user.discord_avatar_url
+              ? `https://cdn.discordapp.com/avatars/${user.id}/${user.discord_avatar_url}.png`
+              : null
+          });
+        });
+      } catch (userError) {
+        console.error('Error fetching user data:', userError);
+      }
+    }
+
+    const enrichedFlights = flights.map(flight => {
+        const sanitized = sanitizeFlightForClient(flight as unknown as FlightsDatabase[string]);
+
+        let user = undefined;
+        if (flight.user_id && usersMap.has(flight.user_id)) {
+            user = usersMap.get(flight.user_id);
+        }
+
+        return {
+            ...sanitized,
+            user,
+        };
+    });
+
+    return enrichedFlights;
   } catch (error) {
     console.error(
       `Error fetching flights for session ${sessionId}:`,
@@ -269,7 +323,8 @@ export async function addFlight(sessionId: string, flightData: AddFlightData) {
 
   flightData.id = await generateRandomId();
   flightData.squawk = await generateSquawk(flightData);
-  flightData.wtc = await getWakeTurbulence(flightData.aircraft || '');
+  // Check both aircraft and aircraft_type fields (SimBrief uses aircraft_type)
+  flightData.wtc = await getWakeTurbulence(flightData.aircraft || flightData.aircraft_type || '');
   if (!flightData.timestamp) {
     flightData.timestamp = new Date().toISOString();
   }
@@ -336,7 +391,8 @@ export async function addFlight(sessionId: string, flightData: AddFlightData) {
     incrementStat(flightData.user_id, 'total_flights_submitted', 1, 'total');
   }
 
-  return sanitizeFlightForClient(result);
+  // Return flight with ACARS token for the owner
+  return sanitizeFlightForOwner(result);
 }
 
 export async function updateFlight(
@@ -351,7 +407,7 @@ export async function updateFlight(
   const allowedColumns = [
     'callsign', 'aircraft', 'departure', 'arrival', 'flight_type',
     'stand', 'gate', 'runway', 'sid', 'star', 'cruisingFL', 'clearedFL',
-    'squawk', 'wtc', 'status', 'remark', 'clearance', 'pdc_remarks', 'hidden'
+    'squawk', 'wtc', 'status', 'remark', 'clearance', 'pdc_remarks', 'hidden', 'route'
   ];
 
   const dbUpdates: Record<string, unknown> = {};

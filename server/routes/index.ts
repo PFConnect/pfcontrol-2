@@ -13,6 +13,7 @@ import uploadsRouter from './uploads.js';
 import pilotRouter from './pilot.js';
 import adminRouter from './admin/index.js';
 import updateModalRouter from './updateModal.js';
+import versionRouter from './version.js';
 
 const router = express.Router();
 
@@ -27,15 +28,6 @@ router.use('/uploads', uploadsRouter);
 router.use('/pilot', pilotRouter);
 router.use('/admin', adminRouter);
 router.use('/update-modal', updateModalRouter);
-
-router.get('/version', async (_req, res) => {
-  try {
-    const version = await getAppVersion();
-    res.json({ version: version.version });
-  } catch (error) {
-    console.error('Error fetching version:', error);
-    res.json({ version: '2.0.0.3' });
-  }
-});
+router.use('/version', versionRouter);
 
 export default router;

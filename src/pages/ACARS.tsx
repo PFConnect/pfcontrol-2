@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import Loader from '../components/common/Loader';
@@ -8,7 +8,6 @@ import {
   PanelLeftOpen,
   Map,
   PlaneTakeoff,
-  MapPinned,
   PlusCircle,
 } from 'lucide-react';
 import { useData } from '../hooks/data/useData';
@@ -67,7 +66,7 @@ export default function ACARS() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const chartHandlers = createChartHandlers(
+  const chartHandlers = useMemo(() => createChartHandlers(
     chartZoom,
     setChartZoom,
     chartPan,
@@ -78,7 +77,7 @@ export default function ACARS() {
     setChartDragStart,
     containerRef as React.RefObject<HTMLDivElement>,
     imageSize
-  );
+  ), [chartZoom, chartPan, isChartDragging, chartDragStart, imageSize.width, imageSize.height]);
 
   const {
     handleZoomIn,
@@ -87,6 +86,9 @@ export default function ACARS() {
     handleChartMouseDown,
     handleChartMouseMove,
     handleChartMouseUp,
+    handleTouchStart,
+    handleTouchMove,
+    handleTouchEnd,
   } = chartHandlers;
 
   useEffect(() => {
@@ -173,15 +175,21 @@ NOTES:
   };
 
   const handleToggleSidebar = () => {
-    setShowSidebar((prev) => {
-      const newValue = !prev;
-      localStorage.setItem('acars-sidebar-visible', String(newValue));
-      return newValue;
-    });
+    if (showSidebar) {
+      setShowSidebar(false);
+    } else {
+      setShowChartsDrawer(false);
+      setShowSidebar(true);
+    }
   };
 
   const handleToggleChartsDrawer = () => {
-    setShowChartsDrawer((prev) => !prev);
+    if (showChartsDrawer) {
+      setShowChartsDrawer(false);
+    } else {
+      setShowSidebar(false);
+      setShowChartsDrawer(true);
+    }
   };
 
   useEffect(() => {
@@ -317,6 +325,7 @@ NOTES:
       sessionId,
       sessionAccessId,
       '',
+      '',
       () => {},
       () => {},
       () => {}
@@ -338,20 +347,29 @@ NOTES:
     );
     socket.socket.on(
       'contactMe',
-      (payload: { flightId: string | number; message?: string; station?: string; position?: string }) => {
-      if (String(payload.flightId) === String(flightId)) {
-        const station = payload.station || flight?.departure || 'UNKNOWN';
-        const position = payload.position || 'TWR';
-        const contactMsg: AcarsMessage = {
-        id: `${Date.now()}-contact`,
-        timestamp: new Date().toISOString(),
-        station: `${station}_${position}`,
-        text: payload.message || 'CONTACT CONTROLLER ON FREQUENCY',
-        type: 'contact',
-        };
-        setMessages((prev) => [...prev, contactMsg]);
-        if (settings) playNotificationSound('contact', settings);
-      }
+      (payload: {
+        flightId: string | number;
+        message?: string;
+        station?: string;
+        position?: string;
+      }) => {
+        if (String(payload.flightId) === String(flightId)) {
+          const station = payload.station || flight?.departure || 'UNKNOWN';
+          const position = payload.position || 'TWR';
+          const displayStation = station.includes('_CTR')
+            ? station
+            : `${station}_${position}`;
+
+          const contactMsg: AcarsMessage = {
+            id: `${Date.now()}-contact`,
+            timestamp: new Date().toISOString(),
+            station: displayStation,
+            text: payload.message || 'CONTACT CONTROLLER ON FREQUENCY',
+            type: 'contact',
+          };
+          setMessages((prev) => [...prev, contactMsg]);
+          if (settings) playNotificationSound('contact', settings);
+        }
       }
     );
     return () => {
@@ -582,7 +600,7 @@ NOTES:
               onClick={handleToggleChartsDrawer}
             >
               {showChartsDrawer ? (
-                <MapPinned className="w-5 h-5" />
+                <PanelLeftClose className="w-5 h-5" />
               ) : (
                 <Map className="w-5 h-5" />
               )}
@@ -707,6 +725,9 @@ NOTES:
               handleChartMouseDown={handleChartMouseDown}
               handleChartMouseMove={handleChartMouseMove}
               handleChartMouseUp={handleChartMouseUp}
+              handleTouchStart={handleTouchStart}
+              handleTouchMove={handleTouchMove}
+              handleTouchEnd={handleTouchEnd}
               handleZoomIn={handleZoomIn}
               handleZoomOut={handleZoomOut}
               handleResetZoom={handleResetZoom}
@@ -735,6 +756,9 @@ NOTES:
         handleChartMouseDown={handleChartMouseDown}
         handleChartMouseMove={handleChartMouseMove}
         handleChartMouseUp={handleChartMouseUp}
+        handleTouchStart={handleTouchStart}
+        handleTouchMove={handleTouchMove}
+        handleTouchEnd={handleTouchEnd}
         handleZoomIn={handleZoomIn}
         handleZoomOut={handleZoomOut}
         handleResetZoom={handleResetZoom}

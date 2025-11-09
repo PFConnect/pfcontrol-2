@@ -59,17 +59,47 @@ router.post('/generate', requireAuth, async (req, res) => {
             metar: metar || undefined,
         };
 
-        const response = await fetch(`https://atisgenerator.com/api/v1/airports/${icao}/atis`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(requestBody),
-        });
+        let response;
+        try {
+            response = await fetch(`https://atisgenerator.com/api/v1/airports/${icao}/atis`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify(requestBody),
+            });
+        } catch (fetchError) {
+            console.error('Failed to fetch from ATIS generator API:', fetchError);
+            throw new Error('Unable to connect to ATIS generation service');
+        }
 
         if (!response.ok) {
             const errorText = await response.text().catch(() => 'Unknown error');
-            throw new Error(`External API responded with ${response.status}: ${errorText}`);
+            console.error(`ATIS API error: ${response.status} - ${errorText}`);
+            
+            if (metar && (response.status === 400 || response.status === 500)) {
+                console.warn('Retrying ATIS generation without METAR data');
+                try {
+                    const retryBody = { ...requestBody, metar: undefined };
+                    const retryResponse = await fetch(`https://atisgenerator.com/api/v1/airports/${icao}/atis`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify(retryBody),
+                    });
+                    
+                    if (retryResponse.ok) {
+                        response = retryResponse;
+                    } else {
+                        throw new Error(`External API responded with ${response.status}: ${errorText}`);
+                    }
+                } catch {
+                    throw new Error(`External API responded with ${response.status}: ${errorText}`);
+                }
+            } else {
+                throw new Error(`External API responded with ${response.status}: ${errorText}`);
+            }
         }
 
         const data = await response.json() as ExternalATISResponse;
@@ -101,7 +131,6 @@ router.post('/generate', requireAuth, async (req, res) => {
             text: generatedAtis,
             letter: ident,
             timestamp: atisTimestamp,
-            // Backwards compatibility: include old field names
             atisText: generatedAtis,
             ident: ident,
         });

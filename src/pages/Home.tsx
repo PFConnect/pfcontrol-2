@@ -504,8 +504,8 @@ export default function Home() {
           </p>
         </div>
 
-        <div className="mt-20 mb-16 max-w-7xl mx-auto px-2 sm:px-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+        <div className="mt-20 mb-16 max-w-5xl mx-auto px-2 sm:px-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
             <div className="flex flex-col items-center">
               <img
                 src="/assets/app/team/devbanane.webp"
@@ -528,19 +528,6 @@ export default function Home() {
               <span className="text-white text-lg font-semibold">iceit</span>
               <span className="bg-gradient-to-r from-blue-400 to-cyan-200 bg-clip-text text-transparent text-md font-medium">
                 Ice Wizard
-              </span>
-            </div>
-            <div className="flex flex-col items-center">
-              <img
-                src="/assets/app/team/frenchfries.webp"
-                alt="frenchfries"
-                className="h-32 w-32 rounded-full mb-2 border-2 border-blue-600"
-              />
-              <span className="text-white text-lg font-semibold">
-                frenchfries
-              </span>
-              <span className="bg-gradient-to-r from-purple-400 to-red-400 bg-clip-text text-transparent text-md font-medium">
-                Developer
               </span>
             </div>
             <div className="flex flex-col items-center">

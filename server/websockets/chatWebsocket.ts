@@ -1,5 +1,5 @@
 import { Server as SocketServer } from 'socket.io';
-import { addChatMessage, deleteChatMessage } from '../db/chats.js';
+import { addChatMessage, deleteChatMessage, reportChatMessage } from '../db/chats.js';
 import { validateSessionAccess } from '../middleware/sessionAccess.js';
 import { validateSessionId, validateAccessId } from '../utils/validation.js';
 import { sanitizeMessage } from '../utils/sanitization.js';
@@ -104,11 +104,21 @@ export function setupChatWebsocket(httpServer: Server, sessionUsersWebsocketIO: 
 
                 io.to(sessionId).emit('chatMessage', formattedMsg);
 
-                if (chatMsg.automodded) {
+                if (chatMsg.automodded && chatMsg.id) {
                     socket.emit('messageAutomodded', {
                         messageId: chatMsg.id,
                         reason: chatMsg.automodReason || 'Hate speech detected'
                     });
+                    try {
+                        await reportChatMessage(
+                            sessionId,
+                            chatMsg.id,
+                            'automod',
+                            chatMsg.automodReason || 'Hate speech detected'
+                        );
+                    } catch (error) {
+                        console.error('Error reporting automodded message:', error);
+                    }
                 }
 
                 if (sessionUsersIO?.sendMentionToUser && mentionedUserIds.length > 0) {

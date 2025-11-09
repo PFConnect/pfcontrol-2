@@ -1,5 +1,5 @@
 import { Kysely, PostgresDialect } from 'kysely';
-import { createMainTables } from './schemas.js';
+import { createMainTables, createGlobalChatTable } from './schemas.js';
 import pg from 'pg';
 import Redis from 'ioredis';
 import dotenv from 'dotenv';
@@ -52,5 +52,10 @@ redisConnection.on('connect', () => {
 
 createMainTables().catch((err) => {
   console.error('Failed to create main tables:', err);
+  process.exit(1);
+});
+
+createGlobalChatTable().catch((err) => {
+  console.error('Failed to create global chat table:', err);
   process.exit(1);
 });

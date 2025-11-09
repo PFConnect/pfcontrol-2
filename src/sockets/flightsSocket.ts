@@ -7,15 +7,23 @@ export function createFlightsSocket(
     sessionId: string,
     accessId: string,
     userId: string,
+    username: string,
     onFlightUpdated: (flight: Flight) => void,
     onFlightAdded: (flight: Flight) => void,
     onFlightDeleted: (data: { flightId: string | number }) => void,
-    onFlightError?: (error: { action: string; flightId?: string | number; error: string }) => void
+    onFlightError?: (error: { action: string; flightId?: string | number; error: string }) => void,
+    isEventController?: boolean
 ) {
     const socket = io(SOCKET_URL, {
         withCredentials: true,
         path: '/sockets/flights',
-        query: { sessionId, accessId, userId },
+        query: {
+            sessionId,
+            accessId,
+            userId,
+            username,
+            ...(isEventController && { isEventController: 'true' })
+        },
         transports: ['websocket', 'polling'],
         upgrade: true,
         reconnection: true,

@@ -174,7 +174,7 @@ export async function reportChatMessage(sessionId: string, messageId: number, re
             .executeTakeFirst();
         reporterUsername = reporter?.username || '';
         reporterAvatar = reporter?.avatar
-            ? (reporter.avatar.startsWith('http') ? reporter.avatar : `https://cdn.discordapp.com/avatars/${reporterUserId}/${reporter.avatar}.png`) 
+            ? (reporter.avatar.startsWith('http') ? reporter.avatar : `https://cdn.discordapp.com/avatars/${reporterUserId}/${reporter.avatar}.png`)
             : '/assets/app/default/avatar.webp';
     }
 
@@ -195,6 +195,75 @@ export async function reportChatMessage(sessionId: string, messageId: number, re
         .values({
             id: sql`DEFAULT`,
             session_id: validSessionId,
+            message_id: messageId,
+            reporter_user_id: reporterUserId,
+            reporter_username: reporterUsername,
+            reported_user_id: messageRow.user_id,
+            reported_username: reportedUsername,
+            reported_avatar: reportedAvatar,
+            message: plainMessage,
+            reason,
+            avatar: reporterAvatar,
+        })
+        .execute();
+}
+
+export async function reportGlobalChatMessage(messageId: number, reporterUserId: string, reason: string) {
+    const messageRow = await chatsDb
+        .selectFrom('global_chat')
+        .select(['user_id', 'message'])
+        .where('id', '=', messageId)
+        .executeTakeFirst();
+
+    if (!messageRow) {
+        throw new Error('Message not found');
+    }
+
+    // Decrypt the message
+    let plainMessage = '';
+    try {
+        if (messageRow.message) {
+            const encryptedData = typeof messageRow.message === 'string'
+                ? JSON.parse(messageRow.message)
+                : messageRow.message;
+            plainMessage = decrypt(encryptedData) || '';
+        }
+    } catch (e) {
+        console.error('[Report Global Chat] Error decrypting message:', e);
+        plainMessage = '';
+    }
+
+    let reporterUsername = '';
+    let reporterAvatar = '/assets/images/automod.webp';
+    if (reporterUserId !== 'automod') {
+        const reporter = await mainDb
+            .selectFrom('users')
+            .select(['username', 'avatar'])
+            .where('id', '=', reporterUserId)
+            .executeTakeFirst();
+        reporterUsername = reporter?.username || '';
+        reporterAvatar = reporter?.avatar
+            ? (reporter.avatar.startsWith('http') ? reporter.avatar : `https://cdn.discordapp.com/avatars/${reporterUserId}/${reporter.avatar}.png`)
+            : '/assets/app/default/avatar.webp';
+    }
+
+    let reportedUsername = '';
+    let reportedAvatar = '/assets/app/default/avatar.webp';
+    const reportedUser = await mainDb
+        .selectFrom('users')
+        .select(['username', 'avatar'])
+        .where('id', '=', messageRow.user_id)
+        .executeTakeFirst();
+    reportedUsername = reportedUser?.username || '';
+    reportedAvatar = reportedUser?.avatar
+        ? (reportedUser.avatar.startsWith('http') ? reportedUser.avatar : `https://cdn.discordapp.com/avatars/${messageRow.user_id}/${reportedUser.avatar}.png`)
+        : '/assets/app/default/avatar.webp';
+
+    await mainDb
+        .insertInto('chat_report')
+        .values({
+            id: sql`DEFAULT`,
+            session_id: 'global-chat',
             message_id: messageId,
             reporter_user_id: reporterUserId,
             reporter_username: reporterUsername,

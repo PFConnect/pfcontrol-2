@@ -26,6 +26,8 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showAltimeter, setShowAltimeter] = useState(false);
+  const [lastRefreshed, setLastRefreshed] = useState<Date | null>(null);
+  const [, forceUpdate] = useState({});
 
   const loadMetarData = React.useCallback(async () => {
     if (!icao) return;
@@ -45,6 +47,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 
       if (data) {
         setMetarData(data);
+        setLastRefreshed(new Date());
       } else {
         setError('No METAR data available');
       }
@@ -74,6 +77,16 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
 
     return () => clearInterval(interval);
   }, [icao, forceHide, loadMetarData]);
+
+  useEffect(() => {
+    if (!lastRefreshed) return;
+
+    const updateInterval = setInterval(() => {
+      forceUpdate({});
+    }, 30000);
+
+    return () => clearInterval(updateInterval);
+  }, [lastRefreshed]);
 
   const handleManualRefresh = () => {
     loadMetarData();
@@ -135,24 +148,22 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
     }
   };
 
-  const formatReportTime = (reportTime: string) => {
-    if (!reportTime) return 'Unknown time';
+  const formatRefreshTime = (refreshDate: Date | null) => {
+    if (!refreshDate) return 'Not refreshed';
 
-    const date = new Date(reportTime);
     const now = new Date();
     const diffMinutes = Math.floor(
-      (now.getTime() - date.getTime()) / (1000 * 60)
+      (now.getTime() - refreshDate.getTime()) / (1000 * 60)
     );
-
-    if (diffMinutes < 60) {
+    if (diffMinutes === 0) {
+      return 'Just now';
+    } else if (diffMinutes < 60) {
       return `${diffMinutes}m ago`;
     } else if (diffMinutes < 1440) {
       const hours = Math.floor(diffMinutes / 60);
       return `${hours}h ago`;
-    } else if (diffMinutes == 0) {
-      return 'Just now';
     } else {
-      return date.toLocaleTimeString([], {
+      return refreshDate.toLocaleTimeString([], {
         hour: '2-digit',
         minute: '2-digit',
       });
@@ -283,7 +294,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
                 isSpecial ? `${icao}-special-tooltip-small` : undefined
               }
             >
-              {formatReportTime(metarData.reportTime)}
+              {formatRefreshTime(lastRefreshed)}
             </span>
             {isSpecial && (
               <div
@@ -390,7 +401,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
             )}
           </div>
 
-          <span>Updated: {formatReportTime(metarData.reportTime)}</span>
+          <span>{formatRefreshTime(lastRefreshed)}</span>
         </div>
 
         <button

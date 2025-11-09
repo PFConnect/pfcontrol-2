@@ -123,6 +123,7 @@ export default function Submit() {
       sessionId,
       accessId,
       user?.userId || '',
+      user?.username || '',
       (flight: Flight) => {
         setSubmittedFlight(flight);
         setSuccess(true);
