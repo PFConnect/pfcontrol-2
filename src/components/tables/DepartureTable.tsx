@@ -927,9 +927,11 @@ export default function DepartureTable({
                               type="button"
                               className="w-full text-left px-3 py-2 text-sm hover:bg-blue-600 hover:text-white flex items-center gap-2"
                               onClick={() => {
-                                flight.hidden
-                                  ? handleUnhideFlight(flight.id)
-                                  : handleHideFlight(flight.id);
+                                if (flight.hidden) {
+                                  handleUnhideFlight(flight.id);
+                                } else {
+                                  handleHideFlight(flight.id);
+                                }
                                 setOpenDropdownId(null);
                               }}
                             >
