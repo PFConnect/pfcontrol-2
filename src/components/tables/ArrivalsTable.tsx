@@ -1,6 +1,7 @@
-import { useState, useCallback, useEffect, useMemo } from 'react';
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useMediaQuery } from 'react-responsive';
-import { EyeOff, Eye, Route, GripVertical } from 'lucide-react';
+import { EyeOff, Eye, Route, GripVertical, MoreVertical, Trash2, RefreshCw } from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { ArrivalsTableColumnSettings } from '../../types/settings';
 import TextInput from '../common/TextInput';
@@ -10,6 +11,7 @@ import StatusDropdown from '../dropdowns/StatusDropdown';
 import Button from '../common/Button';
 import ArrivalsTableMobile from './mobile/ArrivalsTableMobile';
 import RouteModal from '../tools/RouteModal';
+import ConfirmationDialog from '../common/ConfirmationDialog';
 
 interface ArrivalsTableProps {
   flights: Flight[];
@@ -47,6 +49,14 @@ export default function ArrivalsTable({
   const [showHidden, setShowHidden] = useState(false);
   const [routeModalOpen, setRouteModalOpen] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [flightToDelete, setFlightToDelete] = useState<string | number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | number | null>(null);
+  const buttonRefs = useRef<Record<string | number, HTMLButtonElement | null>>({});
+  const [squawkValues, setSquawkValues] = useState<
+    Record<string | number, string>
+  >({});
+  const debounceTimeouts = useRef<Record<string | number, NodeJS.Timeout>>({});
   const isMobile = useMediaQuery({ maxWidth: 1000 });
 
   const [draggedFlightId, setDraggedFlightId] = useState<
@@ -172,15 +182,61 @@ export default function ArrivalsTable({
     }
   };
 
+  const handleDeleteClick = (flightId: string | number) => {
+    setFlightToDelete(flightId);
+    setDeleteConfirmOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (flightToDelete !== null && onFlightChange) {
+      onFlightChange(flightToDelete, { deleted: true } as Partial<Flight>);
+      setFlightToDelete(null);
+    }
+    setDeleteConfirmOpen(false);
+  };
+
+  const handleCancelDelete = () => {
+    setFlightToDelete(null);
+    setDeleteConfirmOpen(false);
+  };
+
   const handleRemarkChange = (flightId: string | number, remark: string) => {
     if (onFlightChange) {
       onFlightChange(flightId, { remark });
     }
   };
 
-  const handleSquawkChange = (flightId: string | number, squawk: string) => {
+  const debouncedHandleSquawkChange = useCallback(
+    (flightId: string | number, squawk: string) => {
+      setSquawkValues((prev) => ({ ...prev, [flightId]: squawk }));
+
+      if (debounceTimeouts.current[flightId]) {
+        clearTimeout(debounceTimeouts.current[flightId]);
+      }
+
+      debounceTimeouts.current[flightId] = setTimeout(() => {
+        if (onFlightChange) {
+          onFlightChange(flightId, { squawk });
+        }
+        delete debounceTimeouts.current[flightId];
+      }, 500);
+    },
+    [onFlightChange]
+  );
+
+  const generateRandomSquawk = (): string => {
+    let squawk = '';
+    for (let i = 0; i < 4; i++) {
+      squawk += Math.floor(Math.random() * 6) + 1;
+    }
+    return squawk;
+  };
+
+  const handleRegenerateSquawk = (flightId: string | number) => {
+    const newSquawk = generateRandomSquawk();
+    setSquawkValues((prev) => ({ ...prev, [flightId]: newSquawk }));
     if (onFlightChange) {
-      onFlightChange(flightId, { squawk });
+      onFlightChange(flightId, { squawk: newSquawk });
     }
   };
 
@@ -299,6 +355,9 @@ export default function ArrivalsTable({
                 {arrivalsColumns.cfl !== false && (
                   <th className="py-2.5 px-4 text-left">CFL</th>
                 )}
+                {arrivalsColumns.route !== false && (
+                  <th className="py-2.5 px-4 text-left column-route">ROUTE</th>
+                )}
                 {arrivalsColumns.squawk !== false && (
                   <th className="py-2.5 px-4 text-left w-28">ASSR</th>
                 )}
@@ -308,12 +367,7 @@ export default function ArrivalsTable({
                 {arrivalsColumns.remark !== false && (
                   <th className="py-2.5 px-4 text-left w-64 column-rmk">RMK</th>
                 )}
-                {arrivalsColumns.route !== false && (
-                  <th className="py-2.5 px-4 text-left column-route">ROUTE</th>
-                )}
-                {arrivalsColumns.hide !== false && (
-                  <th className="py-2.5 px-4 text-left column-hide">HIDE</th>
-                )}
+                <th className="py-2.5 px-4 text-left w-16">MORE</th>
               </tr>
             </thead>
             <tbody>
@@ -443,23 +497,55 @@ export default function ArrivalsTable({
                         />
                       </td>
                     )}
+                    {arrivalsColumns.route !== false && (
+                      <td className="py-2 px-4 column-route">
+                        <button
+                          className={`px-2 py-1 rounded transition-colors ${
+                            flight.route && flight.route.trim()
+                              ? 'text-gray-400 hover:text-blue-500'
+                              : 'text-red-500 cursor-not-allowed'
+                          }`}
+                          onClick={() => handleRouteOpen(flight)}
+                          title={
+                            flight.route && flight.route.trim()
+                              ? 'View Route'
+                              : 'No route specified'
+                          }
+                          disabled={!flight.route || !flight.route.trim()}
+                        >
+                          <Route />
+                        </button>
+                      </td>
+                    )}
                     {arrivalsColumns.squawk !== false && (
                       <td className="py-2 px-4">
-                        <TextInput
-                          value={flight.squawk || ''}
-                          onChange={(value) =>
-                            handleSquawkChange(flight.id, value)
-                          }
-                          className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white"
-                          placeholder="-"
-                          maxLength={4}
-                          pattern="[0-9]*"
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter') {
-                              e.currentTarget.blur();
+                        <div className="flex items-center gap-0.5 w-full">
+                          <TextInput
+                            value={
+                              squawkValues[flight.id] ?? (flight.squawk || '')
                             }
-                          }}
-                        />
+                            onChange={(value) =>
+                              debouncedHandleSquawkChange(flight.id, value)
+                            }
+                            className="bg-transparent border-none focus:bg-gray-800 px-1 rounded text-white w-full min-w-0"
+                            placeholder="-"
+                            maxLength={4}
+                            pattern="[0-9]*"
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                e.currentTarget.blur();
+                              }
+                            }}
+                          />
+                          <button
+                            onClick={() => handleRegenerateSquawk(flight.id)}
+                            className="text-gray-400 hover:text-blue-500 rounded transition-colors flex-shrink-0 ml-0.5"
+                            title="Generate new squawk"
+                            type="button"
+                          >
+                            <RefreshCw className="w-2.5 h-2.5" />
+                          </button>
+                        </div>
                       </td>
                     )}
                     {arrivalsColumns.status !== false && (
@@ -493,41 +579,78 @@ export default function ArrivalsTable({
                         />
                       </td>
                     )}
-                    {arrivalsColumns.route !== false && (
-                      <td className="py-2 px-4 column-route">
-                        <button
-                          className={`px-2 py-1 rounded transition-colors ${
-                            flight.route && flight.route.trim()
-                              ? 'text-gray-400 hover:text-blue-500'
-                              : 'text-red-500 cursor-not-allowed'
-                          }`}
-                          onClick={() => handleRouteOpen(flight)}
-                          title={
-                            flight.route && flight.route.trim()
-                              ? 'View Route'
-                              : 'No route specified'
+                    <td className="py-2 px-4 relative">
+                      <button
+                        type="button"
+                        ref={(el) => {
+                          if (el) {
+                            buttonRefs.current[flight.id] = el;
                           }
-                          disabled={!flight.route || !flight.route.trim()}
-                        >
-                          <Route />
-                        </button>
-                      </td>
-                    )}
-                    {arrivalsColumns.hide !== false && (
-                      <td className="py-2 px-4 column-hide">
-                        <button
-                          title={flight.hidden ? 'Unhide' : 'Hide'}
-                          className="text-gray-400 hover:text-blue-500"
-                          onClick={() =>
-                            flight.hidden
-                              ? handleUnhideFlight(flight.id)
-                              : handleHideFlight(flight.id)
-                          }
-                        >
-                          {flight.hidden ? <Eye /> : <EyeOff />}
-                        </button>
-                      </td>
-                    )}
+                        }}
+                        className="flex items-center justify-center w-full text-gray-400 hover:text-white transition-colors"
+                        onClick={() => setOpenDropdownId(openDropdownId === flight.id ? null : flight.id)}
+                        title="Actions"
+                      >
+                        <MoreVertical className="h-5 w-5" strokeWidth={2.5} />
+                      </button>
+                      {openDropdownId === flight.id && createPortal(
+                        <>
+                          <div
+                            className="fixed inset-0"
+                            style={{ zIndex: 9997 }}
+                            onClick={() => setOpenDropdownId(null)}
+                          />
+                          <div
+                            className="fixed w-40 bg-gray-800 border border-blue-600 rounded-2xl shadow-lg py-1"
+                            style={{
+                              zIndex: 9998,
+                              top: (() => {
+                                const btn = buttonRefs.current[flight.id];
+                                if (btn) {
+                                  const rect = btn.getBoundingClientRect();
+                                  return `${rect.bottom + 4}px`;
+                                }
+                                return '0px';
+                              })(),
+                              left: (() => {
+                                const btn = buttonRefs.current[flight.id];
+                                if (btn) {
+                                  const rect = btn.getBoundingClientRect();
+                                  return `${rect.right - 160}px`;
+                                }
+                                return '0px';
+                              })(),
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-600 hover:text-white flex items-center gap-2"
+                              onClick={() => {
+                                flight.hidden
+                                  ? handleUnhideFlight(flight.id)
+                                  : handleHideFlight(flight.id);
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              {flight.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                              {flight.hidden ? 'Unhide' : 'Hide'}
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-blue-600 hover:text-white flex items-center gap-2"
+                              onClick={() => {
+                                handleDeleteClick(flight.id);
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </>,
+                        document.body
+                      )}
+                    </td>
                   </tr>
                 );
               })}
@@ -541,6 +664,17 @@ export default function ArrivalsTable({
         onClose={handleRouteClose}
         flight={selectedFlight}
         onFlightChange={onFlightChange}
+      />
+
+      <ConfirmationDialog
+        isOpen={deleteConfirmOpen}
+        onConfirm={handleConfirmDelete}
+        onCancel={handleCancelDelete}
+        title="Delete Flight Plan"
+        description="This will delete the flight plan for all controllers and is not recommended if you are handing the strip off. It's recommended to hide it instead."
+        confirmText="Delete Anyway"
+        cancelText="Cancel"
+        variant="danger"
       />
     </div>
   );

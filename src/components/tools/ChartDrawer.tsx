@@ -735,9 +735,17 @@ export default function ChartDrawer({
                             accentColor="green"
                             key={chart.path}
                             onClick={() => setSelectedChart(chart.path)}
-                            className="w-full p-2.5 flex-col items-start justify-start"
+                            className={`w-full p-2.5 flex-col items-start justify-start ${
+                              selectedChart === chart.path
+                                ? 'bg-green-600/20 !border-green-500 !border-2'
+                                : ''
+                            }`}
                           >
-                            <div className="text-sm font-medium text-white group-hover:text-green-400 transition-colors line-clamp-1">
+                            <div className={`text-sm font-medium transition-colors line-clamp-1 ${
+                              selectedChart === chart.path
+                                ? 'text-green-400'
+                                : 'text-white group-hover:text-green-400'
+                            }`}>
                               {chart.name}
                             </div>
                             <div className="text-xs text-zinc-400 mt-0.5">
@@ -766,9 +774,17 @@ export default function ChartDrawer({
                             accentColor="blue"
                             key={chart.path}
                             onClick={() => setSelectedChart(chart.path)}
-                            className="w-full p-2.5 flex-col items-start justify-start"
+                            className={`w-full p-2.5 flex-col items-start justify-start ${
+                              selectedChart === chart.path
+                                ? 'bg-blue-600/20 !border-blue-500 !border-2'
+                                : ''
+                            }`}
                           >
-                            <div className="text-sm font-medium text-white group-hover:text-blue-400 transition-colors line-clamp-1">
+                            <div className={`text-sm font-medium transition-colors line-clamp-1 ${
+                              selectedChart === chart.path
+                                ? 'text-blue-400'
+                                : 'text-white group-hover:text-blue-400'
+                            }`}>
                               {chart.name}
                             </div>
                             <div className="text-xs text-zinc-400 mt-0.5">
@@ -802,9 +818,17 @@ export default function ChartDrawer({
                                 accentColor="purple"
                                 key={chart.path}
                                 onClick={() => setSelectedChart(chart.path)}
-                                className="w-full p-2.5 flex-col items-start justify-start"
+                                className={`w-full p-2.5 flex-col items-start justify-start ${
+                                  selectedChart === chart.path
+                                    ? 'bg-purple-600/20 !border-purple-500 !border-2'
+                                    : ''
+                                }`}
                               >
-                                <div className="text-sm font-medium text-white group-hover:text-purple-400 transition-colors line-clamp-1">
+                                <div className={`text-sm font-medium transition-colors line-clamp-1 ${
+                                  selectedChart === chart.path
+                                    ? 'text-purple-400'
+                                    : 'text-white group-hover:text-purple-400'
+                                }`}>
                                   {chart.name}
                                 </div>
                                 <div className="text-xs text-zinc-400 mt-0.5">
@@ -851,9 +875,17 @@ export default function ChartDrawer({
                                   accentColor="gray"
                                   key={chart.path}
                                   onClick={() => setSelectedChart(chart.path)}
-                                  className="w-full p-2.5 flex-col items-start justify-start"
+                                  className={`w-full p-2.5 flex-col items-start justify-start ${
+                                    selectedChart === chart.path
+                                      ? 'bg-zinc-600/20 !border-white !border-2'
+                                      : ''
+                                  }`}
                                 >
-                                  <div className="text-sm font-medium text-white group-hover:text-zinc-300 transition-colors line-clamp-1">
+                                  <div className={`text-sm font-medium transition-colors line-clamp-1 ${
+                                    selectedChart === chart.path
+                                      ? 'text-zinc-300'
+                                      : 'text-white group-hover:text-zinc-300'
+                                  }`}>
                                     {chart.name}
                                   </div>
                                   <div className="text-xs text-zinc-400 mt-0.5">

@@ -72,7 +72,8 @@ function validateFlightFields(updates: Partial<FlightsDatabase>) {
         throw new Error('Stand must be 8 characters or less');
     }
     if (typeof updates.squawk === "string") {
-        if ((updates.squawk as string).length > 4 || !/^\d{1,4}$/.test(updates.squawk as string)) {
+        const squawk = updates.squawk as string;
+        if (squawk.length > 0 && (squawk.length > 4 || !/^\d{1,4}$/.test(squawk))) {
             throw new Error('Squawk must be up to 4 numeric digits');
         }
     }

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useMediaQuery } from 'react-responsive';
 import {
   EyeOff,
@@ -8,6 +9,7 @@ import {
   RefreshCw,
   Route,
   GripVertical,
+  MoreVertical,
 } from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { DepartureTableColumnSettings } from '../../types/settings';
@@ -87,6 +89,8 @@ export default function DepartureTable({
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
   const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
   const [flightToDelete, setFlightToDelete] = useState<string | number | null>(null);
+  const [openDropdownId, setOpenDropdownId] = useState<string | number | null>(null);
+  const buttonRefs = useRef<Record<string | number, HTMLButtonElement | null>>({});
   const isMobile = useMediaQuery({ maxWidth: 1000 });
 
   const [remarkValues, setRemarkValues] = useState<
@@ -537,6 +541,9 @@ export default function DepartureTable({
                 {departureColumns.cfl !== false && (
                   <th className="py-2.5 px-4 text-left column-cfl">CFL</th>
                 )}
+                {departureColumns.route !== false && (
+                  <th className="py-2.5 px-4 text-left column-route">RTE</th>
+                )}
                 {departureColumns.squawk !== false && (
                   <th className="py-2.5 px-4 text-left w-28">ASSR</th>
                 )}
@@ -549,18 +556,10 @@ export default function DepartureTable({
                 {departureColumns.remark !== false && (
                   <th className="py-2.5 px-4 text-left w-64 column-rmk">RMK</th>
                 )}
-                {departureColumns.route !== false && (
-                  <th className="py-2.5 px-4 text-left column-route">RTE</th>
-                )}
                 {departureColumns.pdc !== false && (
                   <th className="py-2.5 px-4 text-left column-pdc">PDC</th>
                 )}
-                {departureColumns.hide !== false && (
-                  <th className="py-2.5 px-4 text-left column-hide">HIDE</th>
-                )}
-                {departureColumns.delete !== false && (
-                  <th className="py-2.5 px-4 text-left column-del">DEL</th>
-                )}
+                <th className="py-2.5 px-4 text-left w-16">MORE</th>
               </tr>
             </thead>
             <tbody>
@@ -755,6 +754,26 @@ export default function DepartureTable({
                         />
                       </td>
                     )}
+                    {departureColumns.route !== false && (
+                      <td className="py-2 px-4 column-route">
+                        <button
+                          className={`px-2 py-1 rounded transition-colors ${
+                            flight.route && flight.route.trim()
+                              ? 'text-gray-400 hover:text-blue-500'
+                              : 'text-red-500 cursor-not-allowed'
+                          }`}
+                          onClick={() => handleRouteOpen(flight)}
+                          title={
+                            flight.route && flight.route.trim()
+                              ? 'View Route'
+                              : 'No route specified'
+                          }
+                          disabled={!flight.route || !flight.route.trim()}
+                        >
+                          <Route />
+                        </button>
+                      </td>
+                    )}
                     {departureColumns.squawk !== false && (
                       <td className="py-2 px-4">
                         <div className="flex items-center gap-0.5 w-full">
@@ -844,26 +863,6 @@ export default function DepartureTable({
                         />
                       </td>
                     )}
-                    {departureColumns.route !== false && (
-                      <td className="py-2 px-4 column-route">
-                        <button
-                          className={`px-2 py-1 rounded transition-colors ${
-                            flight.route && flight.route.trim()
-                              ? 'text-gray-400 hover:text-blue-500'
-                              : 'text-red-500 cursor-not-allowed'
-                          }`}
-                          onClick={() => handleRouteOpen(flight)}
-                          title={
-                            flight.route && flight.route.trim()
-                              ? 'View Route'
-                              : 'No route specified'
-                          }
-                          disabled={!flight.route || !flight.route.trim()}
-                        >
-                          <Route />
-                        </button>
-                      </td>
-                    )}
                     {departureColumns.pdc !== false && (
                       <td className="py-2 px-4 column-pdc">
                         <button
@@ -879,32 +878,80 @@ export default function DepartureTable({
                         </button>
                       </td>
                     )}
-                    {departureColumns.hide !== false && (
-                      <td className="py-2 px-4 column-hide">
-                        <button
-                          title={flight.hidden ? 'Unhide' : 'Hide'}
-                          className="text-gray-400 hover:text-blue-500"
-                          onClick={() =>
-                            flight.hidden
-                              ? handleUnhideFlight(flight.id)
-                              : handleHideFlight(flight.id)
+                    <td className="py-2 px-4 relative">
+                      <button
+                        type="button"
+                        ref={(el) => {
+                          if (el) {
+                            buttonRefs.current[flight.id] = el;
                           }
-                        >
-                          {flight.hidden ? <Eye /> : <EyeOff />}
-                        </button>
-                      </td>
-                    )}
-                    {departureColumns.delete !== false && (
-                      <td className="py-2 px-4 column-del">
-                        <button
-                          title="Delete"
-                          className="text-gray-400 hover:text-red-500 edit-del"
-                          onClick={() => handleDeleteClick(flight.id)}
-                        >
-                          <Trash2 />
-                        </button>
-                      </td>
-                    )}
+                        }}
+                        className="flex items-center justify-center w-full text-gray-400 hover:text-white transition-colors"
+                        onClick={() => {
+                          setOpenDropdownId(openDropdownId === flight.id ? null : flight.id);
+                        }}
+                        title="Actions"
+                      >
+                        <MoreVertical className="h-5 w-5" strokeWidth={2.5} />
+                      </button>
+                      {openDropdownId === flight.id && createPortal(
+                        <>
+                          <div
+                            className="fixed inset-0"
+                            style={{ zIndex: 9997 }}
+                            onClick={() => setOpenDropdownId(null)}
+                          />
+                          <div
+                            className="fixed w-40 bg-gray-800 border border-blue-600 rounded-2xl shadow-lg py-1"
+                            style={{
+                              zIndex: 9998,
+                              top: (() => {
+                                const btn = buttonRefs.current[flight.id];
+                                if (btn) {
+                                  const rect = btn.getBoundingClientRect();
+                                  return `${rect.bottom + 4}px`;
+                                }
+                                return '0px';
+                              })(),
+                              left: (() => {
+                                const btn = buttonRefs.current[flight.id];
+                                if (btn) {
+                                  const rect = btn.getBoundingClientRect();
+                                  return `${rect.right - 160}px`;
+                                }
+                                return '0px';
+                              })(),
+                            }}
+                          >
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm hover:bg-blue-600 hover:text-white flex items-center gap-2"
+                              onClick={() => {
+                                flight.hidden
+                                  ? handleUnhideFlight(flight.id)
+                                  : handleHideFlight(flight.id);
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              {flight.hidden ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                              {flight.hidden ? 'Unhide' : 'Hide'}
+                            </button>
+                            <button
+                              type="button"
+                              className="w-full text-left px-3 py-2 text-sm text-red-400 hover:bg-blue-600 hover:text-white flex items-center gap-2"
+                              onClick={() => {
+                                handleDeleteClick(flight.id);
+                                setOpenDropdownId(null);
+                              }}
+                            >
+                              <Trash2 className="w-4 h-4" />
+                              Delete
+                            </button>
+                          </div>
+                        </>,
+                        document.body
+                      )}
+                    </td>
                   </tr>
                 );
               })}
