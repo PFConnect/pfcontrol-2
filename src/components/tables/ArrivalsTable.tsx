@@ -6,9 +6,9 @@ import {
   Eye,
   Route,
   GripVertical,
-  MoreVertical,
   Trash2,
   RefreshCw,
+  Menu,
 } from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { ArrivalsTableColumnSettings } from '../../types/settings';
@@ -27,6 +27,7 @@ interface ArrivalsTableProps {
     flightId: string | number,
     updates: Partial<Flight>
   ) => void;
+  onFlightDelete?: (flightId: string | number) => void;
   backgroundStyle?: React.CSSProperties;
   arrivalsColumns?: ArrivalsTableColumnSettings;
 }
@@ -34,6 +35,7 @@ interface ArrivalsTableProps {
 export default function ArrivalsTable({
   flights,
   onFlightChange,
+  onFlightDelete,
   backgroundStyle,
   arrivalsColumns = {
     time: true,
@@ -200,8 +202,12 @@ export default function ArrivalsTable({
   };
 
   const handleConfirmDelete = () => {
-    if (flightToDelete !== null && onFlightChange) {
-      onFlightChange(flightToDelete, { deleted: true } as Partial<Flight>);
+    if (flightToDelete !== null) {
+      if (onFlightDelete) {
+        onFlightDelete(flightToDelete);
+      } else if (onFlightChange) {
+        onFlightChange(flightToDelete, { deleted: true } as Partial<Flight>);
+      }
       setFlightToDelete(null);
     }
     setDeleteConfirmOpen(false);
@@ -433,7 +439,7 @@ export default function ArrivalsTable({
                       </td>
                     )}
                     {arrivalsColumns.gate !== false && (
-                      <td className="py-2 px-4 column-gate">
+                      <td className="py-2 px-2 column-gate">
                         <TextInput
                           value={flight.gate || ''}
                           onChange={(value) =>
@@ -466,21 +472,21 @@ export default function ArrivalsTable({
                       <td className="py-2 px-4">{flight.flight_type || '-'}</td>
                     )}
                     {arrivalsColumns.departure !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-2">
                         <span className="text-white font-mono">
                           {flight.departure || '-'}
                         </span>
                       </td>
                     )}
                     {arrivalsColumns.runway !== false && (
-                      <td className="py-2 px-4 column-rwy">
+                      <td className="py-2 px-2 column-rwy">
                         <span className="text-white font-mono">
                           {flight.runway || '-'}
                         </span>
                       </td>
                     )}
                     {arrivalsColumns.star !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-2">
                         <StarDropdown
                           airportIcao={flight.arrival || ''}
                           value={flight.star}
@@ -491,14 +497,14 @@ export default function ArrivalsTable({
                       </td>
                     )}
                     {arrivalsColumns.rfl !== false && (
-                      <td className="py-2 px-4 column-rfl">
+                      <td className="py-2 px-2 column-rfl">
                         <span className="text-white font-mono">
                           {flight.cruisingFL || '-'}
                         </span>
                       </td>
                     )}
                     {arrivalsColumns.cfl !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-2">
                         <AltitudeDropdown
                           value={flight.clearedFL}
                           onChange={(alt) =>
@@ -510,7 +516,7 @@ export default function ArrivalsTable({
                       </td>
                     )}
                     {arrivalsColumns.route !== false && (
-                      <td className="py-2 px-4 column-route">
+                      <td className="py-2 px-2 column-route">
                         <button
                           className={`px-2 py-1 rounded transition-colors ${
                             flight.route && flight.route.trim()
@@ -529,7 +535,7 @@ export default function ArrivalsTable({
                       </td>
                     )}
                     {arrivalsColumns.squawk !== false && (
-                      <td className="py-2 px-4">
+                      <td className="py-2 px-2">
                         <div className="flex items-center gap-0.5 w-full">
                           <TextInput
                             value={
@@ -590,7 +596,7 @@ export default function ArrivalsTable({
                         />
                       </td>
                     )}
-                    <td className="py-2 px-4 relative">
+                    <td className="py-2 px-2 relative">
                       <button
                         type="button"
                         ref={(el) => {
@@ -606,7 +612,7 @@ export default function ArrivalsTable({
                         }
                         title="Actions"
                       >
-                        <MoreVertical className="h-5 w-5" strokeWidth={2.5} />
+                        <Menu className="h-6 w-6" strokeWidth={2.5} />
                       </button>
                       {openDropdownId === flight.id &&
                         createPortal(

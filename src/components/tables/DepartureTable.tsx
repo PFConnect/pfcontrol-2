@@ -9,7 +9,7 @@ import {
   RefreshCw,
   Route,
   GripVertical,
-  List,
+  Menu,
 } from 'lucide-react';
 import type { Flight } from '../../types/flight';
 import type { DepartureTableColumnSettings } from '../../types/settings';
@@ -899,7 +899,7 @@ export default function DepartureTable({
                         }}
                         title="Actions"
                       >
-                        <List className="h-5 w-5" strokeWidth={2.5} />
+                        <Menu className="h-6 w-6" strokeWidth={2.5} />
                       </button>
                       {openDropdownId === flight.id &&
                         createPortal(
