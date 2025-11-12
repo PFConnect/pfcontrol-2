@@ -134,7 +134,7 @@ export default function Dropdown({
   const dropdownContent = isOpen && (
     <div
       ref={dropdownRef}
-      className={`fixed bg-gray-800 border border-blue-600 rounded-2xl shadow-lg py-1 ${maxHeight} overflow-y-scroll`}
+      className={`fixed bg-gray-800 border-2 border-blue-600 rounded-2xl shadow-lg py-1 ${maxHeight} overflow-y-scroll`}
       style={{
         top: `${dropdownPosition.top}px`,
         left: `${dropdownPosition.left}px`,
