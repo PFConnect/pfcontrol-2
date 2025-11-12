@@ -19,7 +19,7 @@ export default function StarDropdown({
 	placeholder = 'Select STAR',
 	disabled = false
 }: StarDropdownProps) {
-	const [starsCache, setStarsCache] = useState<Record<string, string[]>>({});
+	const [stars, setStars] = useState<string[]>([]);
 	const [isLoading, setIsLoading] = useState(false);
 	const [fetchedAirports, setFetchedAirports] = useState<Set<string>>(
 		new Set()
@@ -30,21 +30,16 @@ export default function StarDropdown({
 			setIsLoading(true);
 			fetchStars(airportIcao)
 				.then((starData) => {
-					setStarsCache((prev) => ({
-						...prev,
-						[airportIcao]: starData
-					}));
+					setStars(starData);
 					setFetchedAirports((prev) =>
 						new Set(prev).add(airportIcao)
 					);
 				})
 				.finally(() => setIsLoading(false));
+		} else if (!airportIcao) {
+			setStars([]);
 		}
 	}, [airportIcao, fetchedAirports]);
-
-	const stars = useMemo(() => {
-		return airportIcao ? (starsCache[airportIcao] || []) : [];
-	}, [starsCache, airportIcao]);
 
 	const dropdownOptions = useMemo(() => {
 		return stars.map((star) => ({

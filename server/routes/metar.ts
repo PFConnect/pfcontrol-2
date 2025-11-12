@@ -50,7 +50,7 @@ router.get('/:icao', async (req, res) => {
 
         if (!response.ok) {
             if (response.status === 404) {
-                return res.status(204).json({ error: 'No METAR data available for this airport' });
+                return res.status(404).json({ error: 'No METAR data available for this airport' });
             }
             return res.status(response.status).json({ error: 'Failed to fetch METAR data' });
         }
@@ -58,7 +58,7 @@ router.get('/:icao', async (req, res) => {
         const text = await response.text();
         if (!text || text.trim() === '') {
             console.warn(`Empty response for ${icao} - Status: ${response.status}, Headers:`, Object.fromEntries(response.headers.entries()));
-            return res.status(204).json({ error: `Empty response for ${icao}. No METAR found` });
+            return res.status(404).json({ error: 'No METAR data found' });
         }
 
         let data;

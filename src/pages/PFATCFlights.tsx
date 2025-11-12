@@ -14,11 +14,11 @@ import {
   Radio,
   PlaneLanding,
   PlaneTakeoff,
-  Menu,
 } from 'lucide-react';
 import { createOverviewSocket } from '../sockets/overviewSocket';
 import { createFlightsSocket } from '../sockets/flightsSocket';
 import { createSectorControllerSocket } from '../sockets/sectorControllerSocket';
+import { updateFlight as updateFlightAPI } from '../utils/fetch/flights';
 import { useAuth } from '../hooks/auth/useAuth';
 import { getChartsForAirport } from '../utils/acars';
 import { createChartHandlers } from '../utils/charts';
@@ -30,7 +30,6 @@ import FrequencyDisplay from '../components/tools/FrequencyDisplay';
 import ChartDrawer from '../components/tools/ChartDrawer';
 import ContactAcarsSidebar from '../components/tools/ContactAcarsSidebar';
 import ChatSidebar from '../components/tools/ChatSidebar';
-import FlightDetailsModal from '../components/tools/FlightDetailsModal';
 import Button from '../components/common/Button';
 import Dropdown from '../components/common/Dropdown';
 import TextInput from '../components/common/TextInput';
@@ -42,18 +41,17 @@ import SidDropdown from '../components/dropdowns/SidDropdown';
 import StarDropdown from '../components/dropdowns/StarDropdown';
 import Loader from '../components/common/Loader';
 import ErrorScreen from '../components/common/ErrorScreen';
-import Toast from '../components/common/Toast';
-import type { ToastType } from '../components/common/Toast';
-
-interface ToastNotification {
-  id: number;
-  message: string;
-  type: ToastType;
-}
 
 interface FlightWithDetails extends Flight {
   sessionId: string;
   departureAirport: string;
+}
+
+interface EditingState {
+  flightId: string | number;
+  field: string;
+  value: string;
+  originalValue: string;
 }
 
 export default function PFATCFlights() {
@@ -65,9 +63,11 @@ export default function PFATCFlights() {
   const [selectedAirport, setSelectedAirport] = useState<string>('');
   const [selectedStatus, setSelectedStatus] = useState<string>('');
   const [selectedFlightType, setSelectedFlightType] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'time' | 'callsign' | 'airport'>('time');
   const [expandedAirports, setExpandedAirports] = useState<Set<string>>(
     new Set()
   );
+  const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [debounceTimers, setDebounceTimers] = useState<
     Map<string, NodeJS.Timeout>
   >(new Map());
@@ -97,26 +97,10 @@ export default function PFATCFlights() {
     Set<string | number>
   >(new Set());
   const [eventControllerViewEnabled, setEventControllerViewEnabled] =
-    useState(true); // Default to true for event controllers
+    useState(false);
 
   const [chatOpen, setChatOpen] = useState(false);
   const [unreadMentions, setUnreadMentions] = useState(0);
-
-  const [selectedFlightForDetails, setSelectedFlightForDetails] = useState<Flight | null>(null);
-  const [isFlightDetailsModalOpen, setIsFlightDetailsModalOpen] = useState(false);
-
-  const [toasts, setToasts] = useState<ToastNotification[]>([]);
-  const [toastIdCounter, setToastIdCounter] = useState(0);
-
-  const showToast = useCallback((message: string, type: ToastType = 'info') => {
-    const id = toastIdCounter;
-    setToastIdCounter(prev => prev + 1);
-    setToasts(prev => [...prev, { id, message, type }]);
-  }, [toastIdCounter]);
-
-  const removeToast = useCallback((id: number) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
-  }, []);
 
   useEffect(() => {
     if (chatOpen) {
@@ -168,35 +152,28 @@ export default function PFATCFlights() {
   useEffect(() => {
     const socket = createOverviewSocket(
       (data) => {
-        // Optimize: Use Map for O(1) lookups instead of find() which is O(n)
-        const flightToSessionMap = new Map<string | number, string>();
-
-        if (data.activeSessions) {
-          for (const session of data.activeSessions) {
-            for (const flight of session.flights) {
-              flightToSessionMap.set(flight.id, session.sessionId);
-            }
-          }
-        }
-
         const transformedArrivalsByAirport: Record<
           string,
           (Flight & { sessionId: string; departureAirport: string })[]
         > = {};
 
-        if (data.arrivalsByAirport) {
+        if (data.arrivalsByAirport && data.activeSessions) {
           for (const [icao, flights] of Object.entries(
             data.arrivalsByAirport
           )) {
-            transformedArrivalsByAirport[icao] = flights.map((flight) => ({
-              ...flight,
-              sessionId: flightToSessionMap.get(flight.id) || '',
-              departureAirport: flight.departure || '',
-            }));
+            transformedArrivalsByAirport[icao] = flights.map((flight) => {
+              const session = data.activeSessions.find((s) =>
+                s.flights.some((f) => f.id === flight.id)
+              );
+              return {
+                ...flight,
+                sessionId: session?.sessionId || '',
+                departureAirport: flight.departure || '',
+              };
+            });
           }
         }
 
-        // Only update overview data - optimistic updates will overlay on top
         setOverviewData({
           ...data,
           arrivalsByAirport: transformedArrivalsByAirport,
@@ -216,35 +193,18 @@ export default function PFATCFlights() {
     };
   }, []);
 
-  // Memoize session IDs to prevent unnecessary socket recreation
-  const activeSessionIds = useMemo(() => {
-    if (!overviewData?.activeSessions) return [];
-    return overviewData.activeSessions
-      .filter((s) => !s.sessionId.startsWith('sector-'))
-      .map((s) => s.sessionId)
-      .sort(); // Sort for consistent comparison
-  }, [overviewData?.activeSessions?.map(s => s.sessionId).join(',')]);
-
-  // Create flight sockets for all sessions only when a station is selected
   useEffect(() => {
-    if (!isEventController || !selectedStation || activeSessionIds.length === 0 || !user?.userId) {
-      // Clean up all sockets if not editing
-      setFlightSockets((prevSockets) => {
-        for (const socket of prevSockets.values()) {
-          socket.socket.disconnect();
-        }
-        return new Map();
-      });
-      return;
-    }
+    if (!isEventController || !overviewData?.activeSessions) return;
 
-    // When a station is selected, create sockets for all airport sessions
-    const activeSessions = new Set(activeSessionIds);
+    const realSessions = overviewData.activeSessions.filter(
+      (s) => !s.sessionId.startsWith('sector-')
+    );
+
+    const activeSessions = new Set(realSessions.map((s) => s.sessionId));
 
     setFlightSockets((prevSockets) => {
       const currentSockets = new Map(prevSockets);
 
-      // Disconnect sockets for sessions that no longer exist
       for (const [sessionId, socket] of currentSockets) {
         if (!activeSessions.has(sessionId)) {
           socket.socket.disconnect();
@@ -252,22 +212,20 @@ export default function PFATCFlights() {
         }
       }
 
-      // Create sockets for new sessions
-      for (const sessionId of activeSessionIds) {
-        if (!currentSockets.has(sessionId)) {
+      for (const session of realSessions) {
+        if (!currentSockets.has(session.sessionId)) {
           try {
             const socket = createFlightsSocket(
-              sessionId,
+              session.sessionId,
               '',
-              user.userId,
-              user.username || '',
+              user?.userId || '',
+              user?.username || '',
               (flight: Flight) => {
-                // Update data first, then clear optimistic updates in the same tick
                 setOverviewData((prev) => {
                   if (!prev) return prev;
 
                   const updatedSessions = prev.activeSessions.map((s) => {
-                    if (s.sessionId === sessionId) {
+                    if (s.sessionId === session.sessionId) {
                       return {
                         ...s,
                         flights: s.flights.map((f) =>
@@ -283,72 +241,29 @@ export default function PFATCFlights() {
                     activeSessions: updatedSessions,
                   };
                 });
-
-                // Clear optimistic updates AFTER data is updated
-                setOptimisticUpdates((prev) => {
-                  const next = new Map(prev);
-                  // Remove all optimistic updates for this flight
-                  for (const key of prev.keys()) {
-                    if (key.startsWith(`${flight.id}-`)) {
-                      next.delete(key);
-                    }
-                  }
-                  return next;
-                });
               },
-              (flight: Flight) => {
-                setOverviewData((prev) => {
-                  if (!prev) return prev;
-
-                  const updatedSessions = prev.activeSessions.map((s) => {
-                    if (s.sessionId === sessionId) {
-                      return {
-                        ...s,
-                        flights: [...s.flights, flight],
-                      };
-                    }
-                    return s;
-                  });
-
-                  return {
-                    ...prev,
-                    activeSessions: updatedSessions,
-                  };
-                });
+              () => {
+                console.log(
+                  `Socket connected for session: ${session.sessionId}`
+                );
               },
-              (data: { flightId: string | number }) => {
-                setOverviewData((prev) => {
-                  if (!prev) return prev;
-
-                  const updatedSessions = prev.activeSessions.map((s) => {
-                    if (s.sessionId === sessionId) {
-                      return {
-                        ...s,
-                        flights: s.flights.filter((f) => f.id !== data.flightId),
-                      };
-                    }
-                    return s;
-                  });
-
-                  return {
-                    ...prev,
-                    activeSessions: updatedSessions,
-                  };
-                });
+              () => {
+                console.log(
+                  `Socket disconnected for session: ${session.sessionId}`
+                );
               },
               (error) => {
                 console.error(
-                  `Flight socket error for session ${sessionId}:`,
+                  `Flight socket error for session ${session.sessionId}:`,
                   error
                 );
               },
               true
             );
-            currentSockets.set(sessionId, socket);
-            console.log(`Flight socket created for session: ${sessionId}`);
+            currentSockets.set(session.sessionId, socket);
           } catch (error) {
             console.error(
-              `Failed to create socket for session ${sessionId}:`,
+              `Failed to create socket for session ${session.sessionId}:`,
               error
             );
           }
@@ -366,7 +281,8 @@ export default function PFATCFlights() {
         return new Map();
       });
     };
-  }, [isEventController, selectedStation, activeSessionIds, user?.userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isEventController, overviewData?.activeSessions, user?.userId]);
 
   useEffect(() => {
     if (!isContactSidebarOpen) return;
@@ -475,20 +391,16 @@ export default function PFATCFlights() {
   const activeAirports =
     overviewData?.activeSessions.map((session) => session.airportIcao) || [];
 
-  const allFlights: FlightWithDetails[] = useMemo(() => {
-    const flights: FlightWithDetails[] = [];
-    overviewData?.activeSessions.forEach((session) => {
-      session.flights.forEach((flight) => {
-        flights.push({
-          ...flight,
-          sessionId: session.sessionId,
-          departureAirport: session.airportIcao,
-        });
+  const allFlights: FlightWithDetails[] = [];
+  overviewData?.activeSessions.forEach((session) => {
+    session.flights.forEach((flight) => {
+      allFlights.push({
+        ...flight,
+        sessionId: session.sessionId,
+        departureAirport: session.airportIcao,
       });
     });
-    return flights;
-  }, [overviewData?.activeSessions]);
-
+  });
 
   const filteredFlights = allFlights.filter((flight) => {
     const matchesSearch =
@@ -547,6 +459,11 @@ export default function PFATCFlights() {
     { label: 'VFR', value: 'VFR' },
   ];
 
+  const sortOptions = [
+    { label: 'Sort by Time', value: 'time' },
+    { label: 'Sort by Callsign', value: 'callsign' },
+    { label: 'Sort by Airport', value: 'airport' },
+  ];
 
   const sectorStations = [
     { label: 'Select Station', value: '', frequency: '' },
@@ -632,13 +549,16 @@ export default function PFATCFlights() {
         if (socketData?.socket?.connected) {
           socketData.updateFlight(flightId, updates);
 
-          // Don't remove optimistic update here - wait for confirmed update from server
-          // The flightUpdated handler will clear it when the confirmed update arrives
+          // Remove optimistic update once we get confirmation
+          setOptimisticUpdates((prev) => {
+            const next = new Map(prev);
+            const key = `${flightId}-${field}`;
+            next.delete(key);
+            return next;
+          });
         } else {
           console.warn('Websocket not connected');
-          showToast('Not connected - please select a station first', 'error');
-
-          // Remove optimistic update if websocket is not connected
+          // Remove optimistic update and revert to original
           setOptimisticUpdates((prev) => {
             const next = new Map(prev);
             const key = `${flightId}-${field}`;
@@ -648,12 +568,7 @@ export default function PFATCFlights() {
         }
       } catch (error) {
         console.error('Failed to update flight:', error);
-
-        // Show error notification to user
-        const errorMessage = error instanceof Error ? error.message : 'Failed to update flight';
-        showToast(`Update failed: ${errorMessage}`, 'error');
-
-        // Remove optimistic update on error (revert to original value)
+        // Remove optimistic update on error
         setOptimisticUpdates((prev) => {
           const next = new Map(prev);
           const key = `${flightId}-${field}`;
@@ -669,41 +584,6 @@ export default function PFATCFlights() {
       }
     },
     [allFlights, flightSockets]
-  );
-
-  // Handler for batch updates from modals (FlightDetailsModal, RouteModal)
-  const handleFlightUpdate = useCallback(
-    async (flightId: string | number, updates: Partial<Flight>) => {
-      const flight = allFlights.find((f) => f.id === flightId);
-      if (!flight) {
-        console.error('Flight not found for editing');
-        return;
-      }
-
-      setUpdatingFlights((prev) => new Set(prev).add(String(flightId)));
-
-      try {
-        // Use websocket for real-time updates
-        const socketData = flightSockets.get(flight.sessionId);
-        if (socketData?.socket?.connected) {
-          socketData.updateFlight(flightId, updates);
-        } else {
-          console.warn('Websocket not connected');
-          showToast('Not connected - please select a station first', 'error');
-        }
-      } catch (error) {
-        console.error('Failed to update flight:', error);
-        const errorMessage = error instanceof Error ? error.message : 'Failed to update flight';
-        showToast(`Update failed: ${errorMessage}`, 'error');
-      } finally {
-        setUpdatingFlights((prev) => {
-          const next = new Set(prev);
-          next.delete(String(flightId));
-          return next;
-        });
-      }
-    },
-    [allFlights, flightSockets, showToast]
   );
 
   const handleFieldChange = useCallback(
@@ -754,8 +634,7 @@ export default function PFATCFlights() {
       const key = `${flight.id}-${field}`;
       const optimisticUpdate = optimisticUpdates.get(key);
       if (optimisticUpdate && field in optimisticUpdate) {
-        const value = optimisticUpdate[field as keyof Partial<Flight>];
-        return String(value || '');
+        return String(optimisticUpdate[field] || '');
       }
       return String((flight as any)[field] || '');
     },
@@ -822,7 +701,6 @@ export default function PFATCFlights() {
           showFullName={false}
           className="w-full"
           disabled={isDisabled}
-          excludeCenterPositions={field === 'arrival'}
         />
       );
     }
@@ -1207,9 +1085,6 @@ export default function PFATCFlights() {
                     <th className="px-6 py-4 text-left text-zinc-400 font-medium">
                       STAR
                     </th>
-                    <th className="px-6 py-4 text-center text-zinc-400 font-medium w-20">
-                      More
-                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -1268,18 +1143,6 @@ export default function PFATCFlights() {
                         </td>
                         <td className="px-6 py-4">
                           {renderEditableCell(flight, 'star', 'star')}
-                        </td>
-                        <td className="px-6 py-4 text-center">
-                          <button
-                            onClick={() => {
-                              setSelectedFlightForDetails(flight);
-                              setIsFlightDetailsModalOpen(true);
-                            }}
-                            className="p-2 hover:bg-zinc-700 rounded-lg transition-colors inline-flex items-center justify-center"
-                            title="View flight details"
-                          >
-                            <Menu className="w-5 h-5 text-zinc-400" />
-                          </button>
                         </td>
                       </tr>
                     ))
@@ -1536,27 +1399,6 @@ export default function PFATCFlights() {
         unreadSessionCount={0}
         unreadGlobalCount={0}
       />
-
-      {/* Flight Details Modal */}
-      <FlightDetailsModal
-        isOpen={isFlightDetailsModalOpen}
-        onClose={() => {
-          setIsFlightDetailsModalOpen(false);
-          setSelectedFlightForDetails(null);
-        }}
-        flight={selectedFlightForDetails}
-        onFlightChange={handleFlightUpdate}
-      />
-
-      {/* Toast notifications */}
-      {toasts.map((toast) => (
-        <Toast
-          key={toast.id}
-          message={toast.message}
-          type={toast.type}
-          onClose={() => removeToast(toast.id)}
-        />
-      ))}
     </div>
   );
 }
