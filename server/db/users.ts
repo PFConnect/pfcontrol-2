@@ -192,10 +192,10 @@ export async function createOrUpdateUser(userData: {
     layout: {
       showCombinedView: false,
       flightRowOpacity: 100,
-      chartDrawerViewMode: 'legacy'
+      chartDrawerViewMode: 'legacy' as const
     },
     departureTableColumns: {
-      time: true,
+      time: true as const,
       callsign: true,
       stand: true,
       aircraft: true,
@@ -216,7 +216,7 @@ export async function createOrUpdateUser(userData: {
       delete: true
     },
     arrivalsTableColumns: {
-      time: true,
+      time: true as const,
       callsign: true,
       gate: true,
       aircraft: true,
@@ -239,9 +239,9 @@ export async function createOrUpdateUser(userData: {
       terminalWidth: 50,
       notesWidth: 20
     },
+    notificationViewMode: 'legacy' as const,
     tutorialCompleted: false,
-    displayControllerStatsOnProfile: true,
-    displayPilotStatsOnProfile: true,
+    displayStatsOnProfile: true,
     displayLinkedAccountsOnProfile: true,
     hideFromLeaderboard: false,
     displayBackgroundOnProfile: true,
@@ -310,6 +310,7 @@ export async function updateUserSettings(id: string, settings: Settings) {
     .execute();
 
   await invalidateUserCache(id);
+  await invalidateUsernameCache(existingUser.username);
   return await getUserById(id);
 }
 
@@ -458,6 +459,7 @@ export async function updateTutorialStatus(id: string, completed: boolean) {
     .execute();
 
   await invalidateUserCache(id);
+  await invalidateUsernameCache(existingUser.username);
   return await getUserById(id);
 }
 
