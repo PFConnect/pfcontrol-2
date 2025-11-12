@@ -11,6 +11,7 @@ import type { FlightsDatabase } from '../db/types/connection/FlightsDatabase.js'
 import { incrementStat } from '../utils/statisticsCache.js';
 import { logFlightAction } from '../db/flightLogs.js';
 import { isEventController } from '../middleware/flightAccess.js';
+import { broadcastFlightUpdate } from './overviewWebsocket.js';
 
 interface FlightUpdateData {
     flightId: string | number;
@@ -183,6 +184,8 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
                 const updatedFlight = await updateFlight(sessionId, flightId as string, updates);
                 if (updatedFlight) {
                     io.to(sessionId).emit('flightUpdated', updatedFlight);
+                    
+                    broadcastFlightUpdate(sessionId, updatedFlight);
                     
                     await broadcastToArrivalSessions(updatedFlight);
 
