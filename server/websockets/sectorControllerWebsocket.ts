@@ -3,7 +3,6 @@ import type { Server as HttpServer } from 'http';
 import { redisConnection } from '../db/connection.js';
 import { getUserRoles } from '../db/roles.js';
 import { isAdmin } from '../middleware/admin.js';
-import { getOverviewIO } from './overviewWebsocket.js';
 import type { SessionUsersServer } from './sessionUsersWebsocket.js';
 
 interface SectorController {
@@ -90,18 +89,12 @@ export function setupSectorControllerWebsocket(httpServer: HttpServer, sessionUs
 
           await addSectorController(user.userId, sectorController);
 
-          // Broadcast to overview socket
-          const overviewIO = getOverviewIO();
-          if (overviewIO) {
-            setTimeout(async () => {
-              try {
-                const { getOverviewData } = await import('./overviewWebsocket.js');
-                const overviewData = await getOverviewData(sessionUsersIO);
-                overviewIO.emit('overviewData', overviewData);
-              } catch (error) {
-                console.error('Error broadcasting overview update:', error);
-              }
-            }, 100);
+          // Trigger overview update using the optimized function
+          try {
+            const { triggerOverviewUpdate } = await import('./overviewWebsocket.js');
+            await triggerOverviewUpdate(sessionUsersIO);
+          } catch (error) {
+            console.error('Error broadcasting overview update:', error);
           }
 
           socket.emit('stationSelected', { station });
@@ -116,18 +109,12 @@ export function setupSectorControllerWebsocket(httpServer: HttpServer, sessionUs
         try {
           await removeSectorController(user.userId);
 
-          // Broadcast to overview socket
-          const overviewIO = getOverviewIO();
-          if (overviewIO) {
-            setTimeout(async () => {
-              try {
-                const { getOverviewData } = await import('./overviewWebsocket.js');
-                const overviewData = await getOverviewData(sessionUsersIO);
-                overviewIO.emit('overviewData', overviewData);
-              } catch (error) {
-                console.error('Error broadcasting overview update:', error);
-              }
-            }, 100);
+          // Trigger overview update using the optimized function
+          try {
+            const { triggerOverviewUpdate } = await import('./overviewWebsocket.js');
+            await triggerOverviewUpdate(sessionUsersIO);
+          } catch (error) {
+            console.error('Error broadcasting overview update:', error);
           }
 
           socket.emit('stationDeselected');
@@ -139,18 +126,12 @@ export function setupSectorControllerWebsocket(httpServer: HttpServer, sessionUs
       socket.on('disconnect', async () => {
         await removeSectorController(user.userId);
 
-        // Broadcast to overview socket
-        const overviewIO = getOverviewIO();
-        if (overviewIO) {
-          setTimeout(async () => {
-            try {
-              const { getOverviewData } = await import('./overviewWebsocket.js');
-              const overviewData = await getOverviewData(sessionUsersIO);
-              overviewIO.emit('overviewData', overviewData);
-            } catch (error) {
-              console.error('Error broadcasting overview update:', error);
-            }
-          }, 100);
+        // Trigger overview update using the optimized function
+        try {
+          const { triggerOverviewUpdate } = await import('./overviewWebsocket.js');
+          await triggerOverviewUpdate(sessionUsersIO);
+        } catch (error) {
+          console.error('Error broadcasting overview update:', error);
         }
       });
     } catch (error) {

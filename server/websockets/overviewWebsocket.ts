@@ -2,12 +2,15 @@ import { Server as SocketServer } from 'socket.io';
 import { getAllSessions } from '../db/sessions.js';
 import { getFlightsBySessionWithTime } from '../db/flights.js';
 import { decrypt } from '../utils/encryption.js';
-import { getUserById } from '../db/users.js';
+import { getCachedUserDataBatch } from '../utils/userDataCache.js';
 import type { Server as HTTPServer } from 'http';
 import type { SessionUsersServer } from './sessionUsersWebsocket.js';
 
 let io: SocketServer;
-const activeOverviewClients = new Set<string>()
+const activeOverviewClients = new Set<string>();
+let lastBroadcastData: string | null = null;
+let lastBroadcastTime = 0;
+const MIN_BROADCAST_INTERVAL = 500; // Minimum 500ms between broadcasts (more responsive)
 
 export function setupOverviewWebsocket(httpServer: HTTPServer, sessionUsersIO: SessionUsersServer) {
     io = new SocketServer(httpServer, {
@@ -44,18 +47,51 @@ export function setupOverviewWebsocket(httpServer: HTTPServer, sessionUsersIO: S
         });
     });
 
+    // Reduced polling interval - main updates come from events
     setInterval(async () => {
         if (activeOverviewClients.size > 0) {
-            try {
-                const overviewData = await getOverviewData(sessionUsersIO);
-                io.emit('overviewData', overviewData);
-            } catch (error) {
-                console.error('Error broadcasting overview data:', error);
-            }
+            await broadcastOverviewData(sessionUsersIO);
         }
-    }, 10000); // Broadcast every 10 seconds
+    }, 2000); // Fallback polling every 2 seconds for maximum responsiveness
 
     return io;
+}
+
+/**
+ * Broadcast overview data with change detection and rate limiting
+ */
+async function broadcastOverviewData(sessionUsersIO: SessionUsersServer, force = false) {
+    try {
+        const now = Date.now();
+
+        // Rate limiting - don't broadcast too frequently
+        if (!force && (now - lastBroadcastTime) < MIN_BROADCAST_INTERVAL) {
+            return;
+        }
+
+        const overviewData = await getOverviewData(sessionUsersIO);
+        const dataString = JSON.stringify(overviewData);
+
+        // Change detection - only broadcast if data changed
+        if (!force && dataString === lastBroadcastData) {
+            return;
+        }
+
+        lastBroadcastData = dataString;
+        lastBroadcastTime = now;
+        io.emit('overviewData', overviewData);
+    } catch (error) {
+        console.error('Error broadcasting overview data:', error);
+    }
+}
+
+/**
+ * Trigger overview update (called by other websockets when flights change)
+ */
+export async function triggerOverviewUpdate(sessionUsersIO: SessionUsersServer) {
+    if (activeOverviewClients.size > 0) {
+        await broadcastOverviewData(sessionUsersIO);
+    }
 }
 
 export async function getOverviewData(sessionUsersIO: SessionUsersServer) { // Update parameter type
@@ -68,137 +104,119 @@ export async function getOverviewData(sessionUsersIO: SessionUsersServer) { // U
         const pfatcSessions = allSessions.filter(session => session.is_pfatc);
         const activeSessions = [];
 
+        // Collect all user IDs upfront for batch fetching
+        const allUserIds = new Set<string>();
+
+        // First pass: collect all user IDs
         for (const session of pfatcSessions) {
-            const sessionUsers = await sessionUsersIO.getActiveUsersForSession(session.session_id); // Use directly
-            const isActive = sessionUsers && sessionUsers.length > 0;
-
-            if (isActive) {
-                try {
-                    const flights = await getFlightsBySessionWithTime(session.session_id, 2);
-
-                    let atisData = null;
-                    if (session.atis) {
-                        try {
-                            const encryptedAtis = JSON.parse(session.atis);
-                            atisData = decrypt(encryptedAtis);
-                        } catch (err) {
-                            console.error('Error decrypting ATIS:', err);
-                        }
-                    }
-
-                    const controllers = await Promise.all(sessionUsers.map(async (user) => {
-                        let hasVatsimRating = false;
-                        let isEventController = false;
-                        let avatar = null;
-
-                        if (user.id) {
-                            try {
-                                const userData = await getUserById(user.id);
-                                hasVatsimRating = userData?.vatsim_rating_id && userData.vatsim_rating_id > 1;
-
-                                if (userData?.avatar) {
-                                    avatar = `https://cdn.discordapp.com/avatars/${user.id}/${userData.avatar}.png`;
-                                }
-
-                                if (user.roles) {
-                                    isEventController = user.roles.some(role => role.name === 'Event Controller');
-                                }
-                            } catch (err) {
-                                console.error('Error fetching user data for controller badges:', err);
-                            }
-                        }
-
-                        return {
-                            username: user.username || 'Unknown',
-                            role: user.position || 'APP',
-                            avatar,
-                            hasVatsimRating,
-                            isEventController
-                        };
-                    }));
-
-                    activeSessions.push({
-                        sessionId: session.session_id,
-                        airportIcao: session.airport_icao,
-                        activeRunway: session.active_runway,
-                        createdAt: session.created_at,
-                        createdBy: session.created_by,
-                        isPFATC: session.is_pfatc,
-                        activeUsers: sessionUsers.length,
-                        controllers: controllers,
-                        atis: atisData,
-                        flights: flights || [],
-                        flightCount: flights ? flights.length : 0
-                    });
-                } catch (error) {
-                    console.error(`Error fetching flights for session ${session.session_id}:`, error);
-
-                    const controllers = await Promise.all(sessionUsers.map(async (user) => {
-                        let avatar = null;
-
-                        if (user.id) {
-                            try {
-                                const userData = await getUserById(user.id);
-                                if (userData?.avatar) {
-                                    avatar = `https://cdn.discordapp.com/avatars/${user.id}/${userData.avatar}.png`;
-                                }
-                            } catch {
-                                // Ignore avatar fetch errors in fallback
-                            }
-                        }
-
-                        return {
-                            username: user.username || 'Unknown',
-                            role: user.position || 'APP',
-                            avatar,
-                            hasVatsimRating: false,
-                            isEventController: false
-                        };
-                    }));
-
-                    activeSessions.push({
-                        sessionId: session.session_id,
-                        airportIcao: session.airport_icao,
-                        activeRunway: session.active_runway,
-                        createdAt: session.created_at,
-                        createdBy: session.created_by,
-                        isPFATC: session.is_pfatc,
-                        activeUsers: sessionUsers.length,
-                        controllers: controllers,
-                        atis: null,
-                        flights: [],
-                        flightCount: 0
-                    });
-                }
+            const sessionUsers = await sessionUsersIO.getActiveUsersForSession(session.session_id);
+            if (sessionUsers && sessionUsers.length > 0) {
+                sessionUsers.forEach(user => {
+                    if (user.id) allUserIds.add(user.id);
+                });
             }
         }
 
-        // Add sector controllers as separate "sessions"
-        for (const sectorController of sectorControllers) {
-            let hasVatsimRating = false;
-            let isEventController = false;
-            let avatar = sectorController.avatar;
+        // Add sector controller IDs
+        sectorControllers.forEach(controller => {
+            if (controller.id) allUserIds.add(controller.id);
+        });
+
+        // Batch fetch all user data at once
+        const userDataMap = await getCachedUserDataBatch(Array.from(allUserIds));
+
+        // Second pass: build session data - parallelize flight fetching
+        const sessionDataPromises = pfatcSessions.map(async (session) => {
+            const sessionUsers = await sessionUsersIO.getActiveUsersForSession(session.session_id);
+            const isActive = sessionUsers && sessionUsers.length > 0;
+
+            if (!isActive) return null;
 
             try {
-                const userData = await getUserById(sectorController.id);
-                hasVatsimRating = userData?.vatsim_rating_id && userData.vatsim_rating_id > 1;
+                const flights = await getFlightsBySessionWithTime(session.session_id, 2);
 
-                if (userData?.avatar && !avatar) {
-                    avatar = `https://cdn.discordapp.com/avatars/${sectorController.id}/${userData.avatar}.png`;
+                let atisData = null;
+                if (session.atis) {
+                    try {
+                        const encryptedAtis = JSON.parse(session.atis);
+                        atisData = decrypt(encryptedAtis);
+                    } catch (err) {
+                        console.error('Error decrypting ATIS:', err);
+                    }
                 }
 
-                if (sectorController.roles) {
-                    isEventController = sectorController.roles.some(role => role.name === 'Event Controller');
-                }
-            } catch (err) {
-                console.error('Error fetching user data for sector controller:', err);
+                const controllers = sessionUsers.map((user) => {
+                    const userData = user.id ? userDataMap.get(user.id) : null;
+                    const isEventController = user.roles?.some(role => role.name === 'Event Controller') || false;
+
+                    return {
+                        username: user.username || 'Unknown',
+                        role: user.position || 'APP',
+                        avatar: userData?.avatarUrl || null,
+                        hasVatsimRating: userData?.hasVatsimRating || false,
+                        isEventController
+                    };
+                });
+
+                return {
+                    sessionId: session.session_id,
+                    airportIcao: session.airport_icao,
+                    activeRunway: session.active_runway,
+                    createdAt: session.created_at,
+                    createdBy: session.created_by,
+                    isPFATC: session.is_pfatc,
+                    activeUsers: sessionUsers.length,
+                    controllers: controllers,
+                    atis: atisData,
+                    flights: flights || [],
+                    flightCount: flights ? flights.length : 0
+                };
+            } catch (error) {
+                console.error(`Error fetching flights for session ${session.session_id}:`, error);
+
+                const controllers = sessionUsers.map((user) => {
+                    const userData = user.id ? userDataMap.get(user.id) : null;
+
+                    return {
+                        username: user.username || 'Unknown',
+                        role: user.position || 'APP',
+                        avatar: userData?.avatarUrl || null,
+                        hasVatsimRating: false,
+                        isEventController: false
+                    };
+                });
+
+                return {
+                    sessionId: session.session_id,
+                    airportIcao: session.airport_icao,
+                    activeRunway: session.active_runway,
+                    createdAt: session.created_at,
+                    createdBy: session.created_by,
+                    isPFATC: session.is_pfatc,
+                    activeUsers: sessionUsers.length,
+                    controllers: controllers,
+                    atis: null,
+                    flights: [],
+                    flightCount: 0
+                };
             }
+        });
+
+        // Wait for all sessions to load in parallel
+        const sessionDataResults = await Promise.all(sessionDataPromises);
+        activeSessions.push(...sessionDataResults.filter((s): s is NonNullable<typeof s> => s !== null));
+
+        // Add sector controllers as separate "sessions"
+        for (const sectorController of sectorControllers) {
+            const userData = sectorController.id ? userDataMap.get(sectorController.id) : null;
+            const isEventController = sectorController.roles?.some(role => role.name === 'Event Controller') || false;
+            const avatar = sectorController.avatar || userData?.avatarUrl || null;
 
             const controllerData = {
                 username: sectorController.username || 'Unknown',
                 role: 'CTR',
                 avatar,
-                hasVatsimRating,
+                hasVatsimRating: userData?.hasVatsimRating || false,
                 isEventController
             };
 

@@ -1,5 +1,13 @@
 import type { Flight } from './flight';
 
+export interface Controller {
+    username: string;
+    role: string;
+    avatar?: string | null;
+    hasVatsimRating?: boolean;
+    isEventController?: boolean;
+}
+
 export interface OverviewSession {
     sessionId: string;
     airportIcao: string;
@@ -10,6 +18,7 @@ export interface OverviewSession {
     activeUsers: number;
     flights: Flight[];
     flightCount: number;
+    controllers?: Controller[];
 }
 
 export interface OverviewData {

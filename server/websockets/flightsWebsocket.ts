@@ -11,6 +11,7 @@ import type { FlightsDatabase } from '../db/types/connection/FlightsDatabase.js'
 import { incrementStat } from '../utils/statisticsCache.js';
 import { logFlightAction } from '../db/flightLogs.js';
 import { isEventController } from '../middleware/flightAccess.js';
+import type { SessionUsersServer } from './sessionUsersWebsocket.js';
 
 interface FlightUpdateData {
     flightId: string | number;
@@ -41,8 +42,12 @@ interface SessionUpdateData {
 }
 
 let io: SocketIOServer;
+let sessionUsersIOInstance: SessionUsersServer | null = null;
 
-export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
+export function setupFlightsWebsocket(httpServer: HTTPServer, sessionUsersIO?: SessionUsersServer): SocketIOServer {
+    if (sessionUsersIO) {
+        sessionUsersIOInstance = sessionUsersIO;
+    }
     io = new SocketIOServer(httpServer, {
         path: '/sockets/flights',
         cors: {
@@ -137,6 +142,9 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
                     newData: sanitizedFlight,
                     ipAddress: socket.handshake.address
                 });
+
+                // Trigger overview update for PFATC sessions
+                await triggerOverviewUpdateIfPFATC(sessionId);
             } catch {
                 socket.emit('flightError', { action: 'add', error: 'Failed to add flight' });
             }
@@ -183,7 +191,7 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
                 const updatedFlight = await updateFlight(sessionId, flightId as string, updates);
                 if (updatedFlight) {
                     io.to(sessionId).emit('flightUpdated', updatedFlight);
-                    
+
                     await broadcastToArrivalSessions(updatedFlight);
 
                     const oldFlight = await flightsDb
@@ -204,6 +212,9 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
                         newData: newSanitized,
                         ipAddress: socket.handshake.address
                     });
+
+                    // Trigger overview update for PFATC sessions
+                    await triggerOverviewUpdateIfPFATC(sessionId);
                 } else {
                     socket.emit('flightError', { action: 'update', flightId, error: 'Flight not found' });
                 }
@@ -242,6 +253,9 @@ export function setupFlightsWebsocket(httpServer: HTTPServer): SocketIOServer {
                     oldData: sanitizedOldData,
                     ipAddress: socket.handshake.address
                 });
+
+                // Trigger overview update for PFATC sessions
+                await triggerOverviewUpdateIfPFATC(sessionId);
             } catch {
                 socket.emit('flightError', { action: 'delete', flightId, error: 'Failed to delete flight' });
             }
@@ -400,5 +414,27 @@ export function getFlightsIO(): SocketIOServer | undefined {
 export function broadcastFlightEvent(sessionId: string, event: string, data: unknown): void {
     if (io) {
         io.to(sessionId).emit(event, data);
+    }
+}
+
+/**
+ * Trigger overview update if this is a PFATC session
+ */
+async function triggerOverviewUpdateIfPFATC(sessionId: string): Promise<void> {
+    if (!sessionUsersIOInstance) return;
+
+    try {
+        const session = await mainDb
+            .selectFrom('sessions')
+            .select(['is_pfatc'])
+            .where('session_id', '=', sessionId)
+            .executeTakeFirst();
+
+        if (session?.is_pfatc) {
+            const { triggerOverviewUpdate } = await import('./overviewWebsocket.js');
+            await triggerOverviewUpdate(sessionUsersIOInstance);
+        }
+    } catch (error) {
+        console.error('Error triggering overview update:', error);
     }
 }

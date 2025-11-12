@@ -169,9 +169,9 @@ export default function AccountSettings({
               <FileText className="w-7 h-7 text-white" />
             </div>
             <div>
-              <h4 className="text-white font-semibold text-base">Biography</h4>
+              <h4 className="text-white font-semibold text-base">Profile Bio</h4>
               <p className="text-zinc-400 text-sm mt-1">
-                Add a personal description to your profile (max 500 characters).
+                Add a personal description to your profile.
               </p>
             </div>
           </div>
@@ -185,7 +185,7 @@ export default function AccountSettings({
           />
           <div className="flex justify-between items-center mt-2">
             <p className="text-xs text-zinc-500">
-              Your biography is always visible to others on your profile
+              Your bio is always visible to others on your profile. Your account can be moderated for inappropriate content.
             </p>
             <p className="text-xs text-zinc-400">
               {(settings?.bio ?? '').length}/500

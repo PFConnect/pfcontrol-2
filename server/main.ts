@@ -99,7 +99,7 @@ chatIO.adapter(createAdapter(pubClient, subClient));
 const globalChatIO = setupGlobalChatWebsocket(server, sessionUsersIO);
 globalChatIO.adapter(createAdapter(pubClient, subClient));
 
-const flightsIO = setupFlightsWebsocket(server);
+const flightsIO = setupFlightsWebsocket(server, sessionUsersIO);
 flightsIO.adapter(createAdapter(pubClient, subClient));
 
 const overviewIO = setupOverviewWebsocket(server, sessionUsersIO);
