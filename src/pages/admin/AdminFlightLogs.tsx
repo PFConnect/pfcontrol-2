@@ -291,7 +291,7 @@ export default function AdminFlightLogs() {
                 className="text-3xl sm:text-4xl lg:text-5xl text-transparent bg-clip-text bg-gradient-to-r from-purple-500 to-rose-600 font-extrabold mb-2"
                 style={{ lineHeight: 1.4 }}
               >
-                Flight Audit Logs
+                Flight Archive
               </h1>
             </div>
             <div className="space-y-4">
