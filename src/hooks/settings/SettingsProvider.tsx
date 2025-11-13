@@ -73,7 +73,16 @@ const defaultSettings: Settings = {
 	tutorialCompleted: false,
 	displayStatsOnProfile: true,
 	displayLinkedAccountsOnProfile: true,
-	hideFromLeaderboard: false
+	hideFromLeaderboard: false,
+	holidayTheme: {
+		enabled: false,
+		snowEffect: true,
+		music: false,
+		musicVolume: 50,
+		animations: true,
+		santa: true,
+		customMusicUrl: undefined
+	}
 };
 
 export function SettingsProvider({ children }: { children: ReactNode }) {
@@ -114,6 +123,10 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
 				acars: {
 					...defaultSettings.acars,
 					...userSettings.acars
+				},
+				holidayTheme: {
+					...defaultSettings.holidayTheme,
+					...userSettings.holidayTheme
 				}
 			};
 

@@ -232,8 +232,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative bg-black py-36 px-2 sm:px-6">
-        <div className="max-w-5xl mx-auto px-2 sm:px-6">
+      <section className="relative py-36 px-2 sm:px-6 bg-black">
+        <div className="max-w-5xl mx-auto px-2 sm:px-6 relative z-10">
           <h2
             className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
             style={{ lineHeight: 1.4 }}
@@ -285,8 +285,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative bg-black py-36 px-2 sm:px-6">
-        <div className="max-w-4xl mx-auto px-2 sm:px-6">
+      <section className="relative py-36 px-2 sm:px-6 bg-black">
+        <div className="max-w-4xl mx-auto px-2 sm:px-6 relative z-10">
           <h2
             className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
             style={{ lineHeight: 1.4 }}
@@ -342,8 +342,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="relative bg-black py-36 px-2 sm:px-6">
-        <div className="max-w-7xl mx-auto px-2 sm:px-6">
+      <section className="relative py-36 px-2 sm:px-6 bg-black">
+        <div className="max-w-7xl mx-auto px-2 sm:px-6 relative z-10">
           <h2 className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center">
             Leaderboard
           </h2>
@@ -422,8 +422,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-black text-white py-20 text-center px-2 sm:px-6">
-        <div className="max-w-4xl mx-auto px-2 sm:px-6">
+      <section className="text-white py-20 text-center px-2 sm:px-6 relative bg-black">
+        <div className="max-w-4xl mx-auto px-2 sm:px-6 relative z-10">
           <h2
             className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
             style={{ lineHeight: 1.4 }}
@@ -490,8 +490,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-black text-white py-24 text-center px-2 sm:px-6">
-        <div className="max-w-4xl mx-auto px-2 sm:px-6">
+      <section className="text-white py-24 text-center px-2 sm:px-6 relative bg-black">
+        <div className="max-w-4xl mx-auto px-2 sm:px-6 relative z-10">
           <h2
             className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
             style={{ lineHeight: 1.4 }}
@@ -545,8 +545,8 @@ export default function Home() {
         </div>
       </section>
 
-      <section className="bg-black text-white py-24 text-center px-2 sm:px-6">
-        <div className="max-w-4xl mx-auto px-2 sm:px-6">
+      <section className="text-white py-24 text-center px-2 sm:px-6 relative bg-black">
+        <div className="max-w-4xl mx-auto px-2 sm:px-6 relative z-10">
           <h2
             className="text-4xl sm:text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
             style={{ lineHeight: 1.4 }}

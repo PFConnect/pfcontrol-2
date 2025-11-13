@@ -247,6 +247,14 @@ export interface FlightLogsResponse {
   };
 }
 
+export interface GlobalHolidaySettings {
+  id: number;
+  enabled: boolean;
+  created_at: string;
+  updated_at: string;
+  updated_by: string;
+}
+
 async function makeAdminRequest(endpoint: string, options?: RequestInit) {
     const response = await fetch(`${API_BASE_URL}/api/admin${endpoint}`, {
         credentials: 'include',
@@ -541,3 +549,48 @@ export async function revealFlightLogIP(logId: number): Promise<{ ip_address: st
 
   return response.json();
 }
+
+/**
+ * Fetch global holiday settings (admin only)
+ */
+export async function fetchGlobalHolidaySettings(): Promise<GlobalHolidaySettings> {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/holiday-settings`,
+    {
+      credentials: 'include',
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to fetch global holiday settings');
+  }
+
+  return response.json();
+}
+
+/**
+ * Update global holiday settings (admin only)
+ * @param enabled Whether to enable holiday effects globally
+ */
+export async function updateGlobalHolidaySettings(
+  enabled: boolean
+): Promise<GlobalHolidaySettings> {
+  const response = await fetch(
+    `${import.meta.env.VITE_SERVER_URL}/api/admin/holiday-settings`,
+    {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      credentials: 'include',
+      body: JSON.stringify({ enabled }),
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error('Failed to update global holiday settings');
+  }
+
+  return response.json();
+}
+

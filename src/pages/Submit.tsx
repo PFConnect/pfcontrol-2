@@ -219,7 +219,7 @@ export default function Submit() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white">
+    <div className="min-h-screen bg-gray-950 text-white relative z-10">
       <Navbar />
       {/* Banner */}
       <div className="relative w-full h-56 md:h-72 overflow-hidden">
