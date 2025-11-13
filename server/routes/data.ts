@@ -7,6 +7,7 @@ import { getActiveNotifications } from '../db/notifications.js';
 import { mainDb, flightsDb, redisConnection } from '../db/connection.js';
 import { getTopUsers, STATS_KEYS } from '../db/leaderboard.js';
 import { getUserById } from '../db/users.js';
+import { getGlobalHolidaySettings } from '../db/globalHolidaySettings.js';
 import { sql } from 'kysely';
 
 import dotenv from 'dotenv';
@@ -442,6 +443,19 @@ router.get('/leaderboard', async (req, res) => {
   } catch (error) {
     console.error('Error fetching leaderboard:', error);
     res.status(500).json({ error: 'Failed to fetch leaderboard' });
+  }
+});
+
+// GET /api/data/holiday-enabled
+// Public endpoint to check if holiday effects are globally enabled
+router.get('/holiday-enabled', async (req, res) => {
+  try {
+    const settings = await getGlobalHolidaySettings();
+    res.json({ enabled: settings.enabled });
+  } catch (error) {
+    console.error('Error fetching holiday status:', error);
+    // Fail open - default to enabled if there's an error
+    res.json({ enabled: true });
   }
 });
 

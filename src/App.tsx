@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Route, Routes } from 'react-router-dom';
 import { useState, useEffect } from 'react';
 import { useAuth } from './hooks/auth/useAuth';
+import { useSettings } from './hooks/settings/useSettings';
 
 import Home from './pages/Home';
 import Create from './pages/Create';
@@ -20,6 +21,9 @@ import ProtectedRoute from './components/ProtectedRoute';
 import AccessDenied from './components/AccessDenied';
 import UpdateOverviewModal from './components/modals/UpdateOverviewModal';
 import NotificationBanner from './components/NotificationBanner';
+import SnowEffect from './components/holiday/SnowEffect';
+import HolidayMusic from './components/holiday/HolidayMusic';
+import HolidayAnimations from './components/holiday/HolidayAnimations';
 
 import Admin from './pages/Admin';
 import AdminUsers from './pages/admin/AdminUsers';
@@ -40,6 +44,7 @@ import {
 
 export default function App() {
   const { user } = useAuth();
+  const { settings } = useSettings();
   const [activeModal, setActiveModal] = useState<UpdateModal | null>(null);
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [testerGateEnabled, setTesterGateEnabled] = useState<boolean | null>(
@@ -115,6 +120,17 @@ export default function App() {
 
   return (
     <Router>
+      {/* Holiday Theme Effects */}
+      {settings?.holidayTheme.enabled && (
+        <>
+          {settings.holidayTheme.snowEffect && <SnowEffect />}
+          {settings.holidayTheme.animations && <HolidayAnimations />}
+          <HolidayMusic
+            enabled={settings.holidayTheme.music ?? false}
+            volume={settings.holidayTheme.musicVolume ?? 50}
+          />
+        </>
+      )}
       <NotificationBanner />
 
       {activeModal &&
