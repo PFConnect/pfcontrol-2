@@ -151,15 +151,9 @@ export default function CallsignInput({
           maxLength={maxLength}
         />
         {filteredAirlines.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setShowSuggestions(!showSuggestions)}
-            className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-white transition-colors"
-          >
-            <ChevronDown
-              className={`h-5 w-5 transition-transform duration-300 ${showSuggestions ? 'rotate-180' : ''}`}
-            />
-          </button>
+          <ChevronDown
+            className={`absolute right-3 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 transition-transform duration-300 ${showSuggestions ? 'rotate-180' : ''}`}
+          />
         )}
       </div>
 
@@ -206,29 +200,6 @@ export default function CallsignInput({
               </div>
             )}
           </div>
-        </div>
-      )}
-
-      {value.length > 0 && filteredAirlines.length > 0 && (
-        <div className="mt-2 text-xs text-gray-400">
-          <span>
-            {value.length <= 4
-              ? 'Select an airline ICAO code and your flight number (e.g., DLH123 for Lufthansa 123), '
-              : `Found ${filteredAirlines.length} matching airline${filteredAirlines.length === 1 ? '' : 's'}. Click to use the ICAO code.`}
-          </span>
-        </div>
-      )}
-      {value.length > 0 && filteredAirlines.length === 0 && (
-        <div className="mt-2 text-xs text-gray-400">
-          {parsedCallsign ? (
-            <span className="text-green-400">
-              <span className="font-semibold pl-5">{parsedCallsign}</span>
-            </span>
-          ) : (
-            <span>
-              No airlines found. You can still enter any callsign manually.
-            </span>
-          )}
         </div>
       )}
     </div>
