@@ -829,7 +829,8 @@ export default function Flights() {
     availableImages,
   ]);
 
-  const showCombinedView = !isMobile && settings?.layout?.showCombinedView;
+  const showCombinedView =
+    !isMobile && settings?.layout?.showCombinedView && !startTutorial;
   const flightRowOpacity = settings?.layout?.flightRowOpacity ?? 100;
 
   const getBackgroundStyle = (opacity: number) => {
