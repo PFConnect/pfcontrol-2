@@ -155,8 +155,8 @@ export default function HolidayThemeSettings({
                 <div className="relative w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
               </label>
             </div>
-
-            {/* Santa Toggle */}
+            {/* going to keep this disabled until we have a proper implementation */}
+            {/* Santa Toggle
             <div className="flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-red-500/30 transition-all">
               <div className="flex items-center gap-3">
                 <div className="p-2 bg-red-500/10 rounded-lg text-2xl">
@@ -187,7 +187,7 @@ export default function HolidayThemeSettings({
                 />
                 <div className="relative w-11 h-6 bg-zinc-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
               </label>
-            </div>
+            </div> */}
 
             {/* Holiday Music Toggle */}
             <div className="flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-green-500/30 transition-all">

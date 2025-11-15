@@ -168,11 +168,11 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <Routes>
-                  <Route index element={<Home />} />
+                  <Route index element={<Home globalHolidayEnabled={globalHolidayEnabled} />} />
                   <Route path="pfatc" element={<PFATCFlights />} />
                   <Route path="create" element={<Create />} />
                   <Route path="sessions" element={<Sessions />} />
-                  <Route path="view/:sessionId" element={<Flights />} />
+                  <Route path="view/:sessionId" element={<Flights globalHolidayEnabled={globalHolidayEnabled} />} />
                   <Route path="settings" element={<Settings />} />
                   <Route path="*" element={<NotFound />} />
                 </Routes>

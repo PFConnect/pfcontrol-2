@@ -32,7 +32,7 @@ interface AvailableImage {
   extension: string;
 }
 
-export default function Home() {
+export default function Home({ globalHolidayEnabled = false }: { globalHolidayEnabled?: boolean } = {}) {
   const [stats, setStats] = useState({
     sessionsCreated: 0,
     registeredUsers: 0,
@@ -116,6 +116,10 @@ export default function Home() {
   }, []);
 
   const backgroundImage = useMemo(() => {
+    if (globalHolidayEnabled && settings?.holidayTheme?.enabled) {
+      return 'url("/assets/app/backgrounds/HolidayBackground.webp")';
+    }
+
     const selectedImage = settings?.backgroundImage?.selectedImage;
     let bgImage = 'url("/assets/images/hero.webp")';
 
@@ -160,6 +164,8 @@ export default function Home() {
     settings?.backgroundImage?.selectedImage,
     settings?.backgroundImage?.favorites,
     availableImages,
+    globalHolidayEnabled,
+    settings?.holidayTheme?.enabled,
   ]);
 
   useEffect(() => {

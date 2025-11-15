@@ -281,7 +281,7 @@ export async function createOrUpdateUser(userData: {
     holidayTheme: {
       enabled: true,
       snowEffect: true,
-      music: false,
+      music: true,
       musicVolume: 50,
       animations: true,
       santa: true,
