@@ -36,6 +36,9 @@ export async function getUserById(userId: string) {
   let cached = null;
   try {
     cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
   } catch (error) {
     if (error instanceof Error) {
       console.warn('[Redis] Failed to read cache for user:', error.message);
@@ -134,6 +137,9 @@ export async function getUserByUsername(username: string) {
   let cached = null;
   try {
     cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
   } catch (error) {
     if (error instanceof Error) {
       console.warn(`[Redis] Failed to read cache for username ${username}:`, error.message);
@@ -169,7 +175,7 @@ export async function getUserByUsername(username: string) {
   };
 
   try {
-    await redisConnection.set(cacheKey, JSON.stringify(result), "EX", 60 * 30); // cache for 30 minutes
+    await redisConnection.set(cacheKey, JSON.stringify(result), "EX", 60 * 30);
   } catch (error) {
     if (error instanceof Error) {
       console.warn(`[Redis] Failed to set cache for username ${username}:`, error.message);
