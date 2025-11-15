@@ -94,21 +94,11 @@ export async function fetchActiveNotifications(): Promise<AdminNotification[]> {
 }
 
 export async function fetchGlobalHolidayStatus(): Promise<{ enabled: boolean }> {
-  try {
     const response = await fetch(
-      `${import.meta.env.VITE_SERVER_URL}/api/data/holiday-enabled`,
-      {
-        credentials: 'include',
-      }
+        `${import.meta.env.VITE_SERVER_URL}/api/data/holiday-enabled`
     );
-
     if (!response.ok) {
-      return { enabled: false };
+        throw new Error(`HTTP error! status: ${response.status}`);
     }
-
-    return response.json();
-  } catch (error) {
-    console.error('Error fetching global holiday status:', error);
-    return { enabled: false };
-  }
+    return await response.json();
 }
