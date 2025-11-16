@@ -10,8 +10,9 @@ import {
   Shield,
   AlertTriangle,
   FileText,
+  MessageSquare,
 } from 'lucide-react';
-import { SiRoblox } from 'react-icons/si';
+import { SiRoblox, SiDiscord } from 'react-icons/si';
 import { updateTutorialStatus } from '../../utils/fetch/auth';
 import Button from '../common/Button';
 import { useNavigate } from 'react-router-dom';
@@ -33,6 +34,8 @@ export default function AccountSettings({
   const [isPrivacyExpanded, setIsPrivacyExpanded] = useState(false);
   const [showVatsimConfirm, setShowVatsimConfirm] = useState(false);
   const [showRobloxConfirm, setShowRobloxConfirm] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleteInProgress, setDeleteInProgress] = useState(false);
   const isVatsimLinked = !!(
     user?.vatsimCid ||
     user?.vatsimRatingShort ||
@@ -111,6 +114,39 @@ export default function AccountSettings({
       bio,
     };
     onChange(updatedSettings);
+  };
+
+  const handleDeleteAccount = async () => {
+    setShowDeleteConfirm(false);
+    setDeleteInProgress(true);
+
+    try {
+      const res = await fetch(
+        `${import.meta.env.VITE_SERVER_URL}/api/auth/delete-account`,
+        {
+          method: 'DELETE',
+          credentials: 'include',
+        }
+      );
+
+      if (res.ok) {
+        localStorage.clear();
+        sessionStorage.clear();
+        window.location.href = '/';
+      } else {
+        const error = await res.json();
+        alert(`Failed to delete account: ${error.message || 'Unknown error'}`);
+      }
+    } catch (error) {
+      console.error('Error deleting account:', error);
+      alert('Failed to delete account. Please try again.');
+    } finally {
+      setDeleteInProgress(false);
+    }
+  };
+
+  const handleJoinDiscord = () => {
+    window.open('https://pfconnect.online/discord', '_blank');
   };
 
   return (
@@ -378,6 +414,87 @@ export default function AccountSettings({
             </div>
           </div>
         </div>
+
+        {/* Danger Zone */}
+        <div className="space-y-3 sm:space-y-4">
+          <div className="flex items-center">
+            <h3 className="text-base sm:text-lg font-semibold text-white">
+              Support
+            </h3>
+          </div>
+
+          <div className="space-y-3 sm:space-y-4">
+            {/* Join Discord */}
+            <div className="bg-zinc-800/50 rounded-lg sm:rounded-xl border-2 border-zinc-700/50 p-3 sm:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-gradient-to-br from-indigo-400 to-blue-600 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                    <SiDiscord className="w-5 h-5 sm:w-7 sm:h-7 text-white" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="text-white font-semibold text-sm sm:text-base truncate">
+                      Join Our Discord
+                    </h4>
+                    <p className="text-zinc-400 text-xs sm:text-sm mt-0.5 sm:mt-1 line-clamp-2">
+                      Get support, report bugs, or suggest new features to
+                      improve PFControl.
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleJoinDiscord}
+                  variant="primary"
+                  size="sm"
+                  className="bg-indigo-600 hover:bg-indigo-700 border-indigo-600 text-sm whitespace-nowrap flex-shrink-0"
+                >
+                  <ExternalLink className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                  <span className="hidden sm:inline">Join Discord</span>
+                  <span className="sm:hidden">Join</span>
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Delete Account */}
+          <div className="bg-zinc-800/50 rounded-lg sm:rounded-xl border-2 border-zinc-700/50 p-3 sm:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center space-x-3 sm:space-x-4 flex-1 min-w-0">
+                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-lg sm:rounded-xl flex items-center justify-center flex-shrink-0">
+                  <AlertTriangle className="w-5 h-5 sm:w-7 sm:h-7 text-red-500" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <h4 className="text-red-400 font-semibold text-sm sm:text-base truncate">
+                    Delete Account
+                  </h4>
+                  <p className="text-zinc-400 text-xs sm:text-sm mt-0.5 sm:mt-1 line-clamp-2">
+                    Permanently delete your account and all associated data.
+                    This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <Button
+                onClick={() => setShowDeleteConfirm(true)}
+                variant="danger"
+                size="sm"
+                disabled={deleteInProgress}
+                className="text-sm whitespace-nowrap flex-shrink-0"
+              >
+                {deleteInProgress ? (
+                  <>
+                    <div className="mr-2 h-3 w-3 animate-spin rounded-full border-2 border-gray-300 border-t-white"></div>
+                    Deleting...
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle className="w-3 h-3 sm:w-4 sm:h-4 sm:mr-2" />
+                    <span className="hidden sm:inline">Delete Account</span>
+                    <span className="sm:hidden">Delete</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Confirmation Dialogs */}
@@ -400,6 +517,18 @@ export default function AccountSettings({
         title="Unlink Roblox Account"
         description="Are you sure you want to unlink your Roblox account? You will need to link it again to use Roblox-related features."
         confirmText="Unlink"
+        cancelText="Cancel"
+        variant="danger"
+        icon={<AlertTriangle size={24} />}
+      />
+
+      <ConfirmationDialog
+        isOpen={showDeleteConfirm}
+        onConfirm={handleDeleteAccount}
+        onCancel={() => setShowDeleteConfirm(false)}
+        title="Delete Account"
+        description="Are you sure you want to permanently delete your account? This will delete all your sessions, settings, and data. This action cannot be undone."
+        confirmText="Delete My Account"
         cancelText="Cancel"
         variant="danger"
         icon={<AlertTriangle size={24} />}

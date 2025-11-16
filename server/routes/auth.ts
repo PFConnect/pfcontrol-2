@@ -601,4 +601,44 @@ router.post('/logout', (req, res) => {
     res.json({ message: 'Logged out successfully' });
 });
 
+// DELETE: /api/auth/delete-account - permanently delete user account
+router.delete('/delete-account', requireAuth, async (req, res) => {
+    try {
+        if (!req.user) return res.status(401).json({ error: 'Unauthorized' });
+        
+        const userId = req.user.userId;
+        const user = await getUserById(userId);
+        
+        if (!user) {
+            return res.status(404).json({ error: 'User not found' });
+        }
+
+        if (user.sessions && Array.isArray(user.sessions)) {
+            const { deleteSession } = await import('../db/sessions.js');
+            for (const sessionId of user.sessions) {
+                try {
+                    await deleteSession(sessionId);
+                } catch (error) {
+                    console.error(`Failed to delete session ${sessionId}:`, error);
+                }
+            }
+        }
+
+        const { deleteUser } = await import('../db/users.js');
+        await deleteUser(userId);
+
+        res.clearCookie('auth_token', {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'strict',
+            path: '/'
+        });
+
+        res.json({ message: 'Account deleted successfully' });
+    } catch (error) {
+        console.error('Error deleting account:', error);
+        res.status(500).json({ error: 'Failed to delete account' });
+    }
+});
+
 export default router;

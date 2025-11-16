@@ -5,16 +5,24 @@ import type { AirportFrequency } from '../../types/airports';
 import type { Flight } from '../../types/flight';
 import Button from '../common/Button';
 import Dropdown from '../common/Dropdown';
-import { containsHateSpeech, containsProfanity } from '../../utils/hateSpeechFilter';
+import {
+  containsHateSpeech,
+  containsProfanity,
+} from '../../utils/hateSpeechFilter';
 
 interface ContactAcarsSidebarProps {
   open: boolean;
   onClose: () => void;
   flights: Flight[];
-  onSendContact: (flightId: string | number, message: string, station: string, position: string) => void;
+  onSendContact: (
+    flightId: string | number,
+    message: string,
+    station: string,
+    position: string
+  ) => void;
   activeAcarsFlights: Set<string | number>;
   airportIcao: string;
-  fallbackFrequency?: string; // Optional fallback frequency for center stations
+  fallbackFrequency?: string;
 }
 
 export default function ContactAcarsSidebar({
@@ -36,15 +44,12 @@ export default function ContactAcarsSidebar({
 
   const flightsWithAcars = flights;
 
-  // Check if this is a center station (contains _CTR)
   const isCenterStation = airportIcao.includes('_CTR');
 
   const getDefaultMessage = () => {
-    // If frequencies are loaded, use them
     if (frequencies.length > 0) {
       const freq = frequencies.find((f) => f.type === selectedPosition);
       if (freq) {
-        // For center stations, use simplified format without position suffix
         if (isCenterStation) {
           return `CONTACT ME ON ${airportIcao} ${freq.freq}`;
         }
@@ -52,9 +57,7 @@ export default function ContactAcarsSidebar({
       }
     }
 
-    // Fallback if frequencies haven't loaded yet
     if (isCenterStation) {
-      // Use fallback frequency if provided
       if (fallbackFrequency) {
         return `CONTACT ME ON ${airportIcao} ${fallbackFrequency}`;
       }
@@ -63,13 +66,14 @@ export default function ContactAcarsSidebar({
     return 'CONTACT ME ON FREQUENCY';
   };
 
-  // Use useMemo to ensure consistent message evaluation
   const currentMessage = useMemo(() => {
     return customMessage.trim() || getDefaultMessage();
   }, [customMessage, frequencies, selectedPosition, airportIcao]);
 
   const hasContentViolation = useMemo(() => {
-    return containsProfanity(currentMessage) || containsHateSpeech(currentMessage);
+    return (
+      containsProfanity(currentMessage) || containsHateSpeech(currentMessage)
+    );
   }, [currentMessage]);
 
   const canSendMessage = () => {
@@ -122,7 +126,6 @@ export default function ContactAcarsSidebar({
   };
 
   return (
-    // Z-Index: 10000 - Always-on-top sidebars (see Z_INDEX_GUIDE.md)
     <div
       className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white transition-transform duration-300 ${
         open ? 'translate-x-0 shadow-2xl' : 'translate-x-full'
@@ -167,7 +170,7 @@ export default function ContactAcarsSidebar({
               <label className="block text-xs font-semibold text-gray-400 mb-3 uppercase tracking-wide">
                 Select Flight
               </label>
-              <div className="space-y-2 max-h-64 overflow-y-auto pr-2">
+              <div className="space-y-2 max-h-1/2 overflow-y-auto pr-2">
                 {flightsWithAcars.map((flight) => (
                   <button
                     key={flight.id}
@@ -290,14 +293,15 @@ export default function ContactAcarsSidebar({
                   placeholder={getDefaultMessage()}
                   className={`w-full px-4 py-3 bg-gray-950 border rounded-lg text-white placeholder-gray-600 focus:outline-none focus:ring-2 focus:border-transparent font-mono text-sm ${
                     hasContentViolation
-                      ? 'border-red-500 focus:ring-red-500' 
+                      ? 'border-red-500 focus:ring-red-500'
                       : 'border-gray-800 focus:ring-blue-500'
                   }`}
                   maxLength={100}
                 />
                 {hasContentViolation ? (
                   <p className="text-xs text-red-500 mt-2">
-                    This message violates our guidelines and cannot be sent via ACARS
+                    This message violates our guidelines and cannot be sent via
+                    ACARS
                   </p>
                 ) : (
                   <p className="text-xs text-gray-500 mt-2">

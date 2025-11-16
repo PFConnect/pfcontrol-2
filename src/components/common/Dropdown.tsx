@@ -139,7 +139,7 @@ export default function Dropdown({
         top: `${dropdownPosition.top}px`,
         left: `${dropdownPosition.left}px`,
         width: `${dropdownPosition.width}px`,
-        zIndex: 9998,
+        zIndex: 10000,
         scrollbarWidth: 'none',
         msOverflowStyle: 'none',
       }}

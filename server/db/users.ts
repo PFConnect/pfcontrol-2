@@ -527,3 +527,18 @@ export async function updateUserStatistics(userId: string, stats: Record<string,
   await invalidateUserCache(userId);
 }
 
+export async function deleteUser(userId: string) {
+  const user = await getUserById(userId);
+  if (!user) throw new Error('User not found');
+
+  await mainDb
+    .deleteFrom('users')
+    .where('id', '=', userId)
+    .execute();
+
+  await invalidateUserCache(userId);
+  await invalidateUsernameCache(user.username);
+  
+  return true;
+}
+
