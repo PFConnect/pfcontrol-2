@@ -5,8 +5,17 @@ import type { JwtPayload } from "../types/JwtPayload.js";
 
 const JWT_SECRET = process.env.JWT_SECRET;
 
+function shouldBypassTesterGate(req: Request): boolean {
+    const host = req.get('host') || req.get('x-forwarded-host') || '';
+    return host === 'control.pfconnect.online';
+}
+
 export async function requireTester(req: Request, res: Response, next: NextFunction) {
     try {
+        if (shouldBypassTesterGate(req)) {
+            return next();
+        }
+
         const settings = await getTesterSettings();
         if (!settings.tester_gate_enabled) {
             return next();
@@ -48,6 +57,20 @@ export async function isTester(userId: string) {
 
 export async function checkTesterGateStatus() {
     try {
+        const settings = await getTesterSettings();
+        return settings.tester_gate_enabled || false;
+    } catch (error) {
+        console.error('Error checking tester gate status:', error);
+        return true;
+    }
+}
+
+export async function checkTesterGateStatusWithDomain(host?: string) {
+    try {
+        if (host === 'control.pfconnect.online') {
+            return false;
+        }
+        
         const settings = await getTesterSettings();
         return settings.tester_gate_enabled || false;
     } catch (error) {
