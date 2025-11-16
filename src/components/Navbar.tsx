@@ -14,10 +14,11 @@ import {
 import { useState, useEffect } from 'react';
 import { useSettings } from '../hooks/settings/useSettings';
 import { useNotifications } from '../hooks/useNotifications';
+import { linkify } from '../utils/linkify';
+import { useAuth } from '../hooks/auth/useAuth';
 import type { Notification as AdminNotification } from '../utils/fetch/admin';
 import CustomUserButton from './buttons/UserButton';
 import Button from './common/Button';
-import { linkify } from '../utils/linkify';
 import FeedbackBanner from './tools/FeedbackBanner';
 
 type NavbarProps = {
@@ -35,6 +36,7 @@ export default function Navbar({
   mobileSidebarOpen,
 }: NavbarProps) {
   const { settings } = useSettings();
+  const { user } = useAuth();
   const {
     notifications: filteredNotifications,
     currentNotification,
@@ -59,7 +61,6 @@ export default function Navbar({
   const hasLegacyBanner =
     notificationMode === 'legacy' && filteredNotifications.length > 0;
 
-  // Check if feedback should be shown
   useEffect(() => {
     const checkFeedbackCookies = () => {
       const cookies = document.cookie.split(';').reduce(
@@ -74,11 +75,6 @@ export default function Navbar({
       const feedbackSubmitted = cookies['feedback_submitted'] === 'true';
       const feedbackDismissed = cookies['feedback_dismissed'] === 'true';
       const hasNotifications = filteredNotifications.length > 0;
-
-      // Show feedback banner only if:
-      // 1. No notifications are present
-      // 2. User hasn't submitted feedback in the last 30 days
-      // 3. User hasn't dismissed feedback in the last 30 days
       const shouldShow =
         !hasNotifications && !feedbackSubmitted && !feedbackDismissed;
 
@@ -87,8 +83,6 @@ export default function Navbar({
 
     checkFeedbackCookies();
   }, [filteredNotifications.length]);
-
-  // ... rest of your existing useEffect hooks and functions remain the same ...
 
   useEffect(() => {
     const handleScroll = () => {
@@ -616,10 +610,12 @@ export default function Navbar({
         </div>
       )}
 
-      <FeedbackBanner
-        isOpen={showFeedbackBanner}
-        onClose={() => setShowFeedbackBanner(false)}
-      />
+      {user && (
+        <FeedbackBanner
+          isOpen={showFeedbackBanner}
+          onClose={() => setShowFeedbackBanner(false)}
+        />
+      )}
     </>
   );
 }
