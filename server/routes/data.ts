@@ -402,7 +402,7 @@ router.get('/settings', async (req, res) => {
         res.json(settings);
     } catch (error) {
         console.error('Error fetching tester settings:', error);
-        res.status(500).json({ error: 'Failed to fetch settings' });
+        res.status(500).json({ error: 'Failed to fetch tester settings' });
     }
 });
 
@@ -455,6 +455,23 @@ router.get('/holiday-enabled', async (req, res) => {
   } catch (error) {
     console.error('Error fetching holiday status:', error);
     res.json({ enabled: false });
+  }
+});
+
+// GET: /api/data/tester-settings - get tester gate settings
+router.get('/tester-settings', async (req, res) => {
+  try {
+    const host = req.get('host') || req.get('x-forwarded-host') || '';
+    
+    if (host === 'control.pfconnect.online') {
+      return res.json({ tester_gate_enabled: false });
+    }
+
+    const settings = await getTesterSettings();
+    res.json(settings);
+  } catch (error) {
+    console.error('Error fetching tester settings:', error);
+    res.status(500).json({ error: 'Failed to fetch tester settings' });
   }
 });
 
