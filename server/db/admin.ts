@@ -5,7 +5,7 @@ import { sql } from 'kysely';
 import { redisConnection } from './connection.js';
 import { decrypt } from '../utils/encryption.js';
 import { getAdminIds, isAdmin } from '../middleware/admin.js';
-import { getActiveUsersForSession } from "../websockets/sessionUsersWebsocket.js"; // Update import
+import { getActiveUsersForSession } from "../websockets/sessionUsersWebsocket.js";
 import { getUserRoles } from "./roles.js";
 
 type RawUser = {
@@ -395,10 +395,11 @@ export async function getAllUsers(page = 1, limit = 50, search = '', filterAdmin
   }
 }
 
-export async function getAdminSessions() {
+export async function getAdminSessions(page = 1, limit = 100, search = '') {
   try {
-    // Get all sessions with user info
-    const sessions = await mainDb
+    const offset = (page - 1) * limit;
+    
+    let query = mainDb
       .selectFrom('sessions as s')
       .leftJoin('users as u', 's.created_by', 'u.id')
       .select([
@@ -413,10 +414,28 @@ export async function getAdminSessions() {
         'u.discriminator',
         'u.avatar'
       ])
-      .orderBy('s.created_at', 'desc')
-      .execute();
+      .orderBy('s.created_at', 'desc');
 
-    const sessionsWithFlights = await Promise.all(
+    if (search && search.trim()) {
+      const searchTerm = `%${search.trim()}%`;
+      query = query.where((eb) =>
+        eb.or([
+          eb('s.session_id', 'ilike', searchTerm),
+          eb('s.airport_icao', 'ilike', searchTerm),
+          eb('u.username', 'ilike', searchTerm),
+          eb('s.created_by', 'ilike', searchTerm)
+        ])
+      );
+    }
+
+    const countQuery = query.clearSelect().clearOrderBy().select(({ fn }) => fn.countAll().as('count'));
+    const countResult = await countQuery.executeTakeFirst();
+    const total = Number(countResult?.count) || 0;
+    const pages = Math.ceil(total / limit);
+
+    const sessions = await query.limit(limit).offset(offset).execute();
+
+    const sessionsWithDetails = await Promise.all(
       sessions.map(async (session) => {
         let flight_count = 0;
         try {
@@ -439,13 +458,20 @@ export async function getAdminSessions() {
       })
     );
 
-    return sessionsWithFlights;
+    return {
+      sessions: sessionsWithDetails,
+      pagination: {
+        page,
+        limit,
+        total,
+        pages
+      }
+    };
   } catch (error) {
     console.error('Error fetching admin sessions:', error);
     throw error;
   }
 }
-
 
 export async function syncUserSessionCounts() {
   try {

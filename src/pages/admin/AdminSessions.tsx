@@ -104,7 +104,6 @@ export default function AdminSessions() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('grid');
-  const [search, setSearch] = useState(searchParams.get('search') || '');
   const [sortBy, setSortBy] = useState<SortBy>('date');
   const [selectedSession, setSelectedSession] = useState<AdminSession | null>(
     null
@@ -114,21 +113,29 @@ export default function AdminSessions() {
     message: string;
     type: 'success' | 'error' | 'info';
   } | null>(null);
+  const [page, setPage] = useState(1);
+  const [limit] = useState(100);
+  const [totalPages, setTotalPages] = useState(1);
+  const [search, setSearch] = useState(searchParams.get('search') || '');
 
   useEffect(() => {
     fetchSessions();
-  }, []);
-
+  }, [page, search]);
   useEffect(() => {
     filterAndSortSessions();
-  }, [sessions, search, sortBy]);
+  }, [sessions, sortBy]);
+
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
 
   const fetchSessions = async () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchAdminSessions();
-      setSessions(data);
+      const data = await fetchAdminSessions(page, limit, search);
+      setSessions(data.sessions);
+      setTotalPages(data.pagination.pages);
     } catch (err) {
       const errorMessage =
         err instanceof Error ? err.message : 'Failed to fetch sessions';
@@ -143,21 +150,8 @@ export default function AdminSessions() {
   };
 
   const filterAndSortSessions = () => {
-    let filtered = [...sessions];
+    const filtered = [...sessions];
 
-    // Filter by search
-    if (search.trim()) {
-      const searchLower = search.toLowerCase();
-      filtered = filtered.filter(
-        (session) =>
-          session.session_id.toLowerCase().includes(searchLower) ||
-          session.airport_icao.toLowerCase().includes(searchLower) ||
-          session.username?.toLowerCase().includes(searchLower) ||
-          session.created_by.toLowerCase().includes(searchLower)
-      );
-    }
-
-    // Sort
     filtered.sort((a, b) => {
       switch (sortBy) {
         case 'date':
@@ -652,6 +646,29 @@ export default function AdminSessions() {
                   : renderSessionList()}
               </>
             )}
+
+            {/* Pagination Controls */}
+            <div className="flex justify-center mt-8 space-x-2">
+              <Button
+                onClick={() => setPage(Math.max(1, page - 1))}
+                disabled={page === 1}
+                variant="outline"
+                size="xs"
+              >
+                Previous
+              </Button>
+              <span className="text-zinc-400 py-2">
+                Page {page} of {totalPages}
+              </span>
+              <Button
+                onClick={() => setPage(Math.min(totalPages, page + 1))}
+                disabled={page === totalPages}
+                variant="outline"
+                size="xs"
+              >
+                Next
+              </Button>
+            </div>
           </div>
         </div>
 

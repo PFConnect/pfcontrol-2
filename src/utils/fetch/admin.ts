@@ -298,8 +298,23 @@ export async function fetchAdminUsers(
     return makeAdminRequest(`/users?${params.toString()}`);
 }
 
-export async function fetchAdminSessions(): Promise<AdminSession[]> {
-    return makeAdminRequest('/sessions');
+export interface AdminSessionsResponse {
+    sessions: AdminSession[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+    };
+}
+
+export async function fetchAdminSessions(page: number = 1, limit: number = 100, search: string = ''): Promise<AdminSessionsResponse> {
+    const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+    });
+    if (search) params.append('search', search);
+    return makeAdminRequest(`/sessions?${params.toString()}`);
 }
 
 export async function revealUserIP(userId: string): Promise<RevealIPResponse> {
