@@ -233,57 +233,63 @@ export default function AdminFeedback() {
             <>
               {/* Stats Cards */}
               {feedbackStats && (
-                <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-7 gap-4 mb-6">
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-yellow-400">
-                      {Number(feedbackStats.average_rating)?.toFixed(1) ||
-                        '0.0'}
+                <div className="space-y-4 mb-6">
+                  {/* Average and Total */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-yellow-400">
+                        {Number(feedbackStats.average_rating)?.toFixed(1) ||
+                          '0.0'}
+                      </div>
+                      <div className="text-xs text-zinc-400">Average</div>
                     </div>
-                    <div className="text-xs text-zinc-400">Average</div>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="text-2xl font-bold text-white">
-                      {feedbackStats.total_feedback}
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="text-2xl font-bold text-white">
+                        {feedbackStats.total_feedback}
+                      </div>
+                      <div className="text-xs text-zinc-400">Total</div>
                     </div>
-                    <div className="text-xs text-zinc-400">Total</div>
                   </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="flex flex-col items-center space-y-1">
-                      {renderStars(5)}
-                      <div className="text-lg font-bold text-green-400">
-                        {feedbackStats.five_star}
+                  {/* Star Ratings */}
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4">
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="flex flex-col items-center space-y-1">
+                        {renderStars(5)}
+                        <div className="text-lg font-bold text-green-400">
+                          {feedbackStats.five_star}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="flex flex-col items-center space-y-1">
-                      {renderStars(4)}
-                      <div className="text-lg font-bold text-blue-400">
-                        {feedbackStats.four_star}
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="flex flex-col items-center space-y-1">
+                        {renderStars(4)}
+                        <div className="text-lg font-bold text-blue-400">
+                          {feedbackStats.four_star}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="flex flex-col items-center space-y-1">
-                      {renderStars(3)}
-                      <div className="text-lg font-bold text-yellow-400">
-                        {feedbackStats.three_star}
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="flex flex-col items-center space-y-1">
+                        {renderStars(3)}
+                        <div className="text-lg font-bold text-yellow-400">
+                          {feedbackStats.three_star}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="flex flex-col items-center space-y-1">
-                      {renderStars(2)}
-                      <div className="text-lg font-bold text-orange-400">
-                        {feedbackStats.two_star}
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="flex flex-col items-center space-y-1">
+                        {renderStars(2)}
+                        <div className="text-lg font-bold text-orange-400">
+                          {feedbackStats.two_star}
+                        </div>
                       </div>
                     </div>
-                  </div>
-                  <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
-                    <div className="flex flex-col items-center space-y-1">
-                      {renderStars(1)}
-                      <div className="text-lg font-bold text-red-400">
-                        {feedbackStats.one_star}
+                    <div className="bg-zinc-800/50 rounded-lg p-3 text-center">
+                      <div className="flex flex-col items-center space-y-1">
+                        {renderStars(1)}
+                        <div className="text-lg font-bold text-red-400">
+                          {feedbackStats.one_star}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -302,52 +308,54 @@ export default function AdminFeedback() {
                       key={item.id}
                       className="bg-zinc-900 border-2 border-zinc-700/50 rounded-xl p-3"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex items-center space-x-3">
-                          {item.avatar ? (
-                            <img
-                              src={`https://cdn.discordapp.com/avatars/${item.user_id}/${item.avatar}.png`}
-                              alt={item.username}
-                              className="w-8 h-8 rounded-full"
-                            />
-                          ) : (
-                            <div className="w-8 h-8 bg-zinc-600 rounded-full flex items-center justify-center">
-                              <Users className="w-4 h-4 text-zinc-400" />
-                            </div>
-                          )}
-                          <div>
-                            <div className="font-medium text-white">
-                              {item.username}
-                            </div>
-                            <div className="text-xs text-zinc-500">
-                              {item.user_id}
+                      <div className="flex flex-col space-y-2">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            {item.avatar ? (
+                              <img
+                                src={`https://cdn.discordapp.com/avatars/${item.user_id}/${item.avatar}.png`}
+                                alt={item.username}
+                                className="w-8 h-8 rounded-full"
+                              />
+                            ) : (
+                              <div className="w-8 h-8 bg-zinc-600 rounded-full flex items-center justify-center">
+                                <Users className="w-4 h-4 text-zinc-400" />
+                              </div>
+                            )}
+                            <div>
+                              <div className="font-medium text-white">
+                                {item.username}
+                              </div>
+                              <div className="text-xs text-zinc-500">
+                                {item.user_id}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center space-x-2">
+                            <div className="text-xs text-zinc-500">
+                              {new Date(item.created_at).toLocaleDateString()}
+                            </div>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteFeedback(item.id)}
+                              className="p-1 text-red-400 hover:text-red-300"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </div>
+                        <div className="flex justify-left">
                           {renderStars(item.rating)}
                         </div>
-
                         {item.comment && (
-                          <div className="flex items-start space-x-2 pt-2">
+                          <div className="flex items-start space-x-2">
                             <MessageCircle className="w-4 h-4 text-zinc-400 mt-0.5 flex-shrink-0" />
                             <p className="text-sm text-zinc-300 break-words">
                               {item.comment}
                             </p>
                           </div>
                         )}
-
-                        <div className="flex items-center space-x-2">
-                          <div className="text-xs text-zinc-500">
-                            {new Date(item.created_at).toLocaleDateString()}
-                          </div>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteFeedback(item.id)}
-                            className="p-1 text-red-400 hover:text-red-300"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
                       </div>
                     </div>
                   ))

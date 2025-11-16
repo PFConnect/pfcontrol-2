@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Star, Check, X, MessageCircle } from 'lucide-react';
 import { submitFeedback } from '../../utils/fetch/feedback';
 import Button from '../common/Button';
@@ -14,7 +14,6 @@ export default function FeedbackBanner({
   onClose,
 }: FeedbackBannerProps) {
   const [rating, setRating] = useState(0);
-  const [hoveredRating, setHoveredRating] = useState(0);
   const [comment, setComment] = useState('');
   const [showComment, setShowComment] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -23,13 +22,25 @@ export default function FeedbackBanner({
     message: string;
     type: 'success' | 'error' | 'info';
   } | null>(null);
+  const textareaRefDesktop = useRef<HTMLTextAreaElement | null>(null);
+  const textareaRefMobile = useRef<HTMLTextAreaElement | null>(null);
+
+  const getActiveTextarea = () =>
+    textareaRefMobile.current ?? textareaRefDesktop.current;
+
+  useEffect(() => {
+    if (showComment) {
+      getActiveTextarea()?.focus();
+    }
+  }, [showComment]);
 
   const handleSubmit = async () => {
     if (rating === 0) return;
 
+    const commentValue = (getActiveTextarea()?.value || '').trim();
     try {
       setIsSubmitting(true);
-      await submitFeedback(rating, comment.trim() || undefined);
+      await submitFeedback(rating, commentValue || undefined);
       setIsSubmitted(true);
 
       const expiryDate = new Date();
@@ -40,11 +51,12 @@ export default function FeedbackBanner({
         onClose();
         setTimeout(() => {
           setRating(0);
-          setHoveredRating(0);
           setComment('');
           setShowComment(false);
           setIsSubmitted(false);
           setIsSubmitting(false);
+          if (textareaRefDesktop.current) textareaRefDesktop.current.value = '';
+          if (textareaRefMobile.current) textareaRefMobile.current.value = '';
         }, 300);
       }, 1500);
     } catch (error) {
@@ -67,9 +79,10 @@ export default function FeedbackBanner({
     onClose();
     setTimeout(() => {
       setRating(0);
-      setHoveredRating(0);
       setComment('');
       setShowComment(false);
+      if (textareaRefDesktop.current) textareaRefDesktop.current.value = '';
+      if (textareaRefMobile.current) textareaRefMobile.current.value = '';
     }, 300);
   };
 
@@ -79,10 +92,13 @@ export default function FeedbackBanner({
     <div className="fixed bottom-4 z-40 w-1/3 left-1/2 transform -translate-x-1/2">
       <div className="relative">
         <div
-          className="transition-all duration-300 ease-in-out"
-          style={{
-            maxHeight: isSubmitted ? '60px' : showComment ? '300px' : '120px',
-          }}
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            isSubmitted
+              ? 'max-h-[60px]'
+              : showComment
+                ? 'max-h-[300px]'
+                : 'max-h-[120px]'
+          }`}
         >
           <div className={showComment && !isSubmitted ? 'space-y-3' : ''}>
             {/* Main feedback section */}
@@ -112,7 +128,7 @@ export default function FeedbackBanner({
                   <div className="flex justify-center space-x-2">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
-                        key={`star-${star}`}
+                        key={star}
                         type="button"
                         className="transition-all duration-200 hover:scale-110"
                         onClick={() => setRating(star)}
@@ -168,32 +184,34 @@ export default function FeedbackBanner({
               )}
             </div>
 
-            {showComment && !isSubmitted && (
-              <div className="backdrop-blur-lg border-2 rounded-2xl px-4 py-3 bg-zinc-900/80 border-zinc-700/50">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <MessageCircle className="w-4 h-4 text-zinc-400" />
-                    <label className="text-md text-zinc-300 font-medium">
-                      Tell us more (optional)
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                      placeholder="What did you like? What could we improve?"
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:border-zinc-700 focus:outline-none resize-none text-md"
-                      rows={4}
-                      maxLength={500}
-                      disabled={isSubmitting}
-                    />
-                    <div className="absolute right-6 bottom-5 text-xs text-zinc-500 pointer-events-none">
-                      {comment.length}/500
-                    </div>
-                  </div>
+            {/* Comment section - always rendered */}
+            <div
+              className={`backdrop-blur-lg border-2 rounded-2xl px-4 py-3 bg-zinc-900/80 border-zinc-700/50 transition-all duration-300 ${
+                showComment && !isSubmitted
+                  ? 'opacity-100 visible max-h-[200px]'
+                  : 'opacity-0 invisible max-h-0 py-0 overflow-hidden'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="w-4 h-4 text-zinc-400" />
+                  <label className="text-md text-zinc-300 font-medium">
+                    Tell us more (optional)
+                  </label>
+                </div>
+                <div className="relative">
+                  <textarea
+                    ref={textareaRefDesktop}
+                    defaultValue={comment}
+                    placeholder="What did you like? What could we improve?"
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:border-zinc-700 focus:outline-none resize-none text-md"
+                    rows={4}
+                    maxLength={500}
+                    disabled={isSubmitting}
+                  />
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
@@ -204,10 +222,13 @@ export default function FeedbackBanner({
     <div className="fixed bottom-0 left-0 right-0 z-40 p-4">
       <div className="relative">
         <div
-          className="transition-all duration-300 ease-in-out"
-          style={{
-            maxHeight: isSubmitted ? '80px' : showComment ? '350px' : '160px',
-          }}
+          className={`transition-all duration-300 ease-in-out overflow-hidden ${
+            isSubmitted
+              ? 'max-h-[80px]'
+              : showComment
+                ? 'max-h-[350px]'
+                : 'max-h-[160px]'
+          }`}
         >
           <div className={showComment && !isSubmitted ? 'space-y-3' : ''}>
             {/* Main feedback section */}
@@ -242,7 +263,7 @@ export default function FeedbackBanner({
                   <div className="flex justify-center space-x-1">
                     {[1, 2, 3, 4, 5].map((star) => (
                       <button
-                        key={`star-${star}`}
+                        key={star}
                         type="button"
                         className="transition-all duration-200 hover:scale-110"
                         onClick={() => setRating(star)}
@@ -289,32 +310,34 @@ export default function FeedbackBanner({
               )}
             </div>
 
-            {showComment && !isSubmitted && (
-              <div className="backdrop-blur-lg border-2 rounded-2xl px-4 py-3 bg-zinc-900/80 border-zinc-700/50">
-                <div className="space-y-2">
-                  <div className="flex items-center space-x-2">
-                    <MessageCircle className="w-4 h-4 text-zinc-400" />
-                    <label className="text-sm text-zinc-300 font-medium">
-                      Tell us more (optional)
-                    </label>
-                  </div>
-                  <div className="relative">
-                    <textarea
-                      value={comment}
-                      onChange={(e) => setComment(e.target.value.slice(0, 500))}
-                      placeholder="What did you like? What could we improve?"
-                      className="w-full px-3 py-2 bg-zinc-800 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:border-zinc-700 focus:outline-none resize-none text-sm"
-                      rows={4}
-                      maxLength={500}
-                      disabled={isSubmitting}
-                    />
-                    <div className="absolute right-3 bottom-2 text-xs text-zinc-500 pointer-events-none">
-                      {comment.length}/500
-                    </div>
-                  </div>
+            {/* Comment section - always rendered */}
+            <div
+              className={`backdrop-blur-lg border-2 rounded-2xl px-4 py-3 bg-zinc-900/80 border-zinc-700/50 transition-all duration-300 ${
+                showComment && !isSubmitted
+                  ? 'opacity-100 visible max-h-[200px]'
+                  : 'opacity-0 invisible max-h-0 py-0 overflow-hidden'
+              }`}
+            >
+              <div className="space-y-2">
+                <div className="flex items-center space-x-2">
+                  <MessageCircle className="w-4 h-4 text-zinc-400" />
+                  <label className="text-sm text-zinc-300 font-medium">
+                    Tell us more (optional)
+                  </label>
+                </div>
+                <div className="relative">
+                  <textarea
+                    ref={textareaRefMobile}
+                    defaultValue={comment}
+                    placeholder="What did you like? What could we improve?"
+                    className="w-full px-3 py-2 bg-zinc-800 border border-zinc-800 rounded-lg text-white placeholder-zinc-500 focus:border-zinc-700 focus:outline-none resize-none text-sm"
+                    rows={4}
+                    maxLength={500}
+                    disabled={isSubmitting}
+                  />
                 </div>
               </div>
-            )}
+            </div>
           </div>
         </div>
       </div>
