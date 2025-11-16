@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { Star, Check, X, MessageCircle } from 'lucide-react';
 import { submitFeedback } from '../../utils/fetch/feedback';
+import { Portal } from './Portal';
 import Button from '../common/Button';
 import Toast from '../common/Toast';
 
@@ -24,15 +25,25 @@ export default function FeedbackBanner({
   } | null>(null);
   const textareaRefDesktop = useRef<HTMLTextAreaElement | null>(null);
   const textareaRefMobile = useRef<HTMLTextAreaElement | null>(null);
+  const [isInitialLoad, setIsInitialLoad] = useState(true);
+  const [commentOpenedByUser, setCommentOpenedByUser] = useState(false);
 
   const getActiveTextarea = () =>
     textareaRefMobile.current ?? textareaRefDesktop.current;
 
   useEffect(() => {
-    if (showComment) {
-      getActiveTextarea()?.focus();
+    const timer = setTimeout(() => setIsInitialLoad(false), 100);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (showComment && commentOpenedByUser && !isInitialLoad) {
+      const textarea = getActiveTextarea();
+      if (textarea) {
+        textarea.focus({ preventScroll: true });
+      }
     }
-  }, [showComment]);
+  }, [showComment, commentOpenedByUser, isInitialLoad]);
 
   const handleSubmit = async () => {
     if (rating === 0) return;
@@ -86,20 +97,19 @@ export default function FeedbackBanner({
     }, 300);
   };
 
+  const handleShowComment = () => {
+    setShowComment((prev) => {
+      if (!prev) setCommentOpenedByUser(true);
+      return !prev;
+    });
+  };
+
   if (!isOpen) return null;
 
   const DesktopFeedback = () => (
-    <div className="fixed bottom-4 z-40 w-1/3 left-1/2 transform -translate-x-1/2">
+    <div className="fixed bottom-4 z-[9999] w-1/3 left-1/2 transform -translate-x-1/2 pointer-events-auto">
       <div className="relative">
-        <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            isSubmitted
-              ? 'max-h-[60px]'
-              : showComment
-                ? 'max-h-[300px]'
-                : 'max-h-[120px]'
-          }`}
-        >
+        <div className="overflow-visible">
           <div className={showComment && !isSubmitted ? 'space-y-3' : ''}>
             {/* Main feedback section */}
             <div className="backdrop-blur-lg border-2 rounded-3xl px-6 py-0 h-24 flex flex-row items-center justify-between bg-zinc-900/80 border-zinc-700/50">
@@ -149,7 +159,7 @@ export default function FeedbackBanner({
                   {/* Right */}
                   <div className="flex justify-end items-center space-x-3">
                     <button
-                      onClick={() => setShowComment(!showComment)}
+                      onClick={handleShowComment}
                       className="w-8 h-8 rounded-full backdrop-blur-lg border bg-zinc-900/80 border-zinc-700/50 flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-zinc-800/80"
                       disabled={isSubmitting}
                       aria-label="Add comment"
@@ -219,17 +229,9 @@ export default function FeedbackBanner({
   );
 
   const MobileFeedback = () => (
-    <div className="fixed bottom-0 left-0 right-0 z-40 p-4">
+    <div className="fixed bottom-0 left-0 right-0 z-[9999] p-4 pointer-events-auto">
       <div className="relative">
-        <div
-          className={`transition-all duration-300 ease-in-out overflow-hidden ${
-            isSubmitted
-              ? 'max-h-[80px]'
-              : showComment
-                ? 'max-h-[350px]'
-                : 'max-h-[160px]'
-          }`}
-        >
+        <div className="overflow-visible">
           <div className={showComment && !isSubmitted ? 'space-y-3' : ''}>
             {/* Main feedback section */}
             <div className="backdrop-blur-lg border-2 rounded-3xl px-4 py-4 bg-zinc-900/80 border-zinc-700/50 space-y-4">
@@ -284,7 +286,7 @@ export default function FeedbackBanner({
                   {/* Action buttons */}
                   <div className="flex justify-center items-center space-x-3">
                     <button
-                      onClick={() => setShowComment(!showComment)}
+                      onClick={handleShowComment}
                       className="w-10 h-10 rounded-full backdrop-blur-lg border bg-zinc-900/80 border-zinc-700/50 flex items-center justify-center transition-all duration-300 ease-in-out hover:bg-zinc-800/80"
                       disabled={isSubmitting}
                       aria-label="Add comment"
@@ -345,22 +347,24 @@ export default function FeedbackBanner({
   );
 
   return (
-    <>
-      <div className="hidden md:block">
-        <DesktopFeedback />
-      </div>
+    <Portal>
+      <div className="pointer-events-none">
+        <div className="hidden md:block">
+          <DesktopFeedback />
+        </div>
 
-      <div className="block md:hidden">
-        <MobileFeedback />
-      </div>
+        <div className="block md:hidden">
+          <MobileFeedback />
+        </div>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
-    </>
+        {toast && (
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        )}
+      </div>
+    </Portal>
   );
 }
