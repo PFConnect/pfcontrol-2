@@ -51,6 +51,10 @@ export default function App() {
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [activeModal, setActiveModal] = useState<UpdateModal | null>(null);
 
+  const shouldBypassTesterGate = () => {
+    return window.location.hostname === 'control.pfconnect.online';
+  };
+
   useEffect(() => {
     const checkGlobalHolidayStatus = async () => {
       try {
@@ -96,6 +100,12 @@ export default function App() {
   useEffect(() => {
     const checkGateStatus = async () => {
       try {
+        // Bypass tester gate for control.pfconnect.online
+        if (shouldBypassTesterGate()) {
+          setTesterGateEnabled(false);
+          return;
+        }
+
         const settings = await getTesterSettings();
 
         if (settings && typeof settings.tester_gate_enabled === 'boolean') {
@@ -150,6 +160,7 @@ export default function App() {
 
       {activeModal &&
         (!testerGateEnabled ||
+          shouldBypassTesterGate() ||
           (testerGateEnabled && user?.isTester) ||
           user?.isAdmin) && (
           <UpdateOverviewModal
