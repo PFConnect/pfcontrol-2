@@ -18,6 +18,7 @@ import type { Notification as AdminNotification } from '../utils/fetch/admin';
 import CustomUserButton from './buttons/UserButton';
 import Button from './common/Button';
 import { linkify } from '../utils/linkify';
+import FeedbackBanner from './tools/FeedbackBanner';
 
 type NavbarProps = {
   sessionId?: string;
@@ -50,12 +51,44 @@ export default function Navbar({
   const [isCompact, setIsCompact] = useState<boolean>(window.innerWidth < 950);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
+  const [showFeedbackBanner, setShowFeedbackBanner] = useState(false);
 
   const notificationMode = isMobile
     ? 'list'
     : settings?.notificationViewMode || 'list';
   const hasLegacyBanner =
     notificationMode === 'legacy' && filteredNotifications.length > 0;
+
+  // Check if feedback should be shown
+  useEffect(() => {
+    const checkFeedbackCookies = () => {
+      const cookies = document.cookie.split(';').reduce(
+        (acc, cookie) => {
+          const [key, value] = cookie.trim().split('=');
+          acc[key] = value;
+          return acc;
+        },
+        {} as Record<string, string>
+      );
+
+      const feedbackSubmitted = cookies['feedback_submitted'] === 'true';
+      const feedbackDismissed = cookies['feedback_dismissed'] === 'true';
+      const hasNotifications = filteredNotifications.length > 0;
+
+      // Show feedback banner only if:
+      // 1. No notifications are present
+      // 2. User hasn't submitted feedback in the last 30 days
+      // 3. User hasn't dismissed feedback in the last 30 days
+      const shouldShow =
+        !hasNotifications && !feedbackSubmitted && !feedbackDismissed;
+
+      setShowFeedbackBanner(shouldShow);
+    };
+
+    checkFeedbackCookies();
+  }, [filteredNotifications.length]);
+
+  // ... rest of your existing useEffect hooks and functions remain the same ...
 
   useEffect(() => {
     const handleScroll = () => {
@@ -226,7 +259,6 @@ export default function Navbar({
         notificationMode === 'list' && (
           <div className="fixed bottom-4 left-4 right-4 z-40">
             <div className="flex items-start space-x-2">
-              {/* Control Circle */}
               {filteredNotifications.length > 1 && (
                 <button
                   onClick={() => setShowAllNotifications(!showAllNotifications)}
@@ -264,7 +296,6 @@ export default function Navbar({
                 </button>
               )}
 
-              {/* Notifications */}
               <div className="flex-1">
                 <div
                   className="transition-all duration-300 ease-in-out overflow-hidden"
@@ -317,7 +348,6 @@ export default function Navbar({
                 <TowerControl className="h-8 w-8 text-blue-400" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
                   PFControl
-                  {/* <span className="text-red-300 font-medium text-md">Beta</span> */}
                   {(window.location.hostname === 'test.pfconnect.online' ||
                     window.location.hostname === 'localhost') && (
                     <span className="bg-gradient-to-r from-blue-300 to-blue-500 bg-clip-text text-transparent italic text-md">
@@ -504,6 +534,7 @@ export default function Navbar({
         </div>
       </nav>
 
+      {/* Desktop Notifications */}
       {currentNotification && !isMobile && notificationMode === 'list' && (
         <div className="fixed bottom-4 left-1/2 transform -translate-x-1/2 z-40">
           <div className="relative">
@@ -584,6 +615,11 @@ export default function Navbar({
           </div>
         </div>
       )}
+
+      <FeedbackBanner
+        isOpen={showFeedbackBanner}
+        onClose={() => setShowFeedbackBanner(false)}
+      />
     </>
   );
 }

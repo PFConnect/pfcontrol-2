@@ -35,6 +35,7 @@ import AdminNotifications from './pages/admin/AdminNotifications';
 import AdminRoles from './pages/admin/AdminRoles';
 import AdminChatReports from './pages/admin/AdminChatReports';
 import AdminFlightLogs from './pages/admin/AdminFlightLogs';
+import AdminFeedback from './pages/admin/AdminFeedback';
 import { getTesterSettings } from './utils/fetch/data';
 
 import {
@@ -302,6 +303,14 @@ export default function App() {
                     element={
                       <ProtectedRoute requirePermission="audit">
                         <AdminFlightLogs />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="feedback"
+                    element={
+                      <ProtectedRoute requirePermission="admin">
+                        <AdminFeedback />
                       </ProtectedRoute>
                     }
                   />

@@ -1,4 +1,5 @@
 import type { Settings } from "../../types/settings";
+import type { Feedback, FeedbackStats } from "./feedback";
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL || '';
 
@@ -586,5 +587,19 @@ export async function updateGlobalHolidaySettings(
   }
 
   return response.json();
+}
+
+export async function fetchFeedback(): Promise<Feedback[]> {
+    return makeAdminRequest('/feedback');
+}
+
+export async function fetchFeedbackStats(): Promise<FeedbackStats> {
+    return makeAdminRequest('/feedback/stats');
+}
+
+export async function deleteFeedback(id: number): Promise<Feedback> {
+    return makeAdminRequest(`/feedback/${id}`, {
+        method: 'DELETE'
+    });
 }
 

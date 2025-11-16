@@ -9,7 +9,7 @@ interface ButtonProps {
     | 'success'
     | 'ghost'
     | 'card';
-  size?: 'xs' | 'sm' | 'md' | 'lg';
+  size?: 'icon' | 'xs' | 'sm' | 'md' | 'lg';
   disabled?: boolean;
   className?: string;
   type?: 'button' | 'submit' | 'reset';
@@ -52,6 +52,7 @@ export default function Button({
   };
 
   const sizes = {
+    icon: 'w-8 h-8 p-0',
     xs: 'px-3 py-1 text-xs',
     sm: 'px-4 py-2 text-sm',
     md: 'px-6 py-3 text-base',

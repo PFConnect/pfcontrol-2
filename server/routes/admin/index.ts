@@ -20,6 +20,7 @@ import rolesRouter from './roles.js';
 import chatReportsRouter from './chat-reports.js';
 import updateModalsRouter from './updateModals.js';
 import flightLogsRouter from './flight-logs.js';
+import feedbackRouter from './feedback.js';
 
 const router = express.Router();
 
@@ -36,6 +37,7 @@ router.use('/roles', rolesRouter);
 router.use('/chat-reports', chatReportsRouter);
 router.use('/update-modals', updateModalsRouter);
 router.use('/flight-logs', flightLogsRouter);
+router.use('/feedback', feedbackRouter);
 
 // GET: /api/admin/statistics - Get dashboard statistics
 router.get('/statistics', requirePermission('admin'), async (req, res) => {
