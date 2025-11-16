@@ -126,9 +126,7 @@ export default function HolidayThemeSettings({
             {/* Snowman Toggle */}
             <div className="flex items-center justify-between p-4 bg-zinc-800/30 rounded-lg border border-zinc-700/50 hover:border-blue-500/30 transition-all">
               <div className="flex items-center gap-3">
-                <div className="p-2 bg-blue-500/10 rounded-lg text-2xl">
-                  ☃️
-                </div>
+                <div className="p-2 bg-blue-500/10 rounded-lg text-2xl">☃️</div>
                 <div>
                   <label className="text-white font-medium">Snowman</label>
                   <p className="text-xs text-zinc-400 mt-1">
@@ -196,7 +194,9 @@ export default function HolidayThemeSettings({
                   <Music className="w-8 h-8 text-green-400" />
                 </div>
                 <div>
-                  <label className="text-white font-medium">Holiday Music</label>
+                  <label className="text-white font-medium">
+                    Holiday Music
+                  </label>
                   <p className="text-xs text-zinc-400 mt-1">
                     Play festive background music
                   </p>
