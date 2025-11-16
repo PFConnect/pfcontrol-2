@@ -67,7 +67,7 @@ const defaultSettings: Settings = {
     sidebarWidth: 30,
     terminalWidth: 50,
     notesWidth: 20,
-    autoRedirectToAcars: false,
+    autoRedirectToAcars: true,
   },
   notificationViewMode: 'list',
   tutorialCompleted: false,
