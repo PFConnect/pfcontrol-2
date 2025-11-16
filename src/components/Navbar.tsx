@@ -320,7 +320,7 @@ export default function Navbar({
                   {/* <span className="text-red-300 font-medium text-md">Beta</span> */}
                   {window.location.hostname === 'test.pfconnect.online' ||
                     (window.location.hostname === 'localhost' && (
-                      <span className="text-blue-300 italic text-md">
+                      <span className="bg-gradient-to-r from-blue-300 to-blue-500 bg-clip-text text-transparent italic text-md">
                         {' '}
                         Canary
                       </span>
