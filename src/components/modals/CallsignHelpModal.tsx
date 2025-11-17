@@ -1,5 +1,5 @@
 import { X, ExternalLink } from 'lucide-react';
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 
 interface CallsignHelpModalProps {
 	isOpen: boolean;
@@ -10,6 +10,8 @@ export default function CallsignHelpModal({
 	isOpen,
 	onClose,
 }: CallsignHelpModalProps) {
+	const [isScrolled, setIsScrolled] = useState(false);
+
 	useEffect(() => {
 		if (isOpen) {
 			document.body.style.overflow = 'hidden';
@@ -26,7 +28,7 @@ export default function CallsignHelpModal({
 
 	return (
 		<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-			<div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-zinc-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+			<div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-zinc-700 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
 				<div className="flex-shrink-0 p-6 border-b border-zinc-700 flex items-center justify-between">
 					<h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-blue-800 bg-clip-text text-transparent">
 						Callsign Formatting Guide
@@ -40,7 +42,18 @@ export default function CallsignHelpModal({
 					</button>
 				</div>
 
-				<div className="overflow-y-auto flex-1 p-6 space-y-6">
+				<div
+					className={`absolute top-[85px] left-0 right-0 h-20 bg-gradient-to-b from-black via-black/40 to-transparent pointer-events-none transition-opacity duration-300 z-10 ${
+						isScrolled ? 'opacity-100' : 'opacity-0'
+					}`}
+				/>
+
+				<div
+					className="overflow-y-auto flex-1 p-6 space-y-6"
+					onScroll={(e) =>
+						setIsScrolled((e.target as HTMLElement).scrollTop > 0)
+					}
+				>
 					<div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4">
 						<p className="text-blue-200 text-sm leading-relaxed">
 							<strong className="text-blue-100">Important:</strong> Enter your{' '}
@@ -135,6 +148,23 @@ export default function CallsignHelpModal({
 									</code>
 									<span className="text-zinc-400 text-sm">
 										Canadian registered aircraft
+									</span>
+								</div>
+							</div>
+
+							<div className="bg-blue-500/10 border border-blue-500/30 rounded-lg p-4 mt-4">
+								<p className="text-blue-200 text-sm leading-relaxed mb-2">
+									<strong className="text-blue-100">
+										Project Flight & PTFS:
+									</strong>{' '}
+									Due to limited registration numbers, append your flight number after the registration:
+								</p>
+								<div className="flex items-center gap-3">
+									<code className="bg-green-500/20 text-green-300 px-3 py-1.5 rounded font-mono text-sm">
+										N34S4P3212
+									</code>
+									<span className="text-blue-200 text-xs">
+										N34S4P (registration) + 3212 (flight number)
 									</span>
 								</div>
 							</div>
@@ -278,19 +308,18 @@ export default function CallsignHelpModal({
 
 					<section className="bg-zinc-800 rounded-lg p-4">
 						<h3 className="text-lg font-semibold text-white mb-3 flex items-center gap-2">
-							<ExternalLink className="h-5 w-5 text-blue-400" />
 							Additional Resources
 						</h3>
 						<ul className="space-y-2">
 							<li>
 								<a
-									href="https://www.icao.int/operational-safety/Designators-and-indicators"
+									href="https://www.faa.gov/air_traffic/publications/atpubs/atc_html/chap2_section_4.html"
 									target="_blank"
 									rel="noopener noreferrer"
 									className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2 transition-colors"
 								>
 									<ExternalLink className="h-4 w-4" />
-									ICAO Designators and Indicators
+									FAA Order JO 7110.65 - Aircraft Identification
 								</a>
 							</li>
 							<li>
@@ -301,7 +330,7 @@ export default function CallsignHelpModal({
 									className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2 transition-colors"
 								>
 									<ExternalLink className="h-4 w-4" />
-									FAA Aircraft Callsign Guidelines
+									ICAO Airline Codes List (FAA)
 								</a>
 							</li>
 							<li>
@@ -313,17 +342,6 @@ export default function CallsignHelpModal({
 								>
 									<ExternalLink className="h-4 w-4" />
 									Radio Telephony Aircraft Callsign Guide (IVAO)
-								</a>
-							</li>
-							<li>
-								<a
-									href="https://skybrary.aero/articles/icao-aircraft-operator-and-radiotelephony-designators-and-abbreviation-type-c-call-signs"
-									target="_blank"
-									rel="noopener noreferrer"
-									className="text-blue-400 hover:text-blue-300 text-sm flex items-center gap-2 transition-colors"
-								>
-									<ExternalLink className="h-4 w-4" />
-									SKYbrary: ICAO Aircraft Operator Designators
 								</a>
 							</li>
 						</ul>
