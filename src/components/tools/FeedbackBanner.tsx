@@ -721,7 +721,7 @@ export default function FeedbackBanner({
           <>
             <div className="hidden md:block">
               {showDetailedModal && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9998] pointer-events-none" />
+                <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] pointer-events-none" />
               )}
               <DesktopFeedback />
             </div>
