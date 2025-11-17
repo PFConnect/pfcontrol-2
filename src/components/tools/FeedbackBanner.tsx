@@ -261,7 +261,7 @@ export default function FeedbackBanner({
 
   const DesktopFeedback = () => (
     <div
-      className={`fixed bottom-4 z-[9999] w-1/3 left-1/2 transform -translate-x-1/2 pointer-events-auto transition-all duration-300`}
+      className={`fixed bottom-4 z-[9999] w-1/2 2xl:w-[45rem] left-1/2 transform -translate-x-1/2 pointer-events-auto transition-all duration-300`}
     >
       {showDetailedModal ? (
         <div className="space-y-3 mb-3">
@@ -415,7 +415,7 @@ export default function FeedbackBanner({
               <span className="text-white text-md font-medium mb-1">
                 How's your experience?
               </span>
-              <span className="text-zinc-400 text-xs mb-2">
+              <span className="text-zinc-400 text-xs mb-2 hidden xl:block">
                 You can leave a comment with the chat icon.
               </span>
             </div>
@@ -497,8 +497,9 @@ export default function FeedbackBanner({
           {/* Info banner */}
           <div className="backdrop-blur-lg border-2 rounded-3xl px-4 py-3 bg-zinc-900/80 border-zinc-700/50">
             <p className="text-blue-200 text-sm leading-relaxed">
-              <strong className="text-blue-100">Help us improve!</strong> Rate
-              different aspects of PFControl.
+              <strong className="text-blue-100">Help us improve!</strong>
+              <br />
+              Rate different aspects of PFControl.
             </p>
           </div>
 
@@ -514,20 +515,15 @@ export default function FeedbackBanner({
               return (
                 <div
                   key={category.key}
-                  className="backdrop-blur-lg border-2 rounded-3xl px-4 py-3 bg-zinc-900/80 border-zinc-700/50"
+                  className="backdrop-blur-lg border-2 rounded-3xl px-3 py-2 bg-zinc-900/80 border-zinc-700/50"
                 >
-                  <div className="flex flex-col space-y-2">
-                    <div className="flex flex-col justify-center text-left">
-                      <span className="text-white text-sm font-medium mb-0.5">
-                        {category.label}
-                        {category.key === 'overall' && (
-                          <span className="text-red-400 ml-1">*</span>
-                        )}
-                      </span>
-                      <span className="text-zinc-400 text-xs">
-                        {category.description}
-                      </span>
-                    </div>
+                  <div className="flex flex-row items-center justify-between">
+                    <span className="text-white text-sm font-medium">
+                      {category.label}
+                      {category.key === 'overall' && (
+                        <span className="text-red-400 ml-1">*</span>
+                      )}
+                    </span>
                     <div
                       className="flex justify-center space-x-1"
                       onMouseLeave={() => {
@@ -609,18 +605,18 @@ export default function FeedbackBanner({
               <span className="text-white text-md font-medium">
                 Ready to submit?
               </span>
+            </div>
+
+            {/* Submit button */}
+            <div className="flex justify-center items-center space-x-3">
               <button
                 onClick={handleCloseDetailed}
-                className="absolute right-0 text-zinc-400 hover:text-white transition-colors"
+                className="text-zinc-400 hover:text-white transition-colors"
                 disabled={isSubmitting}
                 aria-label="Cancel"
               >
                 <X className="w-5 h-5" />
               </button>
-            </div>
-
-            {/* Submit button */}
-            <div className="flex justify-center">
               <Button
                 onClick={handleSubmitDetailed}
                 disabled={detailedRatings.overall === 0 || isSubmitting}
@@ -719,14 +715,17 @@ export default function FeedbackBanner({
       <div className="pointer-events-none">
         {isOpen && (
           <>
-            <div className="hidden md:block">
+            <div className="hidden lg:block">
               {showDetailedModal && (
-                <div className="fixed inset-0 bg-black/20 backdrop-blur-md z-[9999] pointer-events-none" />
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-xl z-[9999] pointer-events-none" />
               )}
               <DesktopFeedback />
             </div>
 
-            <div className="block md:hidden">
+            <div className="block lg:hidden">
+              {showDetailedModal && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-xl z-[9999] pointer-events-none" />
+              )}
               <MobileFeedback />
             </div>
           </>
