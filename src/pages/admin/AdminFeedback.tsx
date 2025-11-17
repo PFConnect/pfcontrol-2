@@ -4,9 +4,8 @@ import {
   MessageCircle,
   Trash2,
   Search,
-  Filter,
-  Menu,
   RefreshCw,
+  Menu,
 } from 'lucide-react';
 import { Users } from 'lucide-react';
 import Navbar from '../../components/Navbar';
@@ -15,6 +14,7 @@ import Loader from '../../components/common/Loader';
 import Button from '../../components/common/Button';
 import Toast from '../../components/common/Toast';
 import ErrorScreen from '../../components/common/ErrorScreen';
+import Dropdown from '../../components/common/Dropdown';
 import {
   fetchFeedback,
   fetchFeedbackStats,
@@ -190,20 +190,12 @@ export default function AdminFeedback() {
                   className="w-full pl-11 pr-4 py-3 bg-zinc-900/50 border-2 border-zinc-700 rounded-full text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 transition-all duration-200 hover:border-zinc-600"
                 />
               </div>
-              <div className="relative w-full sm:w-52">
-                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-zinc-400 z-10 ml-3 pointer-events-none" />
-                <select
-                  value={filterRating}
-                  onChange={(e) => setFilterRating(e.target.value)}
-                  className="w-full pl-10 pr-4 py-3 bg-zinc-900/50 border-2 border-zinc-700 rounded-full text-white focus:outline-none focus:ring-2 focus:ring-yellow-500/50 focus:border-yellow-500 transition-all duration-200 hover:border-zinc-600 appearance-none"
-                >
-                  {filterOptions.map((option) => (
-                    <option key={option.value} value={option.value}>
-                      {option.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <Dropdown
+                options={filterOptions}
+                value={filterRating}
+                onChange={setFilterRating}
+                size="md"
+              />
               <Button
                 onClick={fetchData}
                 variant="outline"
