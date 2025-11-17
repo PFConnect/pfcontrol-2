@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import {
-  Activity,
+  HeartPulse,
   Eye,
   Clock,
   Menu,
@@ -252,7 +252,7 @@ export default function AdminApiLogs() {
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mb-4">
                   <div className="flex items-center min-w-0 flex-1">
                     <div className="p-2 sm:p-3 bg-blue-500/20 rounded-xl mr-3 sm:mr-4 flex-shrink-0">
-                      <Activity className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
+                      <HeartPulse className="h-6 w-6 sm:h-8 sm:w-8 text-blue-400" />
                     </div>
                     <div>
                       <h1
