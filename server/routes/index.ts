@@ -12,6 +12,7 @@ import pilotRouter from './pilot.js';
 import adminRouter from './admin/index.js';
 import updateModalRouter from './updateModal.js';
 import versionRouter from './version.js';
+import feedbackRouter from './feedback.js';
 
 const router = express.Router();
 
@@ -27,5 +28,6 @@ router.use('/pilot', pilotRouter);
 router.use('/admin', adminRouter);
 router.use('/update-modal', updateModalRouter);
 router.use('/version', versionRouter);
+router.use('/feedback', feedbackRouter);
 
 export default router;

@@ -16,6 +16,7 @@ import {
   NotebookPen,
   ShieldCheck,
   LockKeyhole,
+  Star,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/auth/useAuth';
@@ -116,6 +117,13 @@ export default function AdminSidebar({
           path: '/admin/notifications',
           textColor: 'cyan-400',
           permission: 'notifications',
+        },
+        {
+          icon: Star,
+          label: 'Feedback',
+          path: '/admin/feedback',
+          textColor: 'yellow-400',
+          permission: 'admin',
         },
       ].filter((item) => hasPermission(item.permission)),
     },

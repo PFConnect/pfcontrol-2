@@ -1,4 +1,5 @@
 import type { Settings } from "../../types/settings";
+import type { Feedback, FeedbackStats } from "./feedback";
 
 const API_BASE_URL = import.meta.env.VITE_SERVER_URL || '';
 
@@ -297,8 +298,23 @@ export async function fetchAdminUsers(
     return makeAdminRequest(`/users?${params.toString()}`);
 }
 
-export async function fetchAdminSessions(): Promise<AdminSession[]> {
-    return makeAdminRequest('/sessions');
+export interface AdminSessionsResponse {
+    sessions: AdminSession[];
+    pagination: {
+        page: number;
+        limit: number;
+        total: number;
+        pages: number;
+    };
+}
+
+export async function fetchAdminSessions(page: number = 1, limit: number = 100, search: string = ''): Promise<AdminSessionsResponse> {
+    const params = new URLSearchParams({
+        page: page.toString(),
+        limit: limit.toString(),
+    });
+    if (search) params.append('search', search);
+    return makeAdminRequest(`/sessions?${params.toString()}`);
 }
 
 export async function revealUserIP(userId: string): Promise<RevealIPResponse> {
@@ -586,5 +602,19 @@ export async function updateGlobalHolidaySettings(
   }
 
   return response.json();
+}
+
+export async function fetchFeedback(): Promise<Feedback[]> {
+    return makeAdminRequest('/feedback');
+}
+
+export async function fetchFeedbackStats(): Promise<FeedbackStats> {
+    return makeAdminRequest('/feedback/stats');
+}
+
+export async function deleteFeedback(id: number): Promise<Feedback> {
+    return makeAdminRequest(`/feedback/${id}`, {
+        method: 'DELETE'
+    });
 }
 

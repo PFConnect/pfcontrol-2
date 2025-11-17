@@ -167,6 +167,19 @@ export async function createMainTables() {
     .addColumn('ip_address', 'varchar(255)')
     .addColumn('timestamp', 'timestamp', (col) => col.defaultTo('now()'))
     .execute();
+
+  // feedback
+  await mainDb.schema
+    .createTable('feedback')
+    .ifNotExists()
+    .addColumn('id', 'serial', (col) => col.primaryKey())
+    .addColumn('user_id', 'varchar(255)', (col) => col.notNull())
+    .addColumn('username', 'varchar(255)', (col) => col.notNull())
+    .addColumn('rating', 'integer', (col) => col.notNull())
+    .addColumn('comment', 'text')
+    .addColumn('created_at', 'timestamp', (col) => col.defaultTo('now()'))
+    .addColumn('updated_at', 'timestamp', (col) => col.defaultTo('now()'))
+    .execute();
 }
 
 // Helper to create a dynamic flights table for a session

@@ -11,8 +11,11 @@ router.use(requirePermission('sessions'));
 // GET: /api/admin/sessions - Get all sessions with details
 router.get('/', createAuditLogger('ADMIN_SESSIONS_ACCESSED'), async (req, res) => {
     try {
-        const sessions = await getAdminSessions();
-        res.json(sessions);
+        const page = parseInt(req.query.page as string) || 1;
+        const limit = Math.min(parseInt(req.query.limit as string) || 100, 100);
+        const search = (req.query.search as string) || '';
+        const result = await getAdminSessions(page, limit, search);
+        res.json(result);
     } catch (error) {
         console.error('Error fetching sessions:', error);
         res.status(500).json({ error: 'Failed to fetch sessions' });
