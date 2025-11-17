@@ -110,10 +110,10 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit }: FeedbackMod
 
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[10000] p-4">
-      <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative">
+      <div className="bg-gradient-to-b from-zinc-900 to-zinc-950 border-2 border-zinc-700 rounded-2xl w-full max-w-2xl max-h-[90vh] flex flex-col shadow-2xl relative overflow-hidden">
         {/* Header */}
-        <div className="flex-shrink-0 p-6 border-b border-zinc-700 flex items-center justify-between">
-          <h2 className="text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-blue-800 bg-clip-text text-transparent">
+        <div className="flex-shrink-0 p-4 sm:p-6 border-b border-zinc-700 flex items-center justify-between">
+          <h2 className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-blue-400 to-blue-800 bg-clip-text text-transparent">
             Share Your Feedback
           </h2>
           <button
@@ -127,7 +127,7 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit }: FeedbackMod
         </div>
 
         {/* Content */}
-        <div className="overflow-y-auto flex-1 p-6 space-y-6">
+        <div className="overflow-y-auto flex-1 p-4 sm:p-6 space-y-4 sm:space-y-6">
           {isSubmitted ? (
             <div className="flex flex-col items-center justify-center py-12 space-y-4">
               <div className="w-16 h-16 bg-green-500/20 rounded-full flex items-center justify-center">
@@ -172,26 +172,28 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit }: FeedbackMod
                           </h3>
                           <p className="text-zinc-400 text-xs mt-1">{category.description}</p>
                         </div>
-                        <div className="flex items-center space-x-1">
+                        <div
+                          className="flex items-center space-x-1"
+                          onMouseLeave={() => {
+                            setHoveredCategory(null);
+                            setHoveredRating(0);
+                          }}
+                        >
                           {[1, 2, 3, 4, 5].map((star) => (
                             <button
                               key={star}
                               type="button"
-                              className="transition-all duration-150 hover:scale-110"
+                              className="transition-all duration-150"
                               onClick={() => handleRatingClick(category.key, star)}
                               onMouseEnter={() => {
                                 setHoveredCategory(category.key);
                                 setHoveredRating(star);
                               }}
-                              onMouseLeave={() => {
-                                setHoveredCategory(null);
-                                setHoveredRating(0);
-                              }}
                               disabled={isSubmitting}
                               tabIndex={0}
                             >
                               <Star
-                                className={`w-7 h-7 transition-colors duration-150 ${
+                                className={`w-6 h-6 sm:w-7 sm:h-7 transition-colors duration-150 ${
                                   star <= displayRating
                                     ? 'text-yellow-400 fill-yellow-400'
                                     : 'text-zinc-600'
@@ -235,7 +237,7 @@ export default function FeedbackModal({ isOpen, onClose, onSubmit }: FeedbackMod
 
         {/* Footer */}
         {!isSubmitted && (
-          <div className="flex-shrink-0 bg-zinc-900 border-t border-zinc-700 p-6 flex gap-3">
+          <div className="flex-shrink-0 bg-zinc-900 border-t border-zinc-700 p-4 sm:p-6 flex flex-col sm:flex-row gap-3">
             <Button
               onClick={handleClose}
               disabled={isSubmitting}
