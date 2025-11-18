@@ -50,7 +50,8 @@ export const getChartsForAirport = (icao: string) => {
             { file: 'LCLK_GND_3.png', name: 'Ground Movement Cargo', type: 'Ground', credits: '© .hykka' },
             { file: 'LCLK_DEP_1.png', name: 'SID Chart 1', type: 'Departure', credits: '© .hykka', procedures: ['LUBE1W', 'KURS1W', 'RUDE1D', 'EMED1D' , 'LUBES', 'KURSA','RUDER', 'EMEDA', 'RWY22']},
             { file: 'LCLK_DEP_2.png', name: 'SID Chart 2', type: 'Departure', credits: '© .hykka', procedures: ['BONE2W', 'NORD1W', 'RUDR1W', 'EMED1W' , 'BONEK', 'NORDI','RUDER', 'EMEDA', 'RWY04']},
-            { file: 'LCLK_ARR_1.png', name: 'STAR Chart', type: 'Arrival', credits: '© .hykka', procedures: ['LUBE1R', 'KURSA1R', 'LUBES', 'KURSA', 'RWY04']},
+            { file: 'LCLK_ARR_1.png', name: 'STAR Chart 1', type: 'Arrival', credits: '© .hykka', procedures: ['LUBE1R', 'KURSA1R', 'LUBES', 'KURSA', 'RWY04']},
+            { file: 'LCLK_ARR_2.png', name: 'STAR Chart 2', type: 'Arrival', credits: '© .hykka', procedures: ['BONE1R', 'NIMS1R', 'KRAS1V', 'BONEK', 'NIMSI', 'KRASI', 'RWY22']},
         ],
         LCPH: [
             { file: 'LCPH_GND_3.png', name: 'Airport Diagram', type: 'Ground', credits: '© vowray' },
