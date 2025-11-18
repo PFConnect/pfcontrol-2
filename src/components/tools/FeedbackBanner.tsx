@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import {
   Star,
   Check,
@@ -41,19 +41,22 @@ export default function FeedbackBanner({
   const [hoveredRating, setHoveredRating] = useState<number>(0);
   const [hoveredBannerRating, setHoveredBannerRating] = useState(0);
   const [overallManuallySet, setOverallManuallySet] = useState(false);
-  const [isEditingComment, setIsEditingComment] = useState(false);
   const [isCommentExpanded, setIsCommentExpanded] = useState(false);
-  const STORAGE_KEY = 'feedback_detailed_data';
   const desktopTextareaRef = useRef<HTMLTextAreaElement>(null);
   const mobileTextareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
-    const el = desktopTextareaRef.current || mobileTextareaRef.current;
-    if (!el) return;
-
-    const length = el.value.length;
-    el.setSelectionRange(length, length);
-  }, [comment]);
+    if (isCommentExpanded) {
+      const textarea = desktopTextareaRef.current || mobileTextareaRef.current;
+      if (textarea) {
+        setTimeout(() => {
+          textarea.focus();
+          const length = textarea.value.length;
+          textarea.setSelectionRange(length, length);
+        }, 0);
+      }
+    }
+  }, [isCommentExpanded]);
 
   useEffect(() => {
     if (showDetailedModal) {
@@ -75,26 +78,20 @@ export default function FeedbackBanner({
         detailedRatings.easeOfUse;
       const avg = sum / 4;
       const rounded = Math.round(avg);
-      setDetailedRatings((prev) => ({ ...prev, overall: rounded }));
+      // Only update if the value actually changed
+      if (detailedRatings.overall !== rounded) {
+        setDetailedRatings((prev) => ({ ...prev, overall: rounded }));
+      }
     }
   }, [
     detailedRatings.userInterface,
     detailedRatings.performance,
     detailedRatings.features,
     detailedRatings.easeOfUse,
+    detailedRatings.overall,
     overallManuallySet,
   ]);
 
-  useEffect(() => {
-    const timeout = setTimeout(() => {
-      if (showDetailedModal) {
-        const data = { detailedRatings, comment };
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
-      }
-    }, 200);
-
-    return () => clearTimeout(timeout);
-  }, [detailedRatings, comment, showDetailedModal]);
 
   const handleRatingClick = (
     categoryKey:
@@ -121,7 +118,6 @@ export default function FeedbackBanner({
         ? `${categoriesText}\n\n${comment}`
         : categoriesText;
       await submitFeedback(detailedRatings.overall, fullComment);
-      localStorage.removeItem(STORAGE_KEY);
       setIsSubmitted(true);
 
       const expiryDate = new Date();
@@ -200,24 +196,6 @@ export default function FeedbackBanner({
   };
 
   const handleShowDetailedFeedback = () => {
-    const saved = localStorage.getItem(STORAGE_KEY);
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        setDetailedRatings(
-          data.detailedRatings || {
-            userInterface: 0,
-            performance: 0,
-            features: 0,
-            easeOfUse: 0,
-            overall: 0,
-          }
-        );
-        setComment(data.comment || '');
-      } catch (e) {
-        console.error('Error loading saved feedback data:', e);
-      }
-    }
     setShowDetailedModal(true);
     setOverallManuallySet(false);
     setIsCommentExpanded(false);
@@ -270,7 +248,7 @@ export default function FeedbackBanner({
     },
   ];
 
-  const DesktopFeedback = () => (
+  const DesktopFeedback = useMemo(() => (
     <div
       className={`fixed bottom-4 z-[9999] w-1/2 2xl:w-[45rem] left-1/2 transform -translate-x-1/2 pointer-events-auto transition-all duration-300`}
     >
@@ -372,17 +350,15 @@ export default function FeedbackBanner({
                 </label>
                 <div className="relative">
                   <textarea
+                    key="desktop-feedback-textarea"
                     ref={desktopTextareaRef}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    onFocus={() => setIsEditingComment(true)}
-                    onBlur={() => setIsEditingComment(false)}
                     placeholder="What did you like? What could we improve?"
                     className="w-full px-3 py-3 bg-zinc-900 border-2 border-zinc-700/50 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none text-sm pr-20"
                     rows={8}
                     maxLength={1000}
                     disabled={isSubmitting}
-                    autoFocus={isEditingComment}
                   />
                   <p className="absolute bottom-3 right-3 text-zinc-500 text-xs">
                     {comment.length}/1000
@@ -525,9 +501,10 @@ export default function FeedbackBanner({
         )}
       </div>
     </div>
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [showDetailedModal, isSubmitted, rating, hoveredBannerRating, isSubmitting, detailedRatings, comment, isCommentExpanded, hoveredCategory, hoveredRating]);
 
-  const MobileFeedback = () => (
+  const MobileFeedback = useMemo(() => (
     <div
       className={`fixed bottom-0 left-0 right-0 z-[9999] p-4 pointer-events-auto transition-all duration-300`}
     >
@@ -625,17 +602,15 @@ export default function FeedbackBanner({
                 </label>
                 <div className="relative">
                   <textarea
+                    key="mobile-feedback-textarea"
                     ref={mobileTextareaRef}
                     value={comment}
                     onChange={(e) => setComment(e.target.value)}
-                    onFocus={() => setIsEditingComment(true)}
-                    onBlur={() => setIsEditingComment(false)}
                     placeholder="What did you like? What could we improve?"
                     className="w-full px-3 py-2 bg-zinc-800 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:border-blue-500 focus:outline-none resize-none text-sm pr-20"
                     rows={3}
                     maxLength={1000}
                     disabled={isSubmitting}
-                    autoFocus={isEditingComment}
                   />
                   <p className="absolute bottom-2 right-3 text-zinc-500 text-xs">
                     {comment.length}/1000
@@ -775,7 +750,8 @@ export default function FeedbackBanner({
         )}
       </div>
     </div>
-  );
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  ), [showDetailedModal, isSubmitted, rating, hoveredBannerRating, isSubmitting, detailedRatings, comment, isCommentExpanded, hoveredCategory, hoveredRating]);
 
   return (
     <Portal>
@@ -786,14 +762,14 @@ export default function FeedbackBanner({
               {showDetailedModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-xl z-[9999] pointer-events-none" />
               )}
-              <DesktopFeedback />
+              {DesktopFeedback}
             </div>
 
             <div className="block lg:hidden">
               {showDetailedModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-xl z-[9999] pointer-events-none" />
               )}
-              <MobileFeedback />
+              {MobileFeedback}
             </div>
           </>
         )}
