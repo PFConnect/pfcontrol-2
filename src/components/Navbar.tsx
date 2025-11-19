@@ -12,7 +12,6 @@ import {
   ChevronUp,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { useSettings } from '../hooks/settings/useSettings';
 import { useNotifications } from '../hooks/useNotifications';
 import { linkify } from '../utils/linkify';
 import { useAuth } from '../hooks/auth/useAuth';
@@ -50,6 +49,7 @@ export default function Navbar({
   );
   const [isCompact, setIsCompact] = useState<boolean>(window.innerWidth < 950);
   const [isMobile, setIsMobile] = useState<boolean>(window.innerWidth < 768);
+  const [isScrolled, setIsScrolled] = useState<boolean>(window.scrollY > 0);
   const [showAllNotifications, setShowAllNotifications] = useState(false);
   const [showFeedbackBanner, setShowFeedbackBanner] = useState(false);
 
@@ -126,13 +126,25 @@ export default function Navbar({
     }
   }, [sessionId, accessId]);
 
+  useEffect(() => {
+    if (!user && isMobile) setIsMenuOpen(false);
+  }, [user, isMobile]);
+
+  useEffect(() => {
+    const onScroll = () => setIsScrolled(window.scrollY > 0);
+    window.addEventListener('scroll', onScroll, { passive: true });
+    onScroll();
+    return () => window.removeEventListener('scroll', onScroll);
+  }, []);
+
   const shouldShowBackdrop = isMobile && mobileSidebarOpen;
+  const showBackdrop = shouldShowBackdrop || isScrolled;
 
   const navZIndex = mobileSidebarOpen && isMobile ? 'z-30' : 'z-[9999]';
 
   const navClass = [
     `fixed top-0 w-full ${navZIndex} transition-all duration-150 ease-in-out`,
-    shouldShowBackdrop
+    showBackdrop
       ? 'bg-black/30 backdrop-blur-md border-white/10'
       : 'bg-transparent border-none',
   ].join(' ');
@@ -452,20 +464,30 @@ export default function Navbar({
 
             {/* Mobile Menu Button */}
             <div className="md:hidden">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setIsMenuOpen(!isMenuOpen);
-                }}
-                className="text-white hover:text-blue-400 transition-colors duration-300 p-2 rounded-lg hover:bg-white/10"
-                aria-label="Toggle menu"
-              >
-                {isMenuOpen ? (
-                  <X className="h-6 w-6" />
-                ) : (
-                  <Menu className="h-6 w-6" />
-                )}
-              </button>
+              {!user && isMobile ? (
+                <a
+                  href="/login"
+                  onClick={() => setIsMenuOpen(false)}
+                  className="text-white hover:text-blue-400 transition-colors duration-300 p-2 rounded-lg hover:bg-white/10 font-medium"
+                >
+                  Log in
+                </a>
+              ) : (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setIsMenuOpen(!isMenuOpen);
+                  }}
+                  className="text-white hover:text-blue-400 transition-colors duration-300 p-2 rounded-lg hover:bg-white/10"
+                  aria-label="Toggle menu"
+                >
+                  {isMenuOpen ? (
+                    <X className="h-6 w-6" />
+                  ) : (
+                    <Menu className="h-6 w-6" />
+                  )}
+                </button>
+              )}
             </div>
           </div>
 

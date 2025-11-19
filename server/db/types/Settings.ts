@@ -59,8 +59,10 @@ export interface ArrivalsTableColumnSettings {
 export interface AcarsSettings {
   notesEnabled: boolean;
   chartsEnabled: boolean;
+  sidebarWidth: number;
   terminalWidth: number;
   notesWidth: number;
+  autoRedirectToAcars: boolean;
 }
 
 export interface HolidayThemeSettings {

@@ -269,8 +269,9 @@ export async function createOrUpdateUser(userData: {
       notesEnabled: true,
       chartsEnabled: true,
       autoRedirectToAcars: true,
+      sidebarWidth: 30,
       terminalWidth: 50,
-      notesWidth: 20
+      notesWidth: 20,
     },
     tutorialCompleted: false,
     displayStatsOnProfile: true,
