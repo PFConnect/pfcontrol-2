@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   fetchChatMessages,
   reportChatMessage,
@@ -33,14 +33,22 @@ import {
   MessageCircle,
   Radio,
   MapPin,
+  Wifi,
+  WifiOff,
+  Phone,
 } from 'lucide-react';
 import type { ChatMessage, ChatMention } from '../../types/chats';
 import type { SessionUser } from '../../types/session';
 import type { ToastType } from '../common/Toast';
+import type {
+  VoiceUser,
+  VoiceConnectionState,
+} from '../../sockets/voiceChatSocket';
 import Button from '../common/Button';
 import Loader from '../common/Loader';
 import Modal from '../common/Modal';
 import Toast from '../common/Toast';
+import VoiceChat from './VoiceChat';
 
 interface ChatSidebarProps {
   sessionId: string;
@@ -102,7 +110,7 @@ export default function ChatSidebar({
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const isAtBottomRef = useRef(true);
 
-  const [activeTab, setActiveTab] = useState<'session' | 'pfatc'>(
+  const [activeTab, setActiveTab] = useState<'session' | 'voice' | 'pfatc'>(
     sessionId ? 'session' : 'pfatc'
   );
   const [globalMessages, setGlobalMessages] = useState<GlobalChatMessage[]>([]);
@@ -130,6 +138,13 @@ export default function ChatSidebar({
   const globalPendingDeleteRef = useRef<GlobalChatMessage | null>(null);
   const globalTextareaRef = useRef<HTMLTextAreaElement>(null);
   const onMentionReceivedRef = useRef(onMentionReceived);
+  const [voiceUsers, setVoiceUsers] = useState<VoiceUser[]>([]);
+  const [connectionState, setConnectionState] = useState<VoiceConnectionState>({
+    connected: false,
+    connecting: false,
+    error: null,
+  });
+  const [isInVoice, setIsInVoice] = useState(false);
 
   const [unreadSessionMentions, setUnreadSessionMentions] = useState<
     ChatMention[]
@@ -138,6 +153,14 @@ export default function ChatSidebar({
     ChatMention[]
   >([]);
   const [chatOpen, setChatOpen] = useState(false);
+
+  const getConnectionIcon = () => {
+    if (connectionState.connecting)
+      return <Wifi className="w-4 h-4 animate-pulse text-yellow-400" />;
+    if (connectionState.connected)
+      return <Wifi className="w-4 h-4 text-green-400" />;
+    return <WifiOff className="w-4 h-4 text-red-400" />;
+  };
 
   useEffect(() => {
     onMentionReceivedRef.current = onMentionReceived;
@@ -589,9 +612,13 @@ export default function ChatSidebar({
             {isPFATC && sessionId
               ? activeTab === 'session'
                 ? 'Session Chat'
-                : 'PFATC Chat'
+                : activeTab === 'voice'
+                  ? 'Voice Chat'
+                  : 'PFATC Chat'
               : sessionId
-                ? 'Session Chat'
+                ? activeTab === 'voice'
+                  ? 'Voice Chat'
+                  : 'Session Chat'
                 : 'PFATC Chat'}
           </span>
         </div>
@@ -603,86 +630,121 @@ export default function ChatSidebar({
         </button>
       </div>
 
-      {isPFATC && sessionId && (
+      {(isPFATC || sessionId) && (
         <div className="border-b border-blue-800 bg-zinc-900">
           <div className="flex">
-            <button
-              onClick={() => setActiveTab('session')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 font-semibold transition-colors relative ${
-                activeTab === 'session'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-              }`}
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Session</span>
-              {unreadSessionCount > 0 && activeTab !== 'session' && (
-                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadSessionCount}
+            {sessionId && (
+              <button
+                onClick={() => setActiveTab('session')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 font-semibold transition-colors relative ${
+                  activeTab === 'session'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                }`}
+              >
+                <MessageCircle className="w-4 h-4" />
+                <span>Session</span>
+                {unreadSessionCount > 0 && activeTab !== 'session' && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadSessionCount}
+                  </span>
+                )}
+              </button>
+            )}
+
+            {sessionId && (
+              <button
+                onClick={() => setActiveTab('voice')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 font-semibold transition-colors relative ${
+                  activeTab === 'voice'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                }`}
+              >
+                <Phone className="w-4 h-4" />
+                <span>Voice</span>
+                <span
+                  className={`text-xs text-white w-5 h-5 flex items-center justify-center rounded-full pl-[1px] ${
+                    isInVoice ? 'border border-green-600' : 'bg-zinc-700'
+                  }`}
+                >
+                  {voiceUsers.length}
                 </span>
-              )}
-            </button>
-            <button
-              onClick={() => setActiveTab('pfatc')}
-              className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 font-semibold transition-colors relative ${
-                activeTab === 'pfatc'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
-              }`}
-            >
-              <Radio className="w-4 h-4" />
-              <span>PFATC</span>
-              {unreadGlobalCount > 0 && activeTab !== 'pfatc' && (
-                <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
-                  {unreadGlobalCount}
-                </span>
-              )}
-            </button>
+              </button>
+            )}
+
+            {isPFATC && (
+              <button
+                onClick={() => setActiveTab('pfatc')}
+                className={`flex-1 flex items-center justify-center gap-2 px-4 py-2 font-semibold transition-colors relative ${
+                  activeTab === 'pfatc'
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-zinc-800 text-zinc-400 hover:bg-zinc-700'
+                }`}
+              >
+                <Radio className="w-4 h-4" />
+                <span>PFATC</span>
+                {unreadGlobalCount > 0 && activeTab !== 'pfatc' && (
+                  <span className="absolute top-1 right-1 bg-red-500 text-white text-xs font-bold rounded-full w-5 h-5 flex items-center justify-center">
+                    {unreadGlobalCount}
+                  </span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       )}
 
-      <div className="px-5 py-2 border-b border-blue-800 bg-zinc-900">
-        <div className="flex flex-wrap gap-1">
-          {(isPFATC ? activeTab === 'session' : true) ? (
-            sessionUsers.map((sessionUser) => (
-              <img
-                key={sessionUser.id}
-                src={sessionUser.avatar || '/assets/app/default/avatar.webp'}
-                alt={sessionUser.username}
-                className={`w-8 h-8 rounded-full border-2 ${
-                  isUserInActiveChat(sessionUser.id, activeChatUsers)
-                    ? 'border-green-500'
-                    : 'border-gray-500'
-                }`}
-                title={sessionUser.username}
-              />
-            ))
-          ) : (
-            <div className="flex flex-wrap gap-1">
-              {connectedGlobalChatUsers.map((globalUser) => (
-                <img
-                  key={globalUser.id}
-                  src={globalUser.avatar || '/assets/app/default/avatar.webp'}
-                  alt={globalUser.username}
-                  className="w-8 h-8 rounded-full border-2 border-blue-500 shadow-sm"
-                  title={`${globalUser.username} - ${globalUser.station || 'No Station'}`}
-                  onError={(e) => {
-                    e.currentTarget.src = '/assets/app/default/avatar.webp';
-                  }}
-                />
-              ))}
-              {connectedGlobalChatUsers.length === 0 && (
-                <div className="text-xs text-zinc-400">
-                  No controllers online
+      {activeTab !== 'voice' && (
+        <div className="px-5 py-2 border-b border-blue-800 bg-zinc-900">
+          <div className="flex flex-wrap gap-1">
+            <>
+              {activeTab === 'session' ? (
+                sessionUsers.map((sessionUser) => (
+                  <img
+                    key={sessionUser.id}
+                    src={
+                      sessionUser.avatar || '/assets/app/default/avatar.webp'
+                    }
+                    alt={sessionUser.username}
+                    className={`w-8 h-8 rounded-full border-2 ${
+                      isUserInActiveChat(sessionUser.id, activeChatUsers)
+                        ? 'border-green-500'
+                        : 'border-gray-500'
+                    }`}
+                    title={sessionUser.username}
+                  />
+                ))
+              ) : (
+                <div className="flex flex-wrap gap-1">
+                  {connectedGlobalChatUsers.map((globalUser) => (
+                    <img
+                      key={globalUser.id}
+                      src={
+                        globalUser.avatar || '/assets/app/default/avatar.webp'
+                      }
+                      alt={globalUser.username}
+                      className="w-8 h-8 rounded-full border-2 border-blue-500 shadow-sm"
+                      title={`${globalUser.username} - ${globalUser.station || 'No Station'}`}
+                      onError={(e) => {
+                        e.currentTarget.src = '/assets/app/default/avatar.webp';
+                      }}
+                    />
+                  ))}
+                  {connectedGlobalChatUsers.length === 0 && (
+                    <div className="text-xs text-zinc-400">
+                      No controllers online
+                    </div>
+                  )}
                 </div>
               )}
-            </div>
-          )}
+            </>
+          </div>
         </div>
-      </div>
+      )}
 
-      {sessionId && (isPFATC ? activeTab === 'session' : true) && (
+      {/* Session Chat Content */}
+      {sessionId && activeTab === 'session' && (
         <div
           className={`flex-1 ${messages.length > 0 ? 'overflow-y-auto' : ''} px-5 py-4 space-y-4`}
           onScroll={handleScroll}
@@ -822,6 +884,24 @@ export default function ChatSidebar({
         </div>
       )}
 
+      {/* Voice Chat Content */}
+      {sessionId && activeTab === 'voice' && (
+        <VoiceChat
+          sessionId={sessionId}
+          accessId={accessId}
+          open={open}
+          activeTab={activeTab}
+          onMentionReceived={onMentionReceived}
+          voiceUsers={voiceUsers}
+          setVoiceUsers={setVoiceUsers}
+          connectionState={connectionState}
+          setConnectionState={setConnectionState}
+          isInVoice={isInVoice}
+          setIsInVoice={setIsInVoice}
+        />
+      )}
+
+      {/* PFATC Chat Content */}
       {isPFATC && activeTab === 'pfatc' && (
         <div
           className={`flex-1 ${globalMessages.length > 0 ? 'overflow-y-auto' : ''} px-5 py-4 space-y-2`}
@@ -965,6 +1045,7 @@ export default function ChatSidebar({
         </div>
       )}
 
+      {/* Input Section */}
       <div className="p-5 border-t border-blue-800 bg-zinc-900 rounded-bl-3xl relative">
         <div className="relative">
           {activeTab === 'session' && (
@@ -1063,6 +1144,24 @@ export default function ChatSidebar({
                 <Send className="h-4 w-4" />
               </Button>
             </>
+          )}
+
+          {activeTab === 'voice' && (
+            <div className="flex justify-center gap-2 w-full">
+              {getConnectionIcon()}
+              <span className="text-xs text-zinc-400">
+                {connectionState.connected
+                  ? `${voiceUsers.length} in voice chat`
+                  : connectionState.connecting
+                    ? 'Connecting...'
+                    : 'Voice chat offline'}
+              </span>
+              {connectionState.error && (
+                <span className="text-xs text-red-400 truncate">
+                  {connectionState.error}
+                </span>
+              )}
+            </div>
           )}
 
           {isPFATC && activeTab === 'pfatc' && (
@@ -1257,6 +1356,37 @@ export default function ChatSidebar({
           onClose={() => setToast(null)}
         />
       )}
+
+      <style>{`
+        .volume-slider::-webkit-slider-thumb {
+          appearance: none;
+          height: 18px;
+          width: 18px;
+          border-radius: 50%;
+          background: #ffffff;
+          cursor: pointer;
+          border: 2px solid #3b82f6;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          position: relative;
+          z-index: 10;
+        }
+        .volume-slider::-moz-range-thumb {
+          height: 18px;
+          width: 18px;
+          border-radius: 50%;
+          background: #ffffff;
+          cursor: pointer;
+          border: 2px solid #3b82f6;
+          box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+          position: relative;
+          z-index: 10;
+        }
+        .volume-slider {
+          background: transparent;
+          position: relative;
+          z-index: 5;
+        }
+      `}</style>
     </div>
   );
 }
