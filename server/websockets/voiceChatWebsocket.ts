@@ -23,8 +23,15 @@ export function setupVoiceChatWebsocket(httpServer: Server) {
     const io = new SocketServer(httpServer, {
         path: '/sockets/voice-chat',
         cors: {
-            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
-            credentials: true
+            origin: process.env.NODE_ENV === 'production'
+                ? ['https://control.pfconnect.online', 'https://test.pfconnect.online']
+                : [
+                    'http://localhost:9901',
+                    'http://localhost:5173',
+                ],
+            credentials: true,
+            methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+            allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With', 'Accept', 'Origin', 'Access-Control-Allow-Credentials']
         }
     });
 

@@ -116,30 +116,27 @@ export default function VoiceChat({
         setAudioLevels((prev) => new Map(prev.set(userId, level)))
     );
 
-    const applyStates = () => {
-      if (voiceSocketRef.current) {
-        if (isMuted) {
-          voiceSocketRef.current.setMuted(true);
-        }
-        if (isDeafened) {
-          voiceSocketRef.current.setDeafened(true);
-          if (!isMuted) {
-            voiceSocketRef.current.setMuted(true);
-          }
-        }
-      }
-    };
-
-    const timer = setTimeout(applyStates, 100);
-
     return () => {
-      clearTimeout(timer);
       if (voiceSocketRef.current) {
         voiceSocketRef.current.cleanup();
         voiceSocketRef.current = null;
       }
     };
-  }, [sessionId, accessId, user, isInVoice, isMuted, isDeafened]);
+  }, [sessionId, accessId, user, isInVoice]);
+
+  useEffect(() => {
+    if (!voiceSocketRef.current) return;
+
+    const applyStates = () => {
+      if (voiceSocketRef.current) {
+        voiceSocketRef.current.setMuted(isMuted);
+        voiceSocketRef.current.setDeafened(isDeafened);
+      }
+    };
+
+    const timer = setTimeout(applyStates, 100);
+    return () => clearTimeout(timer);
+  }, [isMuted, isDeafened]);
 
   const joinVoice = () => {
     setIsInVoice(true);
