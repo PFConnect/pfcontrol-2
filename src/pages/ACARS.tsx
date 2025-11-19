@@ -66,18 +66,29 @@ export default function ACARS() {
   const messagesEndRef = useRef<HTMLDivElement | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const chartHandlers = useMemo(() => createChartHandlers(
-    chartZoom,
-    setChartZoom,
-    chartPan,
-    setChartPan,
-    isChartDragging,
-    setIsChartDragging,
-    chartDragStart,
-    setChartDragStart,
-    containerRef as React.RefObject<HTMLDivElement>,
-    imageSize
-  ), [chartZoom, chartPan, isChartDragging, chartDragStart, imageSize.width, imageSize.height]);
+  const chartHandlers = useMemo(
+    () =>
+      createChartHandlers(
+        chartZoom,
+        setChartZoom,
+        chartPan,
+        setChartPan,
+        isChartDragging,
+        setIsChartDragging,
+        chartDragStart,
+        setChartDragStart,
+        containerRef as React.RefObject<HTMLDivElement>,
+        imageSize
+      ),
+    [
+      chartZoom,
+      chartPan,
+      isChartDragging,
+      chartDragStart,
+      imageSize.width,
+      imageSize.height,
+    ]
+  );
 
   const {
     handleZoomIn,
@@ -478,35 +489,42 @@ NOTES:
   const minTerminal = 20,
     maxTerminal = 80;
   const minNotes = 10,
-    maxNotes = 40;
+    maxNotes = 60;
 
-  let sidebarWidth = acarsSettings?.sidebarWidth ?? 15;
-  let terminalWidth = acarsSettings?.terminalWidth ?? 65;
+  let sidebarWidth = acarsSettings?.sidebarWidth ?? 30;
+  let terminalWidth = acarsSettings?.terminalWidth ?? 50;
   let notesWidth = acarsSettings?.notesWidth ?? 20;
   const notesEnabled = acarsSettings?.notesEnabled ?? true;
 
   sidebarWidth = Math.max(minSidebar, Math.min(maxSidebar, sidebarWidth));
-  notesWidth = notesEnabled
-    ? Math.max(minNotes, Math.min(maxNotes, notesWidth))
-    : 0;
-
-  if (!showSidebar) sidebarWidth = 0;
-
   if (notesEnabled) {
-    const total = sidebarWidth + terminalWidth + notesWidth;
-    if (total !== 100) {
-      terminalWidth = 100 - sidebarWidth - notesWidth;
-      if (terminalWidth < minTerminal) {
-        terminalWidth = minTerminal;
-        notesWidth = 100 - sidebarWidth - terminalWidth;
-        if (notesWidth < minNotes) notesWidth = minNotes;
+    notesWidth = Math.max(minNotes, Math.min(maxNotes, notesWidth));
+  } else {
+    notesWidth = 0;
+  }
+
+  if (!showSidebar) {
+    sidebarWidth = 0;
+  }
+
+  const totalRequested = sidebarWidth + terminalWidth + notesWidth;
+  if (notesEnabled) {
+    if (totalRequested !== 100) {
+      const remainder = 100 - sidebarWidth - terminalWidth;
+      if (remainder >= minNotes) {
+        notesWidth = remainder;
+      } else {
+        notesWidth = Math.max(minNotes, remainder);
+        terminalWidth = 100 - sidebarWidth - notesWidth;
       }
     }
   } else {
-    notesWidth = 0;
-    terminalWidth = 100 - sidebarWidth;
-    if (terminalWidth < minTerminal) terminalWidth = minTerminal;
+    if (sidebarWidth + terminalWidth !== 100) {
+      terminalWidth = 100 - sidebarWidth;
+    }
   }
+
+  terminalWidth = Math.max(minTerminal, Math.min(maxTerminal, terminalWidth));
 
   if (loading || dataLoading || settingsLoading) {
     return (
@@ -576,11 +594,9 @@ NOTES:
             <PlaneTakeoff className="h-8 w-8 text-blue-500" />
             <div>
               <h1 className="text-2xl font-bold text-white">
-                {flight?.callsign ? (
-                  formattedCallsign || flight.callsign
-                ) : (
-                  'ACARS Terminal'
-                )}
+                {flight?.callsign
+                  ? formattedCallsign || flight.callsign
+                  : 'ACARS Terminal'}
               </h1>
             </div>
           </div>
@@ -633,7 +649,6 @@ NOTES:
             style={{
               width: `${sidebarWidth}%`,
               minWidth: sidebarWidth === 0 ? 0 : 120,
-              maxWidth: 400,
             }}
             className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300"
           >
@@ -668,8 +683,13 @@ NOTES:
         {/* Notes */}
         {notesEnabled && (
           <div
-            style={{ minWidth: 120, flex: 1 }}
-            className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden transition-all duration-300"
+            style={{
+              width: `${notesWidth}%`,
+              minWidth: 120,
+              transition: 'width 0.3s',
+              flex: 'none',
+            }}
+            className="bg-zinc-900 border border-zinc-800 rounded-2xl shadow-2xl overflow-hidden"
           >
             <AcarsNotePanel
               notes={notes}

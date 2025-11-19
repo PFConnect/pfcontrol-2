@@ -24,14 +24,14 @@ export default function AcarsSettings({
     'sidebar' | 'terminal' | 'notes' | null
   >(null);
   const [previewWidths, setPreviewWidths] = useState({
-    sidebar: 15,
-    terminal: 70,
-    notes: 15,
+    sidebar: 30,
+    terminal: 50,
+    notes: 20,
   });
 
   const containerRef = useRef<HTMLDivElement>(null);
 
-  const minSidebar = 10, //side bar size bar is diasbled
+  const minSidebar = 10,
     maxSidebar = 40;
   const minTerminal = 20,
     maxTerminal = 80;
@@ -39,11 +39,11 @@ export default function AcarsSettings({
     maxNotes = 60;
 
   const calculatedWidths = useMemo(() => {
-    if (!settings) return { sidebar: 15, terminal: 70, notes: 15 };
+    if (!settings) return { sidebar: 30, terminal: 50, notes: 20 };
 
-    let sidebarWidth = settings.acars.sidebarWidth ?? 15;
-    let terminalWidth = settings.acars.terminalWidth ?? 70;
-    let notesWidth = settings.acars.notesWidth ?? 15;
+    let sidebarWidth = settings.acars.sidebarWidth ?? 30;
+    let terminalWidth = settings.acars.terminalWidth ?? 50;
+    let notesWidth = settings.acars.notesWidth ?? 20;
     const notesEnabled = settings.acars.notesEnabled;
 
     sidebarWidth = Math.max(minSidebar, Math.min(maxSidebar, sidebarWidth));
@@ -96,8 +96,15 @@ export default function AcarsSettings({
     onChange(updatedSettings);
   };
 
+  useEffect(() => {
+    if (!isDragging) {
+      setPreviewWidths(calculatedWidths);
+    }
+  }, [calculatedWidths, isDragging]);
+
   const handleSidebarWidthChange = (width: number) => {
     if (!settings) return;
+    console.log('Saving sidebarWidth', width);
     const updatedSettings = {
       ...settings,
       acars: {
@@ -156,12 +163,19 @@ export default function AcarsSettings({
         Math.round(
           Math.max(minSidebar, Math.min(maxSidebar, mouseSidebar)) / 5
         ) * 5;
-      tempNotes = Math.max(minNotes, Math.min(maxNotes, previewWidths.notes));
-      tempTerminal = 100 - tempSidebar - tempNotes;
-      tempTerminal = Math.max(minTerminal, tempTerminal);
-      if (tempSidebar + tempTerminal + tempNotes > 100) {
-        tempNotes = 100 - tempSidebar - tempTerminal;
-        tempNotes = Math.max(minNotes, tempNotes);
+
+      if (settings.acars.notesEnabled) {
+        tempNotes = Math.max(minNotes, Math.min(maxNotes, previewWidths.notes));
+        tempTerminal = 100 - tempSidebar - tempNotes;
+        tempTerminal = Math.max(minTerminal, tempTerminal);
+        if (tempSidebar + tempTerminal + tempNotes > 100) {
+          tempNotes = 100 - tempSidebar - tempTerminal;
+          tempNotes = Math.max(minNotes, tempNotes);
+        }
+      } else {
+        tempNotes = 0;
+        tempTerminal = 100 - tempSidebar;
+        tempTerminal = Math.max(minTerminal, tempTerminal);
       }
     } else if (isDragging === 'terminal' && settings.acars.notesEnabled) {
       const sidebar = previewWidths.sidebar;
@@ -184,11 +198,24 @@ export default function AcarsSettings({
     });
   };
 
+  const commitWidths = () => {
+    if (!settings) return;
+    onChange({
+      ...settings,
+      acars: {
+        ...settings.acars,
+        sidebarWidth: previewWidths.sidebar,
+        terminalWidth: previewWidths.terminal,
+        notesWidth: settings.acars.notesEnabled
+          ? previewWidths.notes
+          : settings.acars.notesWidth,
+      },
+    });
+  };
+
   const handleMouseUp = () => {
-    if (isDragging && settings) {
-      handleSidebarWidthChange(previewWidths.sidebar);
-      handleTerminalWidthChange(previewWidths.terminal);
-      handleNotesWidthChange(previewWidths.notes);
+    if (isDragging) {
+      commitWidths();
     }
     setIsDragging(null);
   };
@@ -203,7 +230,6 @@ export default function AcarsSettings({
     }
   }, [isDragging]);
 
-  // Global mouse event listeners for dragging outside the container
   useEffect(() => {
     if (!isDragging) return;
 
@@ -223,6 +249,13 @@ export default function AcarsSettings({
       document.removeEventListener('mouseup', handleGlobalMouseUp);
     };
   }, [isDragging, previewWidths, settings]);
+
+  useEffect(() => {
+    console.log(
+      'Rendered with settings.sidebarWidth',
+      settings?.acars.sidebarWidth
+    ); // DEBUG
+  }, [settings]);
 
   if (!settings) return null;
 
@@ -388,6 +421,12 @@ export default function AcarsSettings({
                       <div className="h-1 bg-blue-500/20 rounded w-3/4"></div>
                       <div className="h-1 bg-cyan-500/20 rounded w-full"></div>
                     </div>
+                  </div>
+                  <div
+                    className="w-1 bg-blue-500 hover:bg-blue-400 cursor-col-resize flex-shrink-0 relative group"
+                    onMouseDown={() => handleMouseDown('sidebar')}
+                  >
+                    <div className="absolute inset-y-0 -left-1 -right-1" />
                   </div>
                   {/* Terminal */}
                   <div
