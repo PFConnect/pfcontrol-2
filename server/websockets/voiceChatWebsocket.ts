@@ -108,6 +108,25 @@ export function setupVoiceChatWebsocket(httpServer: Server) {
             socket.data.userId = userId;
             socket.join(sessionId);
 
+            socket.on('get-voice-users', () => {
+                const sessionUsers = voiceUsers.get(sessionId);
+                if (sessionUsers) {
+                    const users = Array.from(sessionUsers.values()).map(user => ({
+                        userId: user.userId,
+                        username: user.username,
+                        avatar: user.avatar,
+                        isMuted: user.isMuted,
+                        isDeafened: user.isDeafened,
+                        isTalking: user.isTalking,
+                        audioLevel: user.audioLevel
+                    }));
+                    
+                    socket.emit('voice-users-update', users);
+                } else {
+                    socket.emit('voice-users-update', []);
+                }
+            });
+
             socket.on('join-voice-session', async () => {
                 try {
                     const userInfo = await mainDb

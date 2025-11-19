@@ -27,7 +27,8 @@ export function createVoiceChatSocket(
     onConnectionStateChange: (state: VoiceConnectionState) => void,
     onUserStartedTalking: (userId: string) => void,
     onUserStoppedTalking: (userId: string) => void,
-    onAudioLevelUpdate: (userId: string, level: number) => void
+    onAudioLevelUpdate: (userId: string, level: number) => void,
+    userVolumes: Map<string, number>
 ) {
     const socket = io(SOCKET_URL, {
         withCredentials: true,
@@ -138,7 +139,9 @@ export function createVoiceChatSocket(
             const audio = new Audio();
             audio.srcObject = remoteStream;
             audio.autoplay = true;
-            audio.volume = 1.0;
+            
+            const savedVolume = userVolumes.get(targetUserId) ?? 100;
+            audio.volume = Math.max(0, Math.min(savedVolume / 100, 1.0));
             
             audioElements.set(targetUserId, audio);
             
@@ -183,16 +186,13 @@ export function createVoiceChatSocket(
     const setUserVolume = (userId: string, volume: number) => {
         const audioElement = audioElements.get(userId);
         if (audioElement) {
-            audioElement.volume = Math.min(volume / 100, 4.0);
+            const normalizedVolume = Math.max(0, Math.min(volume / 100, 1.0));
+            audioElement.volume = normalizedVolume;
         }
     };
 
-    socket.on('connect', async () => {
-        onConnectionStateChange({ connected: false, connecting: true, error: null });
-        const success = await initializeAudio();
-        if (success) {
-            socket.emit('join-voice-session');
-        }
+    socket.on('connect', () => {
+        onConnectionStateChange({ connected: true, connecting: false, error: null });
     });
 
     socket.on('voice-users-update', (users: VoiceUser[]) => {
@@ -303,6 +303,16 @@ export function createVoiceChatSocket(
 
     return {
         socket,
+        joinVoice: () => {
+            initializeAudio().then(success => {
+                if (success) {
+                    socket.emit('join-voice-session');
+                }
+            });
+        },
+        getVoiceUsers: () => {
+            socket.emit('get-voice-users');
+        },
         setMuted: (muted: boolean) => {
             if (localStream) {
                 localStream.getAudioTracks().forEach(track => {

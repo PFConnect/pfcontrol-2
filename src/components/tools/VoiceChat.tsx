@@ -1,10 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { Phone, PhoneOff, Mic, MicOff, Volume2, VolumeX } from 'lucide-react';
 import { useAuth } from '../../hooks/auth/useAuth';
 import {
-  createVoiceChatSocket,
   type VoiceUser,
   type VoiceConnectionState,
+  createVoiceChatSocket,
 } from '../../sockets/voiceChatSocket';
 import Button from '../common/Button';
 import type { ChatMention } from '../../types/chats';
@@ -21,6 +21,9 @@ interface VoiceChatProps {
   setConnectionState: (state: VoiceConnectionState) => void;
   isInVoice: boolean;
   setIsInVoice: (inVoice: boolean) => void;
+  voiceSocket: ReturnType<typeof createVoiceChatSocket> | null;
+  userVolumes: Map<string, number>;
+  setUserVolumes: React.Dispatch<React.SetStateAction<Map<string, number>>>;
 }
 
 export default function VoiceChat({
@@ -31,26 +34,15 @@ export default function VoiceChat({
   setConnectionState,
   isInVoice,
   setIsInVoice,
+  voiceSocket,
+  userVolumes,
+  setUserVolumes,
 }: VoiceChatProps) {
   const { user } = useAuth();
   const [talkingUsers, setTalkingUsers] = useState<Set<string>>(new Set());
   const [audioLevels, setAudioLevels] = useState<Map<string, number>>(
     new Map()
   );
-  const [userVolumes, setUserVolumes] = useState<Map<string, number>>(() => {
-    try {
-      const saved = localStorage.getItem('voice-chat-user-volumes');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return new Map(
-          Object.entries(parsed).map(([k, v]) => [k, v as number])
-        );
-      }
-    } catch (error) {
-      console.warn('Failed to load user volumes from localStorage:', error);
-    }
-    return new Map();
-  });
   const [isMuted, setIsMuted] = useState(() => {
     try {
       const saved = localStorage.getItem('voice-chat-muted');
@@ -67,10 +59,6 @@ export default function VoiceChat({
       return false;
     }
   });
-
-  const voiceSocketRef = useRef<ReturnType<
-    typeof createVoiceChatSocket
-  > | null>(null);
 
   useEffect(() => {
     try {
@@ -89,86 +77,49 @@ export default function VoiceChat({
   }, [isDeafened]);
 
   useEffect(() => {
-    if (!sessionId || !accessId || !user || !isInVoice) return;
-
-    voiceSocketRef.current = createVoiceChatSocket(
-      sessionId,
-      accessId,
-      user.userId,
-      (users) => {
-        setVoiceUsers(users);
-        users.forEach((voiceUser) => {
-          const savedVolume = userVolumes.get(voiceUser.userId);
-          if (savedVolume !== undefined && voiceSocketRef.current) {
-            voiceSocketRef.current.setUserVolume(voiceUser.userId, savedVolume);
-          }
-        });
-      },
-      (state) => setConnectionState(state),
-      (userId) => setTalkingUsers((prev) => new Set([...prev, userId])),
-      (userId) =>
-        setTalkingUsers((prev) => {
-          const newSet = new Set(prev);
-          newSet.delete(userId);
-          return newSet;
-        }),
-      (userId, level) =>
-        setAudioLevels((prev) => new Map(prev.set(userId, level)))
-    );
-
-    return () => {
-      if (voiceSocketRef.current) {
-        voiceSocketRef.current.cleanup();
-        voiceSocketRef.current = null;
-      }
-    };
-  }, [sessionId, accessId, user, isInVoice]);
-
-  useEffect(() => {
-    if (!voiceSocketRef.current) return;
+    if (!voiceSocket) return;
 
     const applyStates = () => {
-      if (voiceSocketRef.current) {
-        voiceSocketRef.current.setMuted(isMuted);
-        voiceSocketRef.current.setDeafened(isDeafened);
+      if (voiceSocket) {
+        voiceSocket.setMuted(isMuted);
+        voiceSocket.setDeafened(isDeafened);
       }
     };
 
     const timer = setTimeout(applyStates, 100);
     return () => clearTimeout(timer);
-  }, [isMuted, isDeafened]);
+  }, [isMuted, isDeafened, voiceSocket]);
 
   const joinVoice = () => {
-    setIsInVoice(true);
+    if (voiceSocket) {
+      voiceSocket.joinVoice();
+      setIsInVoice(true);
+    }
   };
 
   const leaveVoice = () => {
-    if (voiceSocketRef.current) {
-      voiceSocketRef.current.leaveVoice();
+    if (voiceSocket) {
+      voiceSocket.leaveVoice();
     }
     setIsInVoice(false);
-    setVoiceUsers([]);
-    setTalkingUsers(new Set());
-    setAudioLevels(new Map());
-    setConnectionState({ connected: false, connecting: false, error: null });
   };
 
   const toggleMute = () => {
-    if (voiceSocketRef.current) {
+    if (voiceSocket) {
       const newMuted = !isMuted;
-      voiceSocketRef.current.setMuted(newMuted);
+      voiceSocket.setMuted(newMuted);
       setIsMuted(newMuted);
     }
   };
 
   const toggleDeafen = () => {
-    if (voiceSocketRef.current) {
+    if (voiceSocket) {
       const newDeafened = !isDeafened;
-      voiceSocketRef.current.setDeafened(newDeafened);
+      voiceSocket.setDeafened(newDeafened);
       setIsDeafened(newDeafened);
       if (newDeafened) {
         setIsMuted(true);
-        voiceSocketRef.current.setMuted(true);
+        voiceSocket.setMuted(true);
       }
     }
   };
@@ -195,18 +146,16 @@ export default function VoiceChat({
 
   const handleVolumeChange = (userId: string, volume: number) => {
     setUserVolumes((prev) => new Map(prev.set(userId, volume)));
-    if (voiceSocketRef.current) {
-      voiceSocketRef.current.setUserVolume(userId, volume);
+    if (voiceSocket) {
+      voiceSocket.setUserVolume(userId, volume);
     }
   };
 
-  const handleVolumeSave = (userId: string, volume: number) => {
+  const handleVolumeMouseUp = () => {
     try {
-      const newVolumes = new Map(userVolumes.set(userId, volume));
-      const volumesObj = Object.fromEntries(newVolumes);
       localStorage.setItem(
-        'voice-chat-user-volumes',
-        JSON.stringify(volumesObj)
+        'userVolumes',
+        JSON.stringify(Array.from(userVolumes.entries()))
       );
     } catch (error) {
       console.warn('Failed to save user volumes to localStorage:', error);
@@ -237,7 +186,8 @@ export default function VoiceChat({
               .map((voiceUser) => {
                 const isCurrentUser = voiceUser.userId === user?.userId;
                 const isTalking = talkingUsers.has(voiceUser.userId);
-                const currentVolume = userVolumes.get(voiceUser.userId) || 100;
+                const volumeFromStore = userVolumes.get(voiceUser.userId);
+                const currentVolume = volumeFromStore ?? 100;
 
                 return (
                   <div
@@ -291,18 +241,7 @@ export default function VoiceChat({
                               parseInt(e.target.value)
                             )
                           }
-                          onMouseUp={(e) =>
-                            handleVolumeSave(
-                              voiceUser.userId,
-                              parseInt((e.target as HTMLInputElement).value)
-                            )
-                          }
-                          onTouchEnd={(e) =>
-                            handleVolumeSave(
-                              voiceUser.userId,
-                              parseInt((e.target as HTMLInputElement).value)
-                            )
-                          }
+                          onMouseUp={handleVolumeMouseUp}
                           className="flex-1 h-2 bg-zinc-700 rounded-lg appearance-none cursor-pointer volume-slider"
                           style={{
                             background: `linear-gradient(to right, #3b82f6 0%, #3b82f6 ${(currentVolume / 400) * 100}%, #4a5568 ${(currentVolume / 400) * 100}%, #4a5568 100%)`,

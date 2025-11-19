@@ -40,9 +40,10 @@ import {
 import type { ChatMessage, ChatMention } from '../../types/chats';
 import type { SessionUser } from '../../types/session';
 import type { ToastType } from '../common/Toast';
-import type {
-  VoiceUser,
-  VoiceConnectionState,
+import {
+  createVoiceChatSocket,
+  type VoiceUser,
+  type VoiceConnectionState,
 } from '../../sockets/voiceChatSocket';
 import Button from '../common/Button';
 import Loader from '../common/Loader';
@@ -146,6 +147,10 @@ export default function ChatSidebar({
   });
   const [isInVoice, setIsInVoice] = useState(false);
 
+  const voiceSocketRef = useRef<ReturnType<
+    typeof createVoiceChatSocket
+  > | null>(null);
+
   const [unreadSessionMentions, setUnreadSessionMentions] = useState<
     ChatMention[]
   >([]);
@@ -153,6 +158,10 @@ export default function ChatSidebar({
     ChatMention[]
   >([]);
   const [chatOpen, setChatOpen] = useState(false);
+  const [userVolumes, setUserVolumes] = useState<Map<string, number>>(() => {
+    const storedVolumes = localStorage.getItem('userVolumes');
+    return storedVolumes ? new Map(JSON.parse(storedVolumes)) : new Map();
+  });
 
   const getConnectionIcon = () => {
     if (connectionState.connecting)
@@ -599,6 +608,47 @@ export default function ChatSidebar({
     }
   }, [activeTab, open]);
 
+  useEffect(() => {
+    if (!sessionId || !accessId || !user || !open) return;
+
+    voiceSocketRef.current = createVoiceChatSocket(
+      sessionId,
+      accessId,
+      user.userId,
+      (users) => setVoiceUsers(users),
+      (state) => setConnectionState(state),
+      () => {},
+      () => {},
+      () => {},
+      userVolumes
+    );
+
+    if (voiceSocketRef.current) {
+      voiceSocketRef.current.socket.emit('get-voice-users');
+    }
+
+    return () => {
+      if (voiceSocketRef.current) {
+        voiceSocketRef.current.cleanup();
+        voiceSocketRef.current = null;
+      }
+      setVoiceUsers([]);
+      setConnectionState({ connected: false, connecting: false, error: null });
+      setIsInVoice(false);
+    };
+  }, [sessionId, accessId, user, open]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(
+        'userVolumes',
+        JSON.stringify(Array.from(userVolumes.entries()))
+      );
+    } catch (error) {
+      console.warn('Failed to save user volumes to localStorage:', error);
+    }
+  }, [userVolumes]);
+
   return (
     <div
       className={`fixed top-0 right-0 h-full w-100 bg-zinc-900 text-white transition-transform duration-300 ${
@@ -898,6 +948,9 @@ export default function ChatSidebar({
           setConnectionState={setConnectionState}
           isInVoice={isInVoice}
           setIsInVoice={setIsInVoice}
+          voiceSocket={voiceSocketRef.current}
+          userVolumes={userVolumes}
+          setUserVolumes={setUserVolumes}
         />
       )}
 
