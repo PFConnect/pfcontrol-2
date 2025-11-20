@@ -1,7 +1,7 @@
 import leoProfanity from 'leo-profanity';
 
 try {
-    leoProfanity.loadDictionary();
+    leoProfanity.loadDictionary('en');
 } catch {
     // ignore
 }
