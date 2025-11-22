@@ -590,7 +590,7 @@ export default function AdminUsers() {
                 )}
                 <input
                   type="text"
-                  placeholder="Search by username or user ID..."
+                  placeholder="Search by username, user ID or IP address..."
                   value={search}
                   onChange={handleSearchChange}
                   className="w-full pl-11 pr-10 py-3 bg-zinc-900/50 border-2 border-zinc-700 rounded-full text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-green-500/50 focus:border-green-500 transition-all duration-200 hover:border-zinc-600"

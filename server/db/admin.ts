@@ -270,13 +270,22 @@ export async function getAllUsers(
         ])
         .orderBy('u.last_login', 'desc');
 
-      if (search && search.trim()) {
+      const trimmedSearch = search && search.trim() ? search.trim() : '';
+
+      const isIpSearch = Boolean(
+        trimmedSearch &&
+          /^[0-9A-Fa-f:.\u0025\u005b\u005d]+$/.test(trimmedSearch)
+      );
+
+      if (!isIpSearch && trimmedSearch) {
         query = query.where((eb) =>
           eb.or([
-            eb('u.username', 'ilike', `%${search.trim()}%`),
-            eb('u.id', '=', search.trim()),
+            eb('u.username', 'ilike', `%${trimmedSearch}%`),
+            eb('u.id', '=', trimmedSearch),
           ])
         );
+      } else if (isIpSearch) {
+        query = query.where('u.ip_address', 'is not', null);
       }
 
       if (filterAdmin === 'admin' || filterAdmin === 'non-admin') {
@@ -295,14 +304,20 @@ export async function getAllUsers(
         }
       }
 
-      const countQuery = query
-        .clearSelect()
-        .clearOrderBy()
-        .select(({ fn }) => fn.countAll().as('count'));
-      const countResult = await countQuery.executeTakeFirst();
-      totalUsers = Number(countResult?.count) || 0;
+      let rows;
+      if (isIpSearch) {
+        rows = await query.execute();
+      } else {
+        const countQuery = query
+          .clearSelect()
+          .clearOrderBy()
+          .select(({ fn }) => fn.countAll().as('count'));
+        const countResult = await countQuery.executeTakeFirst();
+        totalUsers = Number(countResult?.count) || 0;
 
-      const rows = await query.limit(limit).offset(offset).execute();
+        rows = await query.limit(limit).offset(offset).execute();
+      }
+
       const rawUsers: RawUser[] = rows.map((r) => ({
         id: r.id,
         username: r.username,
@@ -392,26 +407,53 @@ export async function getAllUsers(
         };
       });
 
+      let usersAfterIpFilter = usersWithAdminStatus;
+      if (isIpSearch) {
+        const lowerSearch = trimmedSearch.toLowerCase();
+        usersAfterIpFilter = usersWithAdminStatus.filter((u) => {
+          if (!u.ip_address) return false;
+          return String(u.ip_address).toLowerCase().includes(lowerSearch);
+        });
+        totalUsers = usersAfterIpFilter.length;
+        filteredUsers = usersAfterIpFilter.slice(offset, offset + limit);
+      } else {
+        filteredUsers = usersWithAdminStatus;
+      }
+
       const usersWithCacheStatus = await Promise.all(
-        usersWithAdminStatus.map(async (user) => {
+        filteredUsers.map(async (user) => {
           const isCached = await redisConnection.exists(`user:${user.id}`);
           return { ...user, cached: isCached === 1 };
         })
       );
 
       filteredUsers = usersWithCacheStatus;
-      if (filterAdmin === 'cached') {
+
+      if (!isIpSearch && filterAdmin === 'cached') {
+        filteredUsers = usersWithCacheStatus.filter((user) => user.cached);
+        totalUsers = filteredUsers.length;
+        filteredUsers = filteredUsers.slice(0, limit);
+      } else if (isIpSearch && filterAdmin === 'cached') {
         filteredUsers = usersWithCacheStatus.filter((user) => user.cached);
         totalUsers = filteredUsers.length;
         filteredUsers = filteredUsers.slice(0, limit);
       }
 
-      await redisConnection.set(
-        cacheKey,
-        JSON.stringify({ users: filteredUsers, total: totalUsers }),
-        'EX',
-        300
-      );
+      try {
+        await redisConnection.set(
+          cacheKey,
+          JSON.stringify({ users: filteredUsers, total: totalUsers }),
+          'EX',
+          300
+        );
+      } catch (error) {
+        if (error instanceof Error) {
+          console.warn(
+            `[Redis] Failed to set cache for allUsers (${cacheKey}):`,
+            error.message
+          );
+        }
+      }
     }
 
     return {
