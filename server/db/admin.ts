@@ -354,6 +354,7 @@ export async function getAllUsers(
             error
           );
         }
+        user.role_permissions = rolePermissions;
 
         let decryptedIP = user.ip_address;
         if (user.ip_address) {

@@ -1,6 +1,6 @@
 import express from 'express';
 import jwt from 'jsonwebtoken';
-import axios from 'axios';
+import axios, { AxiosError } from 'axios';
 import {
   createOrUpdateUser,
   getUserById,
@@ -31,7 +31,6 @@ const ROBLOX_CLIENT_ID = process.env.ROBLOX_CLIENT_ID ?? '';
 const ROBLOX_CLIENT_SECRET = process.env.ROBLOX_CLIENT_SECRET ?? '';
 const ROBLOX_REDIRECT_URI = process.env.ROBLOX_REDIRECT_URI ?? '';
 
-// VATSIM OAuth (linking)
 const VATSIM_CLIENT_ID = process.env.VATSIM_CLIENT_ID ?? '';
 const VATSIM_CLIENT_SECRET = process.env.VATSIM_CLIENT_SECRET ?? '';
 const VATSIM_REDIRECT_URI = process.env.VATSIM_REDIRECT_URI ?? '';
@@ -284,7 +283,6 @@ router.get('/vatsim', requireAuth, (req, res) => {
   }
   console.log(VATSIM_AUTH_BASE);
   const url = `${VATSIM_AUTH_BASE.replace(/\/$/, '')}/oauth/authorize?${params.toString()}`;
-  //${VATSIM_AUTH_BASE.replace(/\/$/, '')}
   res.redirect(url);
 });
 
@@ -356,7 +354,7 @@ router.get('/vatsim/callback', authLimiter, async (req, res) => {
     const payload = userResponse.data || {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const root: Record<string, any> =
-      (payload as any).data || (payload as any).user || payload;
+      (payload).data || (payload).user || payload;
     const cid = String(root?.cid ?? root?.id ?? '');
     const candidates = [
       root?.rating?.controller,
@@ -396,7 +394,6 @@ router.get('/vatsim/callback', authLimiter, async (req, res) => {
         if (numeric != null || ratingShort || ratingLong) break;
       }
     }
-    // parsed for VATSIM callback handled
     const fallbackMap: Record<number, string> = {
       0: 'OBS',
       1: 'S1',
@@ -427,12 +424,13 @@ router.get('/vatsim/callback', authLimiter, async (req, res) => {
 
     res.redirect(FRONTEND_URL + '/settings?vatsim_linked=true');
   } catch (error) {
-    if (error instanceof Error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (error instanceof AxiosError) {
       console.error(
         'VATSIM link error (callback):',
-        (error as any)?.response?.data || error.message
+        error.response?.data || error.message
       );
+    } else if (error instanceof Error) {
+      console.error('VATSIM link error (callback):', error.message);
     } else {
       console.error('VATSIM link error (callback):', error);
     }
@@ -461,7 +459,6 @@ router.post('/vatsim/exchange', authLimiter, requireAuth, async (req, res) => {
       return res.status(500).json({ error: 'VATSIM OAuth not configured' });
     }
 
-    // Per VATSIM Connect docs, client must authenticate via HTTP Basic
     const basic = Buffer.from(
       `${VATSIM_CLIENT_ID}:${VATSIM_CLIENT_SECRET}`
     ).toString('base64');
@@ -493,7 +490,7 @@ router.post('/vatsim/exchange', authLimiter, requireAuth, async (req, res) => {
     const payload = userResponse.data || {};
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const root: Record<string, any> =
-      (payload as any).data || (payload as any).user || payload;
+      (payload).data || (payload).user || payload;
     const cid = String(root?.cid ?? root?.id ?? '');
     const candidates2 = [
       root?.rating?.controller,
@@ -569,12 +566,13 @@ router.post('/vatsim/exchange', authLimiter, requireAuth, async (req, res) => {
       ratingLong: ratingLong2,
     });
   } catch (error) {
-    if (error instanceof Error) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    if (error instanceof AxiosError) {
       console.error(
         'VATSIM link error:',
-        (error as any)?.response?.data || error.message
+        error.response?.data || error.message
       );
+    } else if (error instanceof Error) {
+      console.error('VATSIM link error:', error.message);
     } else {
       console.error('VATSIM link error:', error);
     }
