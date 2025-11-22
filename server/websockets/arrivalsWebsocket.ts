@@ -19,7 +19,7 @@ export function setupArrivalsWebsocket(httpServer: HttpServer): SocketServer {
     io = new SocketServer(httpServer, {
         path: '/sockets/arrivals',
         cors: {
-            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
+            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://canary.pfconnect.online'],
             credentials: true
         }
     });

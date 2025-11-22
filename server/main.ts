@@ -66,7 +66,7 @@ const app = express();
 app.set('trust proxy', 1);
 app.use(cors({
   origin: process.env.NODE_ENV === 'production'
-    ? ['https://control.pfconnect.online', 'https://test.pfconnect.online']
+    ? ['https://control.pfconnect.online', 'https://canary.pfconnect.online']
     : [
         'http://localhost:9901',
         'http://localhost:5173',

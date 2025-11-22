@@ -32,7 +32,7 @@ export function setupSectorControllerWebsocket(httpServer: HttpServer, sessionUs
   const io = new SocketServer(httpServer, {
     path: '/sockets/sector-controller',
     cors: {
-      origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
+      origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://canary.pfconnect.online'],
       credentials: true
     }
   });

@@ -171,7 +171,7 @@ export function setupSessionUsersWebsocket(httpServer: HttpServer) {
     const io = new SocketServer(httpServer, {
         path: '/sockets/session-users',
         cors: {
-            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://test.pfconnect.online'],
+            origin: ['http://localhost:5173', 'http://localhost:9901', 'https://control.pfconnect.online', 'https://canary.pfconnect.online'],
             credentials: true
         }
     }) as SessionUsersServer;
