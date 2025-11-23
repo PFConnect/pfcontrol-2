@@ -198,7 +198,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/70 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
         <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-7xl mx-auto mt-16 md:mt-24 gap-10 md:gap-0 relative z-10">
-          <div className="flex-1 max-w-xl text-center md:text-left">
+          <div className="flex-1 max-w-xl text-center md:text-left md:ml-12">
             <h1 className="text-5xl sm:text-6xl md:text-[5rem] lg:text-[7rem] font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent leading-tight mb-4">
               PFControl
             </h1>
@@ -546,7 +546,7 @@ export default function Home() {
         </div>
       </section>
 
-      {/* CTA Section - PFControl v2 */}
+      {/* CTA Section */}
       <section className="relative bg-[url('/assets/images/hero.webp')] bg-cover bg-center text-white min-h-[90vh] flex items-center px-4 sm:px-6">
         <div
           className="absolute inset-0"
@@ -563,7 +563,7 @@ export default function Home() {
         <div className="absolute inset-0 bg-gradient-to-br from-black via-black/70 to-transparent"></div>
         <div className="absolute inset-0 bg-gradient-to-b from-black to-transparent"></div>
         <div className="flex flex-col md:flex-row items-center justify-center w-full max-w-7xl mx-auto mt-16 md:mt-24 gap-10 md:gap-0 relative z-10">
-          <div className="flex-1 text-left">
+          <div className="flex-1 text-left md:ml-12">
             <h2 className="text-5xl sm:text-6xl md:text-[5rem] lg:text-[7rem] font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent leading-tight mb-4">
               PFControl
             </h2>

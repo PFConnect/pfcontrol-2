@@ -94,7 +94,7 @@ export default function Footer() {
               reliability.
             </p>
 
-            <div className="flex items-center space-x-5 pt-2">
+            <div className="flex items-center space-x-5 pt-2 flex-wrap">
               <a
                 href="https://github.com/pfconnect"
                 target="_blank"
@@ -102,16 +102,16 @@ export default function Footer() {
                 title="GitHub"
                 className="text-gray-400 hover:text-white transition-colors"
               >
-                <SiGithub className="h-6 w-6" />
+                <SiGithub className="h-5 w-5 md:h-6 md:w-6" />
               </a>
               <a
                 href="https://pfconnect.online/discord"
                 target="_blank"
                 rel="noopener noreferrer"
                 title="Discord"
-                className="text-gray-400 hover:text-indigo-400 transition-colors"
+                className="text-gray-400 hover:text-indigo-500 transition-colors"
               >
-                <FaDiscord className="h-6 w-6" />
+                <FaDiscord className="h-5 w-5 md:h-6 md:w-6" />
               </a>
               <a
                 href="https://www.youtube.com/@PFConnectStudios"
@@ -120,16 +120,17 @@ export default function Footer() {
                 title="YouTube"
                 className="text-gray-400 hover:text-red-500 transition-colors"
               >
-                <FaYoutube className="h-6 w-6" />
+                <FaYoutube className="h-5 w-5 md:h-6 md:w-6" />
               </a>
             </div>
           </div>
 
-          <div className="col-span-2"></div>
+          {/* Spacer only on md+ to avoid awkward mobile gaps */}
+          <div className="hidden md:block md:col-span-2" />
 
           {/* Quick links */}
-          <div className="md:col-span-3">
-            <div className="bg-zinc-900/40 p-4">
+          <div className="md:col-span-3 col-span-1 w-full">
+            <div className="bg-zinc-900/40 p-4 w-full">
               <h3 className="text-white font-medium mb-3">Quick Links</h3>
               <ul className="space-y-2">
                 {quickLinks.map((link) => {
@@ -162,8 +163,8 @@ export default function Footer() {
           </div>
 
           {/* Legal & Contact */}
-          <div className="md:col-span-3">
-            <div className="bg-zinc-900/40 p-4">
+          <div className="md:col-span-3 col-span-1 w-full">
+            <div className="bg-zinc-900/40 p-4 w-full">
               <h3 className="text-white font-medium mb-3">Legal</h3>
               <ul className="space-y-2 mb-3">
                 {legalLinks.map((link) => {
@@ -240,7 +241,7 @@ export default function Footer() {
             </a>
           </div>
 
-          <div className="flex items-center justify-center md:justify-end gap-4 w-full">
+          <div className="flex flex-col md:flex-row items-center md:items-center justify-center md:justify-end gap-4 w-full">
             <div className="text-gray-400 text-sm">
               &copy; {year} PFControl by{' '}
               <a
@@ -253,9 +254,9 @@ export default function Footer() {
               </a>
             </div>
 
-            <div className="bg-zinc-900/40 p-3 flex items-center gap-4">
+            <div className="bg-zinc-900/40 p-3 flex items-center gap-4 whitespace-nowrap">
               <div className="text-gray-400 text-sm">Version</div>
-              <div className="text-white font-mono text-sm">
+              <div className="text-white font-mono text-sm truncate">
                 {isLoading ? '...' : versionData.version}
               </div>
             </div>
