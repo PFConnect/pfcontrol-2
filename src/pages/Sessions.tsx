@@ -228,7 +228,7 @@ export default function Sessions() {
               {sessions.map((session) => (
                 <div
                   key={session.sessionId}
-                  className="bg-gray-800/50 border-2 border-gray-700 hover:border-blue-600/50 rounded-2xl p-5 transition-all hover:bg-gray-800/70 block relative"
+                  className="bg-gray-800/50 border-2 border-gray-700 hover:border-blue-600/50 rounded-3xl p-5 transition-all hover:bg-gray-800/70 block relative"
                 >
                   <Link
                     to={`/view/${session.sessionId}/?accessId=${session.accessId}`}
@@ -305,7 +305,7 @@ export default function Sessions() {
                   </div>
                   {sessionToDelete && (
                     <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-                      <div className="bg-zinc-900 border-2 border-red-600 rounded-lg max-w-md w-full p-6 animate-fade-in">
+                      <div className="bg-zinc-900 border-2 border-red-600 rounded-2xl max-w-md w-full p-6 animate-fade-in">
                         <div className="flex justify-between items-start mb-4">
                           <div className="flex items-center">
                             <div className="p-2 bg-red-900/30 rounded-full mr-3">
@@ -396,7 +396,7 @@ export default function Sessions() {
       {/* Edit Name Modal */}
       {editingName && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border-2 border-blue-800 rounded-lg max-w-md w-full p-6 animate-fade-in">
+          <div className="bg-zinc-900 border-2 border-blue-800 rounded-2xl max-w-md w-full p-6 animate-fade-in">
             <div className="flex justify-between items-start mb-4">
               <div className="flex items-center">
                 <div className="p-2 bg-blue-900/30 rounded-full mr-3">

@@ -1,12 +1,14 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { AlertCircle, Info, Trash2 } from 'lucide-react';
 import { useAuth } from '../hooks/auth/useAuth';
+import { useSettings } from '../hooks/settings/useSettings';
 import { createSession, fetchMySessions } from '../utils/fetch/sessions';
 import { generateATIS } from '../utils/fetch/atis';
 import { updateTutorialStatus } from '../utils/fetch/auth';
 import { steps } from '../components/tutorial/TutorialStepsCreate';
 import { useData } from '../hooks/data/useData';
+import { fetchBackgrounds } from '../utils/fetch/data';
 import Joyride, {
   type CallBackProps,
   STATUS,
@@ -19,6 +21,14 @@ import Button from '../components/common/Button';
 import WindDisplay from '../components/tools/WindDisplay';
 import AtisReminderModal from '../components/modals/AtisReminderModal';
 import CustomTooltip from '../components/tutorial/CustomTooltip';
+
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
+
+interface AvailableImage {
+  filename: string;
+  path: string;
+  extension: string;
+}
 
 export default function Create() {
   const navigate = useNavigate();
@@ -39,7 +49,10 @@ export default function Create() {
     accessId: string;
     atisText: string;
   } | null>(null);
+  const [availableImages, setAvailableImages] = useState<AvailableImage[]>([]);
+  const [customLoaded, setCustomLoaded] = useState(false);
   const { user } = useAuth();
+  const { settings } = useSettings();
   const { airports, frequencies } = useData();
   const [searchParams] = useSearchParams();
   const startTutorial = searchParams.get('tutorial') === 'true';
@@ -55,6 +68,71 @@ export default function Create() {
         .catch(console.error);
     }
   }, [user]);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const data = await fetchBackgrounds();
+        setAvailableImages(data);
+      } catch (error) {
+        console.error('Error loading available images:', error);
+      }
+    };
+    loadImages();
+  }, []);
+
+  const backgroundImage = useMemo(() => {
+    const selectedImage = settings?.backgroundImage?.selectedImage;
+    let bgImage = 'url("/assets/images/hero.webp")';
+
+    const getImageUrl = (filename: string | null): string | null => {
+      if (!filename || filename === 'random' || filename === 'favorites') {
+        return filename;
+      }
+      if (filename.startsWith('https://api.cephie.app/')) {
+        return filename;
+      }
+      return `${API_BASE_URL}/assets/app/backgrounds/${filename}`;
+    };
+
+    if (selectedImage === 'random') {
+      if (availableImages.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableImages.length);
+        bgImage = `url(${API_BASE_URL}${availableImages[randomIndex].path})`;
+      }
+    } else if (selectedImage === 'favorites') {
+      const favorites = settings?.backgroundImage?.favorites || [];
+      if (favorites.length > 0) {
+        const randomFav =
+          favorites[Math.floor(Math.random() * favorites.length)];
+        const favImageUrl = getImageUrl(randomFav);
+        if (
+          favImageUrl &&
+          favImageUrl !== 'random' &&
+          favImageUrl !== 'favorites'
+        ) {
+          bgImage = `url(${favImageUrl})`;
+        }
+      }
+    } else if (selectedImage) {
+      const imageUrl = getImageUrl(selectedImage);
+      if (imageUrl && imageUrl !== 'random' && imageUrl !== 'favorites') {
+        bgImage = `url(${imageUrl})`;
+      }
+    }
+
+    return bgImage;
+  }, [
+    settings?.backgroundImage?.selectedImage,
+    settings?.backgroundImage?.favorites,
+    availableImages,
+  ]);
+
+  useEffect(() => {
+    if (backgroundImage !== 'url("/assets/images/hero.webp")') {
+      setCustomLoaded(true);
+    }
+  }, [backgroundImage]);
 
   const handleDeleteOldestSession = async () => {
     setIsDeletingOldest(true);
@@ -162,194 +240,213 @@ export default function Create() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-black to-slate-900 text-white relative">
-      <div className="relative z-10">
-        <Navbar />
-        <div className="max-w-xl mx-auto py-12 px-4 pt-40">
-          <h2
-            className="text-6xl font-extrabold bg-gradient-to-br from-blue-400 to-blue-900 bg-clip-text text-transparent mb-6 text-center"
-            style={{ lineHeight: 1.4 }}
+    <div className="min-h-screen bg-gray-950 text-white relative">
+      <Navbar />
+
+      <div className="relative w-full h-80 md:h-96 overflow-hidden mb-4">
+        <div className="absolute inset-0">
+          <img
+            src="/assets/images/hero.webp"
+            alt="Banner"
+            className="object-cover w-full h-full scale-110"
+          />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              opacity: customLoaded ? 1 : 0,
+              transition: 'opacity 0.5s ease-in-out',
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-950/40 via-gray-950/70 to-gray-950"></div>
+        </div>
+
+        <div className="relative h-full flex flex-col items-center justify-center px-6 md:px-10">
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight text-center">
+            CREATE SESSION
+          </h1>
+        </div>
+      </div>
+
+      <div className="relative z-10 max-w-xl mx-auto px-4 -mt-24 md:-mt-32 pb-12">
+        <div className="bg-gray-900/70 backdrop-blur-md border border-gray-800 rounded-3xl p-6 space-y-6 shadow-2xl">
+          {error && (
+            <div className="p-3 bg-red-900/40 border border-red-700 rounded-full flex items-center text-sm">
+              <AlertCircle className="h-5 w-5 mr-2 text-red-400" />
+              {error}
+            </div>
+          )}
+
+          <div
+            id="session-count-info"
+            className={`p-3 backdrop-blur-sm border-2 rounded-full flex items-center justify-between text-sm ${
+              sessionLimitReached
+                ? 'bg-red-900/40 border-red-700'
+                : sessionCount >= (user?.isAdmin || user?.isTester ? 48 : 8)
+                  ? 'bg-yellow-900/40 border-yellow-700'
+                  : 'bg-blue-900/40 border-blue-500/50'
+            }`}
           >
-            Create Session
-          </h2>
+            <div className="flex items-center">
+              <Info
+                className={`h-4 w-4 mr-2 ${
+                  sessionLimitReached
+                    ? 'text-red-400'
+                    : sessionCount >= (user?.isAdmin || user?.isTester ? 48 : 8)
+                      ? 'text-yellow-400'
+                      : 'text-blue-400'
+                }`}
+              />
+              <span>
+                Sessions: {sessionCount}/
+                {user?.isAdmin || user?.isTester ? 50 : 10}
+                {sessionLimitReached && ' (Limit reached)'}
+              </span>
+            </div>
 
-          <div className="bg-gray-800/70 backdrop-blur-sm border border-gray-700 rounded-lg p-6 space-y-6">
-            {error && (
-              <div className="p-3 bg-red-900/40 backdrop-blur-sm border-2 border-red-700 rounded-full flex items-center text-sm">
-                <AlertCircle className="h-5 w-5 mr-2 text-red-400" />
-                {error}
-              </div>
-            )}
-
-            {/* Session Count Info */}
-            <div
-              id="session-count-info"
-              className={`p-3 backdrop-blur-sm border-2 rounded-full flex items-center justify-between text-sm ${
-                sessionLimitReached
-                  ? 'bg-red-900/40 border-red-700'
-                  : sessionCount >= (user?.isAdmin || user?.isTester ? 48 : 8)
-                    ? 'bg-yellow-900/40 border-yellow-700'
-                    : 'bg-blue-900/40 border-blue-500/50'
-              }`}
-            >
-              <div className="flex items-center">
-                <Info
-                  className={`h-4 w-4 mr-2 ${
-                    sessionLimitReached
-                      ? 'text-red-400'
-                      : sessionCount >=
-                          (user?.isAdmin || user?.isTester ? 48 : 8)
-                        ? 'text-yellow-400'
-                        : 'text-blue-400'
-                  }`}
-                />
+            {sessionLimitReached && (
+              <Button
+                size="sm"
+                variant="danger"
+                onClick={handleDeleteOldestSession}
+                disabled={isDeletingOldest}
+                className="flex items-center space-x-1 text-xs"
+              >
+                <Trash2 className="h-3 w-3" />
                 <span>
-                  Sessions: {sessionCount}/
-                  {user?.isAdmin || user?.isTester ? 50 : 10}
-                  {sessionLimitReached && ' (Limit reached)'}
+                  {isDeletingOldest ? 'Deleting...' : 'Delete Oldest'}
                 </span>
-              </div>
+              </Button>
+            )}
+          </div>
 
-              {sessionLimitReached && (
-                <Button
-                  size="sm"
-                  variant="danger"
-                  onClick={handleDeleteOldestSession}
-                  disabled={isDeletingOldest}
-                  className="flex items-center space-x-1 text-xs"
-                >
-                  <Trash2 className="h-3 w-3" />
-                  <span>
-                    {isDeletingOldest ? 'Deleting...' : 'Delete Oldest'}
-                  </span>
-                </Button>
-              )}
-            </div>
+          <div id="airport-dropdown" className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Select Airport <span className="text-red-400">*</span>
+            </label>
+            <AirportDropdown
+              value={selectedAirport}
+              onChange={(airport) => {
+                setSelectedAirport(airport);
+                setSelectedRunway('');
+                setSelectedArrivalRunway('');
+                setError('');
+              }}
+              disabled={isCreating}
+            />
+          </div>
 
-            <div id="airport-dropdown" className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Select Airport <span className="text-red-400">*</span>
-              </label>
-              <AirportDropdown
-                value={selectedAirport}
-                onChange={(airport) => {
-                  setSelectedAirport(airport);
-                  setSelectedRunway('');
-                  setSelectedArrivalRunway('');
-                  setError('');
-                }}
-                disabled={isCreating}
-              />
-            </div>
+          <div id="runway-dropdown" className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Select Departure Runway <span className="text-red-400">*</span>
+            </label>
+            <RunwayDropdown
+              airportIcao={selectedAirport}
+              value={selectedRunway}
+              onChange={(runway) => {
+                setSelectedRunway(runway);
+                setError('');
+              }}
+              disabled={isCreating || !selectedAirport}
+            />
+          </div>
 
-            <div id="runway-dropdown" className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Select Departure Runway <span className="text-red-400">*</span>
-              </label>
-              <RunwayDropdown
-                airportIcao={selectedAirport}
-                value={selectedRunway}
-                onChange={(runway) => {
-                  setSelectedRunway(runway);
-                  setError('');
-                }}
-                disabled={isCreating || !selectedAirport}
-              />
-            </div>
+          <div id="arrival-runway-dropdown" className="space-y-2">
+            <label className="block text-sm font-medium text-gray-300">
+              Select Arrival Runway{' '}
+              <span className="text-gray-500">(Optional)</span>
+            </label>
+            <RunwayDropdown
+              airportIcao={selectedAirport}
+              value={selectedArrivalRunway}
+              onChange={(runway) => {
+                setSelectedArrivalRunway(runway);
+                setError('');
+              }}
+              disabled={isCreating || !selectedAirport}
+              placeholder="Same as departure"
+            />
+          </div>
 
-            <div id="arrival-runway-dropdown" className="space-y-2">
-              <label className="block text-sm font-medium text-gray-300">
-                Select Arrival Runway{' '}
-                <span className="text-gray-500">(Optional)</span>
-              </label>
-              <RunwayDropdown
-                airportIcao={selectedAirport}
-                value={selectedArrivalRunway}
-                onChange={(runway) => {
-                  setSelectedArrivalRunway(runway);
-                  setError('');
-                }}
-                disabled={isCreating || !selectedAirport}
-                placeholder="Same as departure"
-              />
-            </div>
+          {selectedAirport && <WindDisplay icao={selectedAirport} />}
 
-            {selectedAirport && <WindDisplay icao={selectedAirport} />}
-
-            <div className="border-t border-gray-700 pt-6">
-              <Checkbox
-                id="pfatc-checkbox"
-                checked={startTutorial ? true : isPFATCNetwork}
-                onChange={setIsPFATCNetwork}
-                label="I am controlling on the PFATC Network"
-                className="text-gray-300"
-                disabled={startTutorial ? true : false}
-              />
-              {isPFATCNetwork && (
-                <div className="mt-3 p-3 bg-blue-900/40 backdrop-blur-sm border border-blue-500/50 rounded-md">
-                  <div className="flex items-start space-x-2">
-                    <div className="flex-shrink-0 mt-0.5">
-                      <Info className="h-4 w-4 text-blue-400" />
-                    </div>
-                    <div className="text-sm">
-                      <p className="text-blue-200 font-medium mb-1">
-                        PFATC Network Session
-                      </p>
-                      <p className="text-blue-300">
-                        All submitted flights will be publicly viewable on the
-                        PFATC Network Overview page.
-                      </p>
-                    </div>
+          <div className="border-t border-gray-700 pt-6">
+            <Checkbox
+              id="pfatc-checkbox"
+              checked={startTutorial ? true : isPFATCNetwork}
+              onChange={setIsPFATCNetwork}
+              label="I am controlling on the PFATC Network"
+              className="text-gray-300"
+              disabled={startTutorial ? true : false}
+            />
+            {isPFATCNetwork && (
+              <div className="mt-5 p-3 bg-blue-900/40 backdrop-blur-sm border border-blue-500/50 rounded-2xl">
+                <div className="flex items-start space-x-2">
+                  <div className="flex-shrink-0 mt-0.5">
+                    <Info className="h-4 w-4 text-blue-400" />
+                  </div>
+                  <div className="text-sm">
+                    <p className="text-blue-200 font-medium mb-1">
+                      PFATC Network Session
+                    </p>
+                    <p className="text-blue-300">
+                      All submitted flights will be publicly viewable on the
+                      PFATC Network Overview page.
+                    </p>
                   </div>
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+          </div>
 
-            <div className="border-t border-gray-700 pt-4">
-              <Button
-                id="create-session-btn"
-                onClick={handleCreateSession}
-                disabled={isCreating || sessionLimitReached}
-                className={`w-full ${
-                  isCreating || sessionLimitReached
-                    ? 'opacity-50 cursor-not-allowed'
-                    : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
-                }`}
-              >
-                {isCreating ? (
-                  <span className="flex items-center justify-center">
-                    <svg
-                      className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    Creating Session...
-                  </span>
-                ) : sessionLimitReached ? (
-                  'Session Limit Reached'
-                ) : (
-                  'Create Session'
-                )}
-              </Button>
-            </div>
+          <div className="border-t border-gray-700 pt-4">
+            <Button
+              id="create-session-btn"
+              onClick={handleCreateSession}
+              disabled={isCreating || sessionLimitReached}
+              className={`w-full ${
+                isCreating || sessionLimitReached
+                  ? 'opacity-50 cursor-not-allowed'
+                  : 'bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800'
+              }`}
+            >
+              {isCreating ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="animate-spin -ml-1 mr-2 h-4 w-4 text-white"
+                    xmlns="http://www.w3.org/2000/svg"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                  >
+                    <circle
+                      className="opacity-25"
+                      cx="12"
+                      cy="12"
+                      r="10"
+                      stroke="currentColor"
+                      strokeWidth="4"
+                    ></circle>
+                    <path
+                      className="opacity-75"
+                      fill="currentColor"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                    ></path>
+                  </svg>
+                  Creating Session...
+                </span>
+              ) : sessionLimitReached ? (
+                'Session Limit Reached'
+              ) : (
+                'Create Session'
+              )}
+            </Button>
           </div>
         </div>
       </div>
+
       <Joyride
         steps={steps}
         run={startTutorial}

@@ -344,13 +344,12 @@ export default function PilotProfile() {
       >
         {backgroundImage && (
           <>
-            <div className="absolute inset-0 backdrop-blur-[2px]"></div>
             <div className="absolute inset-0 bg-gradient-to-tr from-black via-black/70 to-transparent"></div>
             <div className="absolute inset-0 bg-gradient-to-t from-black to-transparent"></div>
           </>
         )}
         <div className="py-8 md:py-12 relative z-10">
-          <div className="pt-20 pb-4">
+          <div className="pt-24 pb-4">
             <div className="max-w-7xl mx-auto px-4">
               <div className="flex flex-col md:flex-row md:items-center gap-6">
                 {/* Avatar */}

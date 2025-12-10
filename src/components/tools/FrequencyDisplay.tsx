@@ -56,7 +56,7 @@ const FrequencyDisplay: React.FC<FrequencyDisplayProps> = ({
     return (
       <div id="frequency-display" className="w-full">
         <div
-          className={`w-full bg-gray-800 rounded border border-gray-700 p-3 ${
+          className={`w-full bg-gray-800 rounded-2xl border border-gray-700 p-3 ${
             hasMoreFrequencies
               ? 'cursor-pointer hover:bg-gray-700 transition-colors'
               : ''
@@ -100,8 +100,8 @@ const FrequencyDisplay: React.FC<FrequencyDisplayProps> = ({
         </div>
 
         {isTableOpen && hasMoreFrequencies && (
-          <div className="mt-2 bg-gray-800 border border-gray-600 rounded overflow-hidden">
-            <div className="max-h-48 overflow-y-auto">
+          <div className="mt-2 bg-gray-800 border border-gray-600 rounded-2xl overflow-hidden">
+            <div className="max-h-48 overflow-y-auto rounded-2xl">
               <table className="w-full text-sm">
                 <thead className="bg-gray-700 sticky top-0">
                   <tr>
@@ -133,7 +133,7 @@ const FrequencyDisplay: React.FC<FrequencyDisplayProps> = ({
   return (
     <div id="frequency-display" className="relative">
       <div
-        className={`flex items-center gap-3 rounded border border-gray-700 px-4 py-3 bg-gray-800 ${
+        className={`flex items-center gap-3 rounded-2xl border border-gray-700 px-4 py-3 bg-gray-800 ${
           hasMoreFrequencies
             ? 'cursor-pointer hover:bg-gray-900 transition-colors'
             : ''
@@ -172,8 +172,8 @@ const FrequencyDisplay: React.FC<FrequencyDisplayProps> = ({
       </div>
 
       {isTableOpen && hasMoreFrequencies && (
-        <div className="absolute top-full left-0 mt-2 w-full min-w-80 bg-gray-900 border border-gray-700 rounded shadow-lg z-50">
-          <div className="max-h-96 overflow-y-auto">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-60 bg-gray-900 border border-gray-700 rounded-2xl shadow-lg z-50 overflow-hidden">
+          <div className="max-h-96 overflow-y-auto rounded-2xl">
             <table className="w-full text-sm">
               <thead className="bg-gray-800 sticky top-0">
                 <tr>
