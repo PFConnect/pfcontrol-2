@@ -16,7 +16,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { linkify } from '../utils/linkify';
 import { useAuth } from '../hooks/auth/useAuth';
 import type { Notification as AdminNotification } from '../utils/fetch/admin';
-import CustomUserButton from './buttons/UserButton';
+import CustomUserButton from './tools/UserButton';
 import Button from './common/Button';
 import FeedbackBanner from './tools/FeedbackBanner';
 
