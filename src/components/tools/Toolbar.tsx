@@ -27,7 +27,6 @@ import {
 } from 'lucide-react';
 import { io } from 'socket.io-client';
 import { createSessionUsersSocket } from '../../sockets/sessionUsersSocket';
-import { fetchSession } from '../../utils/fetch/sessions';
 import { useAuth } from '../../hooks/auth/useAuth';
 import { playSoundWithSettings } from '../../utils/playSound';
 import type {

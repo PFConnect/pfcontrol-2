@@ -16,7 +16,7 @@ import { useNotifications } from '../hooks/useNotifications';
 import { linkify } from '../utils/linkify';
 import { useAuth } from '../hooks/auth/useAuth';
 import type { Notification as AdminNotification } from '../utils/fetch/admin';
-import CustomUserButton from './buttons/UserButton';
+import CustomUserButton from './tools/UserButton';
 import Button from './common/Button';
 import FeedbackBanner from './tools/FeedbackBanner';
 
@@ -329,11 +329,16 @@ export default function Navbar({
                 <TowerControl className="h-8 w-8 text-blue-400" />
                 <span className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-blue-600 bg-clip-text text-transparent">
                   PFControl
-                  {(window.location.hostname === 'canary.pfconnect.online' ||
-                    window.location.hostname === 'localhost') && (
+                  {window.location.hostname === 'canary.pfconnect.online' && (
                     <span className="bg-gradient-to-r from-blue-300 to-blue-500 bg-clip-text text-transparent italic text-md">
                       {' '}
                       Canary
+                    </span>
+                  )}
+                  {window.location.hostname === 'localhost' && (
+                    <span className="bg-gradient-to-r from-yellow-400 to-yellow-600 bg-clip-text text-transparent italic text-md">
+                      {' '}
+                      Developers
                     </span>
                   )}
                 </span>

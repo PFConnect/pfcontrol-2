@@ -32,6 +32,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
   const loadMetarData = React.useCallback(async () => {
     if (!icao) return;
 
+    const startTime = Date.now();
     setIsLoading(true);
     setError(null);
 
@@ -55,7 +56,12 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
       setError('Failed to load METAR data');
       console.error('Error loading METAR data:', err);
     } finally {
-      setIsLoading(false);
+      const elapsedTime = Date.now() - startTime;
+      const remainingTime = Math.max(0, 500 - elapsedTime); // At least 500ms to remove snappy loading
+
+      setTimeout(() => {
+        setIsLoading(false);
+      }, remainingTime);
     }
   }, [icao]);
 
@@ -208,11 +214,15 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
   if (isLoading) {
     return (
       <div
-        className={`flex items-center text-sm text-gray-400 gap-2 px-3 py-2 bg-gray-800 rounded border border-gray-700 ${
-          size === 'small' ? 'text-xs px-2 py-1' : ''
-        }`}
+        className={`flex items-center text-sm text-gray-400 gap-2 px-3 py-4 pl-5 ${
+          size === 'small'
+            ? 'bg-gray-800 border-gray-700'
+            : 'bg-gray-900 border-gray-800'
+        } rounded-3xl border ${size === 'small' ? 'text-xs px-2 py-1' : ''}`}
       >
-        <Loader2 className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'} />
+        <Loader2
+          className={`animate-spin ${size === 'small' ? 'h-3 w-3' : 'h-4 w-4'}`}
+        />
         <span>Loading METAR data...</span>
       </div>
     );
@@ -252,7 +262,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
     return (
       <div
         id="wind-display"
-        className="flex flex-col rounded border border-gray-700 px-2 py-1 bg-gray-800"
+        className="flex flex-col rounded-2xl border border-gray-700 px-4 py-1 bg-gray-800"
       >
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-1">
@@ -323,7 +333,7 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
   return (
     <div
       id="wind-display"
-      className="flex flex-col rounded border border-gray-700 px-4 py-2.5 bg-gray-900"
+      className="flex flex-col rounded-3xl border border-gray-800 px-4 py-3.5 bg-gray-900"
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import Navbar from '../components/Navbar';
 import WindDisplay from '../components/tools/WindDisplay';
@@ -17,14 +17,15 @@ import {
   ClipboardList,
   ParkingCircle,
   Loader2,
-  MapPinCheck,
   Plane,
   HelpCircle,
+  TowerControl,
 } from 'lucide-react';
 import { createFlightsSocket } from '../sockets/flightsSocket';
 import { addFlight } from '../utils/fetch/flights';
 import { useAuth } from '../hooks/auth/useAuth';
 import { useSettings } from '../hooks/settings/useSettings';
+import { fetchBackgrounds } from '../utils/fetch/data';
 import type { Flight } from '../types/flight';
 import AirportDropdown from '../components/dropdowns/AirportDropdown';
 import Dropdown from '../components/common/Dropdown';
@@ -32,7 +33,8 @@ import AircraftDropdown from '../components/dropdowns/AircraftDropdown';
 import Loader from '../components/common/Loader';
 import AccessDenied from '../components/AccessDenied';
 import CallsignInput from '../components/common/CallsignInput';
-import CallsignHelpModal from '../components/modals/CallsignHelpModal';
+
+const API_BASE_URL = import.meta.env.VITE_SERVER_URL;
 
 interface SessionData {
   sessionId: string;
@@ -40,6 +42,12 @@ interface SessionData {
   activeRunway?: string;
   atis?: unknown;
   isPFATC?: boolean;
+}
+
+interface AvailableImage {
+  filename: string;
+  path: string;
+  extension: string;
 }
 
 export default function Submit() {
@@ -55,7 +63,8 @@ export default function Submit() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [submittedFlight, setSubmittedFlight] = useState<Flight | null>(null);
-  const [testerGateEnabled, setTesterGateEnabled] = useState(false);
+  const [availableImages, setAvailableImages] = useState<AvailableImage[]>([]);
+  const [customLoaded, setCustomLoaded] = useState(false);
   const [form, setForm] = useState({
     callsign: '',
     aircraft_type: '',
@@ -72,7 +81,6 @@ export default function Submit() {
     typeof createFlightsSocket
   > | null>(null);
   const [initialLoadComplete, setInitialLoadComplete] = useState(false);
-  const [showCallsignHelp, setShowCallsignHelp] = useState(false);
 
   useEffect(() => {
     if (
@@ -107,9 +115,8 @@ export default function Submit() {
         (res) => (res.ok ? res.json() : Promise.reject(res))
       ),
     ])
-      .then(([sessionData, settings]) => {
+      .then(([sessionData]) => {
         setSession(sessionData);
-        setTesterGateEnabled(settings.tester_gate_enabled || false);
         setForm((f) => ({
           ...f,
           departure: sessionData.airportIcao || '',
@@ -119,6 +126,18 @@ export default function Submit() {
       .catch(() => setError('Session not found'))
       .finally(() => setLoading(false));
   }, [sessionId, initialLoadComplete]);
+
+  useEffect(() => {
+    const loadImages = async () => {
+      try {
+        const data = await fetchBackgrounds();
+        setAvailableImages(data);
+      } catch (error) {
+        console.error('Error loading available images:', error);
+      }
+    };
+    loadImages();
+  }, []);
 
   useEffect(() => {
     if (!sessionId || !accessId || !initialLoadComplete) return;
@@ -148,6 +167,59 @@ export default function Submit() {
       socket.socket.disconnect();
     };
   }, [sessionId, accessId, initialLoadComplete]);
+
+  const backgroundImage = useMemo(() => {
+    const selectedImage = settings?.backgroundImage?.selectedImage;
+    let bgImage = 'url("/assets/app/backgrounds/mdpc_01.webp")';
+
+    const getImageUrl = (filename: string | null): string | null => {
+      if (!filename || filename === 'random' || filename === 'favorites') {
+        return filename;
+      }
+      if (filename.startsWith('https://api.cephie.app/')) {
+        return filename;
+      }
+      return `${API_BASE_URL}/assets/app/backgrounds/${filename}`;
+    };
+
+    if (selectedImage === 'random') {
+      if (availableImages.length > 0) {
+        const randomIndex = Math.floor(Math.random() * availableImages.length);
+        bgImage = `url(${API_BASE_URL}${availableImages[randomIndex].path})`;
+      }
+    } else if (selectedImage === 'favorites') {
+      const favorites = settings?.backgroundImage?.favorites || [];
+      if (favorites.length > 0) {
+        const randomFav =
+          favorites[Math.floor(Math.random() * favorites.length)];
+        const favImageUrl = getImageUrl(randomFav);
+        if (
+          favImageUrl &&
+          favImageUrl !== 'random' &&
+          favImageUrl !== 'favorites'
+        ) {
+          bgImage = `url(${favImageUrl})`;
+        }
+      }
+    } else if (selectedImage) {
+      const imageUrl = getImageUrl(selectedImage);
+      if (imageUrl && imageUrl !== 'random' && imageUrl !== 'favorites') {
+        bgImage = `url(${imageUrl})`;
+      }
+    }
+
+    return bgImage;
+  }, [
+    settings?.backgroundImage?.selectedImage,
+    settings?.backgroundImage?.favorites,
+    availableImages,
+  ]);
+
+  useEffect(() => {
+    if (backgroundImage !== 'url("/assets/app/backgrounds/mdpc_01.webp")') {
+      setCustomLoaded(true);
+    }
+  }, [backgroundImage]);
 
   const handleChange = (name: string) => (value: string) => {
     setForm((f) => ({ ...f, [name]: value }));
@@ -225,47 +297,65 @@ export default function Submit() {
   return (
     <div className="min-h-screen bg-gray-950 text-white relative">
       <Navbar />
-      <CallsignHelpModal
-        isOpen={showCallsignHelp}
-        onClose={() => setShowCallsignHelp(false)}
-      />
-      {/* Banner */}
-      <div className="relative w-full h-56 md:h-72 overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-t from-gray-950 to-transparent">
+      <div className="relative w-full h-96 md:h-[32rem] overflow-hidden">
+        <div className="absolute inset-0">
           <img
             src="/assets/app/backgrounds/mdpc_01.webp"
             alt="Banner"
-            className="object-cover w-full h-full blur-xs scale-110 opacity-60"
+            className="object-cover w-full h-full scale-110"
           />
+          <div
+            className="absolute inset-0"
+            style={{
+              backgroundImage,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              backgroundRepeat: 'no-repeat',
+              opacity: customLoaded ? 1 : 0,
+              transition: 'opacity 0.5s ease-in-out',
+            }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-b from-gray-950/40 via-gray-950/70 to-gray-950"></div>
         </div>
-        <div className="absolute bottom-0 left-0 right-0 flex flex-col items-center p-6 md:p-10">
-          {session.airportIcao ? (
-            <h2
-              className="text-3xl sm:text-5xl font-extrabold text-blue-500 mb-6"
-              style={{ lineHeight: 1.4 }}
-            >
-              <span>{session.airportIcao}</span> - SUBMIT FLIGHT PLAN
-            </h2>
-          ) : (
-            'SUBMIT FLIGHT PLAN'
-          )}
-          {session.activeRunway && (
-            <div className="-mt-6 text-blue-400 text-md">
-              Departure Runway:{' '}
-              <span className="font-semibold">{session.activeRunway}</span>
-            </div>
-          )}
+
+        {/* Content */}
+        <div className="relative h-full flex flex-col items-center justify-center px-6 md:px-10">
+          <div className="flex gap-4 mb-4">
+            {session.airportIcao && (
+              <div className="px-6 py-2 bg-blue-600/20 backdrop-blur-md border border-blue-500/30 rounded-full shadow-lg">
+                <span className="text-blue-400 text-sm font-semibold tracking-wider">
+                  {session.airportIcao}
+                </span>
+              </div>
+            )}
+            {session.activeRunway && (
+              <div className="flex items-center gap-2 px-4 py-2 bg-gray-900/80 backdrop-blur-sm border border-gray-700/40 rounded-full">
+                <PlaneTakeoff className="h-4 w-4 text-blue-400" />
+                <span className="text-gray-300 text-sm">
+                  RWY{' '}
+                  <span className="font-bold text-blue-400">
+                    {session.activeRunway}
+                  </span>
+                </span>
+              </div>
+            )}
+          </div>
+
+          <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight text-center">
+            SUBMIT FLIGHT PLAN
+          </h1>
         </div>
       </div>
 
-      <div className="container mx-auto max-w-3xl px-4 pb-8 pt-8">
-        <div className="mb-8 relative z-10">
+      <div className="container mx-auto max-w-3xl px-4 pb-8 -mt-32 md:-mt-40 relative z-10">
+        <div className="mb-6">
           <WindDisplay icao={session.airportIcao} />
         </div>
+
         {/* Success Message */}
         {success && submittedFlight && (
           <>
-            <div className="bg-green-900/30 border border-green-700 rounded-xl mb-8 overflow-hidden relative z-10">
+            <div className="bg-green-900/30 backdrop-blur-md border border-green-700 rounded-3xl mb-8 overflow-hidden shadow-2xl">
               <div className="bg-green-900/50 p-4 border-b border-green-700 flex items-center">
                 <div className="bg-green-700 rounded-full p-2 mr-3">
                   <Check className="h-6 w-6 text-green-200" />
@@ -362,7 +452,7 @@ export default function Submit() {
                         )
                       }
                     >
-                      <Plane className="h-5 w-5 mr-2 rotate-45" />
+                      <TowerControl className="h-5 w-5 mr-2" />
                       Go to ACARS
                     </Button>
                   )}
@@ -376,9 +466,8 @@ export default function Submit() {
           </>
         )}
 
-        {/* Form */}
         {!success && (
-          <div className="bg-gray-900/50 backdrop-blur-sm rounded-xl border border-gray-800 shadow-xl overflow-hidden relative z-10">
+          <div className="bg-gray-900/70 backdrop-blur-md rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {error && (
                 <div className="p-3 bg-red-900/40 border border-red-700 rounded-md flex items-center text-sm mb-2">
@@ -394,12 +483,19 @@ export default function Submit() {
                       Callsign <span className="text-red-400 ml-1">*</span>
                       <button
                         type="button"
-                        onClick={() => setShowCallsignHelp(true)}
                         className="ml-2 text-blue-400 hover:text-blue-300 transition-colors"
                         aria-label="Callsign formatting help"
                         title="Callsign formatting help"
                       >
-                        <HelpCircle className="h-4 w-4" />
+                        <HelpCircle
+                          onClick={() =>
+                            window.open(
+                              'https://vatsim.net/docs/basics/choosing-a-callsign#2-flight-identification-flight-number',
+                              '_blank'
+                            )
+                          }
+                          className="h-4 w-4"
+                        />
                       </button>
                     </label>
                     <CallsignInput
@@ -534,10 +630,7 @@ export default function Submit() {
                       Submitting...
                     </>
                   ) : (
-                    <>
-                      <MapPinCheck className="h-5 w-5 mr-2" />
-                      Submit Flight Plan
-                    </>
+                    <>Submit Flight Plan</>
                   )}
                 </Button>
               </div>
