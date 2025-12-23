@@ -470,7 +470,7 @@ export default function Submit() {
           <div className="bg-gray-900/70 backdrop-blur-md rounded-3xl border border-gray-800 shadow-2xl overflow-hidden">
             <form onSubmit={handleSubmit} className="p-6 space-y-6">
               {error && (
-                <div className="p-3 bg-red-900/40 border border-red-700 rounded-md flex items-center text-sm mb-2">
+                <div className="p-3 bg-red-900/40 border border-red-700 rounded-full flex items-center text-sm mb-2">
                   <AlertTriangle className="h-5 w-5 mr-2 text-red-400" />
                   {error}
                 </div>
