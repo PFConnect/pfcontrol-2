@@ -248,6 +248,20 @@ export async function validateAcarsAccess(
     const validFlightId = validateFlightId(flightId);
     const tableName = `flights_${validSessionId}`;
 
+    // Check if the table exists before querying it
+    let tableExistsResult: boolean;
+    try {
+      await flightsDb.selectFrom(tableName).select('id').limit(1).execute();
+      tableExistsResult = true;
+    } catch {
+      tableExistsResult = false;
+    }
+
+    if (!tableExistsResult) {
+      console.error(`Table ${tableName} does not exist`);
+      return { valid: false };
+    }
+
     const result = await flightsDb
       .selectFrom(tableName)
       .select(['acars_token'])

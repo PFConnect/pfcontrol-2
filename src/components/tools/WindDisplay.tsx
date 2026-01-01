@@ -231,17 +231,17 @@ const WindDisplay: React.FC<WindDisplayProps> = ({
   if (error || !metarData) {
     return (
       <div
-        className={`flex items-center justify-between text-sm px-3 py-2 bg-gray-800 rounded border border-gray-700 ${
-          size === 'small' ? 'text-xs px-2 py-1' : ''
+        className={`flex items-center justify-between text-sm px-3 py-4 bg-gray-900 rounded-full border border-gray-800 ${
+          size === 'small' ? 'text-xs px-2 py-2' : ''
         }`}
       >
-        <div className="flex items-center gap-2 text-red-400">
+        <div className="flex items-center gap-2 text-red-400 ml-2">
           <AlertTriangle className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'} />
           <span>{error || 'No data available'}</span>
         </div>
         <button
           onClick={handleManualRefresh}
-          className="text-blue-400 hover:text-blue-300 transition-colors ml-2"
+          className="text-blue-400 hover:text-blue-300 transition-colors mr-2"
           title="Retry"
         >
           <RefreshCw className={size === 'small' ? 'h-3 w-3' : 'h-4 w-4'} />
