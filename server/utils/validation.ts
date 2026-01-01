@@ -51,7 +51,7 @@ export function validateCallsign(callsign: unknown) {
     throw new Error('Callsign must be 1-16 characters');
   }
 
-  if (!/^[A-Z0-9]+$/i.test(trimmed)) {
+  if (!/^[A-Z0-9\s]+$/i.test(trimmed)) {
     throw new Error('Callsign can only contain letters and numbers');
   }
 
@@ -99,6 +99,10 @@ export function validateStand(stand: unknown) {
 
   if (trimmed.length > 8) {
     throw new Error('Stand must be 8 characters or less');
+  }
+
+  if (!/^[A-Za-z0-9]+$/.test(trimmed)) {
+    throw new Error('Stand can only contain letters and numbers');
   }
 
   return trimmed;

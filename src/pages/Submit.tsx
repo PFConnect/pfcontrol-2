@@ -257,8 +257,26 @@ export default function Submit() {
         });
         setSubmittedFlight(flight);
         setSuccess(true);
-      } catch {
-        setError('Failed to submit flight.');
+      } catch (error) {
+        if (error instanceof Error) {
+          if (error.message.includes('Callsign')) {
+            setError(
+              `Callsign error: ${error.message}. Callsign must contain at least one number.`
+            );
+          } else if (error.message.includes('Stand')) {
+            setError(
+              `Stand error: ${error.message}. Stand can only contain numbers and letters.`
+            );
+          } else if (error.message.includes('Cruising FL')) {
+            setError(`Flight Level error: ${error.message}`);
+          } else if (error.message.includes('Squawk')) {
+            setError(`Squawk error: ${error.message}`);
+          } else {
+            setError(`${error.message}`);
+          }
+        } else {
+          setError('Failed to submit flight. Please try again.');
+        }
       } finally {
         setIsSubmitting(false);
       }
