@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { Star, Users, Calendar, Menu, ThumbsUp } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import Navbar from '../../components/Navbar';
 import AdminSidebar from '../../components/admin/AdminSidebar';
 import Loader from '../../components/common/Loader';
@@ -37,6 +38,11 @@ ChartJS.register(
   Filler,
   BarElement
 );
+
+const getAvatarUrl = (userId: string, avatar: string | null) => {
+  if (!avatar) return null;
+  return `https://cdn.discordapp.com/avatars/${userId}/${avatar}.png?size=128`;
+};
 
 export default function AdminRatings() {
   const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
@@ -305,9 +311,25 @@ export default function AdminRatings() {
                                 <span className="text-zinc-500 text-xs sm:text-sm w-4">
                                   {i + 1}
                                 </span>
-                                <span className="font-medium group-hover:text-blue-400 transition-colors text-sm sm:text-base">
-                                  {c.username}
-                                </span>
+                                <Link
+                                  to={`/user/${c.username}`}
+                                  className="flex items-center space-x-2 sm:space-x-3 group/link"
+                                >
+                                  {getAvatarUrl(c.controller_id, c.avatar) ? (
+                                    <img
+                                      src={getAvatarUrl(c.controller_id, c.avatar)!}
+                                      alt={c.username}
+                                      className="w-8 h-8 rounded-full border-2 border-zinc-700 group-hover/link:border-blue-400 transition-colors"
+                                    />
+                                  ) : (
+                                    <div className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-zinc-700 group-hover/link:border-blue-400 flex items-center justify-center text-zinc-400 font-bold text-sm transition-colors">
+                                      {c.username.charAt(0).toUpperCase()}
+                                    </div>
+                                  )}
+                                  <span className="font-medium group-hover/link:text-blue-400 transition-colors text-sm sm:text-base">
+                                    {c.username}
+                                  </span>
+                                </Link>
                               </div>
                             </td>
                             <td className="py-3 sm:py-4 text-zinc-300">
@@ -369,11 +391,29 @@ export default function AdminRatings() {
                             key={c.controller_id}
                             className="hover:bg-zinc-800/30 transition-colors group"
                           >
-                            <td className="py-3 sm:py-4 text-zinc-300 font-medium group-hover:text-blue-400 transition-colors text-sm sm:text-base">
-                              {c.username}
+                            <td className="py-3 sm:py-4">
+                              <Link
+                                to={`/user/${c.username}`}
+                                className="flex items-center space-x-2 sm:space-x-3 group/link"
+                              >
+                                {getAvatarUrl(c.controller_id, c.avatar) ? (
+                                  <img
+                                    src={getAvatarUrl(c.controller_id, c.avatar)!}
+                                    alt={c.username}
+                                    className="w-8 h-8 rounded-full border-2 border-zinc-700 group-hover/link:border-blue-400 transition-colors"
+                                  />
+                                ) : (
+                                  <div className="w-8 h-8 rounded-full bg-zinc-800 border-2 border-zinc-700 group-hover/link:border-blue-400 flex items-center justify-center text-zinc-400 font-bold text-sm transition-colors">
+                                    {c.username.charAt(0).toUpperCase()}
+                                  </div>
+                                )}
+                                <span className="font-medium group-hover/link:text-blue-400 transition-colors text-sm sm:text-base">
+                                  {c.username}
+                                </span>
+                              </Link>
                             </td>
                             <td className="py-3 sm:py-4">
-                              <span className="px-2 py-1 bg-blue-500/10 text-blue-400 rounded-md text-xs sm:text-sm font-bold border border-blue-500/20">
+                              <span className="px-2.5 py-1 bg-blue-500/10 text-blue-400 rounded-full text-xs sm:text-sm font-bold border border-blue-500/20">
                                 {c.rating_count}
                               </span>
                             </td>
@@ -409,14 +449,23 @@ export default function AdminRatings() {
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                     {stats?.topPilots.map((p) => (
-                      <div
+                      <Link
                         key={p.pilot_id}
-                        className="flex items-center justify-between p-4 bg-zinc-800/30 border border-zinc-800 rounded-xl hover:border-zinc-700 transition-all group"
+                        to={`/user/${p.username}`}
+                        className="flex items-center justify-between p-4 bg-zinc-800/30 border border-zinc-800 rounded-2xl hover:border-zinc-700 transition-all group"
                       >
                         <div className="flex items-center space-x-3">
-                          <div className="w-10 h-10 rounded-full bg-zinc-800 flex items-center justify-center text-zinc-400 font-bold group-hover:bg-zinc-700 transition-colors">
-                            {p.username.charAt(0).toUpperCase()}
-                          </div>
+                          {getAvatarUrl(p.pilot_id, p.avatar) ? (
+                            <img
+                              src={getAvatarUrl(p.pilot_id, p.avatar)!}
+                              alt={p.username}
+                              className="w-10 h-10 rounded-full border-2 border-zinc-700 group-hover:border-blue-400 transition-colors"
+                            />
+                          ) : (
+                            <div className="w-10 h-10 rounded-full bg-zinc-800 border-2 border-zinc-700 group-hover:border-blue-400 flex items-center justify-center text-zinc-400 font-bold group-hover:bg-zinc-700 transition-colors">
+                              {p.username.charAt(0).toUpperCase()}
+                            </div>
+                          )}
                           <div className="font-medium group-hover:text-blue-400 transition-colors">
                             {p.username}
                           </div>
@@ -427,7 +476,7 @@ export default function AdminRatings() {
                           </span>{' '}
                           ratings
                         </div>
-                      </div>
+                      </Link>
                     ))}
                     {stats?.topPilots.length === 0 && (
                       <div className="col-span-full py-8 text-center text-zinc-500">

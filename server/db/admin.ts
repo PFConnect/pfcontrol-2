@@ -688,24 +688,27 @@ export async function getControllerRatingStats() {
 
     const users = await mainDb
       .selectFrom('users')
-      .select(['id', 'username'])
+      .select(['id', 'username', 'avatar'])
       .where('id', 'in', [...controllerIds, ...pilotIds])
       .execute();
 
-    const userMap = new Map(users.map((u) => [u.id, u.username]));
+    const userMap = new Map(users.map((u) => [u.id, { username: u.username, avatar: u.avatar }]));
 
     const result = {
       topRated: topRatedControllers.map((c) => ({
         ...c,
-        username: userMap.get(c.controller_id) || 'Unknown',
+        username: userMap.get(c.controller_id)?.username || 'Unknown',
+        avatar: userMap.get(c.controller_id)?.avatar || null,
       })),
       mostRated: mostRatedControllers.map((c) => ({
         ...c,
-        username: userMap.get(c.controller_id) || 'Unknown',
+        username: userMap.get(c.controller_id)?.username || 'Unknown',
+        avatar: userMap.get(c.controller_id)?.avatar || null,
       })),
       topPilots: topRatingPilots.map((p) => ({
         ...p,
-        username: userMap.get(p.pilot_id) || 'Unknown',
+        username: userMap.get(p.pilot_id)?.username || 'Unknown',
+        avatar: userMap.get(p.pilot_id)?.avatar || null,
       })),
     };
 

@@ -299,18 +299,21 @@ export interface ControllerRatingStats {
   topRated: Array<{
     controller_id: string;
     username: string;
+    avatar: string | null;
     avg_rating: number;
     rating_count: number;
   }>;
   mostRated: Array<{
     controller_id: string;
     username: string;
+    avatar: string | null;
     rating_count: number;
     avg_rating: number;
   }>;
   topPilots: Array<{
     pilot_id: string;
     username: string;
+    avatar: string | null;
     rating_count: number;
   }>;
 }
