@@ -33,6 +33,7 @@ import AdminChatReports from './pages/admin/AdminChatReports';
 import AdminFlightLogs from './pages/admin/AdminFlightLogs';
 import AdminFeedback from './pages/admin/AdminFeedback';
 import AdminApiLogs from './pages/admin/AdminApiLogs';
+import AdminRatings from './pages/admin/AdminRatings';
 
 import {
   fetchActiveUpdateModal,
@@ -286,6 +287,14 @@ export default function App() {
                     element={
                       <ProtectedRoute requirePermission="admin">
                         <AdminApiLogs />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="ratings"
+                    element={
+                      <ProtectedRoute requirePermission="admin">
+                        <AdminRatings />
                       </ProtectedRoute>
                     }
                   />

@@ -18,6 +18,7 @@ import {
   LockKeyhole,
   Star,
   HeartPulse,
+  ThumbsUp,
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { useAuth } from '../../hooks/auth/useAuth';
@@ -150,6 +151,13 @@ export default function AdminSidebar({
           label: 'Feedback',
           path: '/admin/feedback',
           textColor: 'yellow-400',
+          permission: 'admin',
+        },
+        {
+          icon: ThumbsUp,
+          label: 'Ratings',
+          path: '/admin/ratings',
+          textColor: 'indigo-400',
           permission: 'admin',
         },
       ].filter((item) => hasPermission(item.permission)),
