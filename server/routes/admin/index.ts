@@ -18,6 +18,7 @@ import updateModalsRouter from './updateModals.js';
 import flightLogsRouter from './flight-logs.js';
 import feedbackRouter from './feedback.js';
 import apiLogsRouter from './api-logs.js';
+import ratingsRouter from './ratings.js';
 
 const router = express.Router();
 
@@ -35,6 +36,7 @@ router.use('/update-modals', updateModalsRouter);
 router.use('/flight-logs', flightLogsRouter);
 router.use('/feedback', feedbackRouter);
 router.use('/api-logs', apiLogsRouter);
+router.use('/ratings', ratingsRouter);
 
 // GET: /api/admin/statistics - Get dashboard statistics
 router.get('/statistics', requirePermission('admin'), async (req, res) => {

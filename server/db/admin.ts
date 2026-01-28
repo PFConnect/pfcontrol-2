@@ -310,7 +310,7 @@ export async function getAllUsers(
         try {
           let cursor = '0';
           const cachedUserIds: string[] = [];
-          
+
           do {
             const [newCursor, keys] = await redisConnection.scan(
               cursor,
@@ -320,11 +320,11 @@ export async function getAllUsers(
               1000
             );
             cursor = newCursor;
-            
+
             const userIds = keys
               .filter(key => key.startsWith('user:') && !key.includes(':username:'))
               .map(key => key.replace('user:', ''));
-            
+
             cachedUserIds.push(...userIds);
           } while (cursor !== '0');
 
@@ -620,6 +620,164 @@ export async function syncUserSessionCounts() {
     };
   } catch (error) {
     console.error('Error syncing user session counts:', error);
+    throw error;
+  }
+}
+
+export async function getControllerRatingStats() {
+  const cacheKey = 'admin:controller_rating_stats';
+
+  try {
+    const cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn(
+        '[Redis] Failed to read cache for controller rating stats:',
+        error.message
+      );
+    }
+  }
+
+  try {
+    const topRatedControllers = await mainDb
+      .selectFrom('controller_ratings')
+      .select([
+        'controller_id',
+        (eb) => eb.fn.avg<number>('rating').as('avg_rating'),
+        (eb) => eb.fn.count<number>('id').as('rating_count'),
+      ])
+      .groupBy('controller_id')
+      .having((eb) => eb.fn.count<number>('id'), '>=', 3)
+      .orderBy('avg_rating', 'desc')
+      .limit(10)
+      .execute();
+
+    const mostRatedControllers = await mainDb
+      .selectFrom('controller_ratings')
+      .select([
+        'controller_id',
+        (eb) => eb.fn.count<number>('id').as('rating_count'),
+        (eb) => eb.fn.avg<number>('rating').as('avg_rating'),
+      ])
+      .groupBy('controller_id')
+      .orderBy('rating_count', 'desc')
+      .limit(10)
+      .execute();
+
+    const topRatingPilots = await mainDb
+      .selectFrom('controller_ratings')
+      .select([
+        'pilot_id',
+        (eb) => eb.fn.count<number>('id').as('rating_count'),
+      ])
+      .groupBy('pilot_id')
+      .orderBy('rating_count', 'desc')
+      .limit(9)
+      .execute();
+
+    const controllerIds = [
+      ...new Set([
+        ...topRatedControllers.map((c) => c.controller_id),
+        ...mostRatedControllers.map((c) => c.controller_id),
+      ]),
+    ];
+    const pilotIds = topRatingPilots.map((p) => p.pilot_id);
+
+    const users = await mainDb
+      .selectFrom('users')
+      .select(['id', 'username', 'avatar'])
+      .where('id', 'in', [...controllerIds, ...pilotIds])
+      .execute();
+
+    const userMap = new Map(users.map((u) => [u.id, { username: u.username, avatar: u.avatar }]));
+
+    const result = {
+      topRated: topRatedControllers.map((c) => ({
+        ...c,
+        username: userMap.get(c.controller_id)?.username || 'Unknown',
+        avatar: userMap.get(c.controller_id)?.avatar || null,
+      })),
+      mostRated: mostRatedControllers.map((c) => ({
+        ...c,
+        username: userMap.get(c.controller_id)?.username || 'Unknown',
+        avatar: userMap.get(c.controller_id)?.avatar || null,
+      })),
+      topPilots: topRatingPilots.map((p) => ({
+        ...p,
+        username: userMap.get(p.pilot_id)?.username || 'Unknown',
+        avatar: userMap.get(p.pilot_id)?.avatar || null,
+      })),
+    };
+
+    try {
+      await redisConnection.set(cacheKey, JSON.stringify(result), 'EX', 300);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn(
+          '[Redis] Failed to set cache for controller rating stats:',
+          error.message
+        );
+      }
+    }
+
+    return result;
+  } catch (error) {
+    console.error('Error fetching controller rating stats:', error);
+    throw error;
+  }
+}
+
+export async function getControllerRatingsDailyStats(days: number = 30) {
+  const cacheKey = `admin:controller_rating_daily_stats:${days}`;
+
+  try {
+    const cached = await redisConnection.get(cacheKey);
+    if (cached) {
+      return JSON.parse(cached);
+    }
+  } catch (error) {
+    if (error instanceof Error) {
+      console.warn(
+        `[Redis] Failed to read cache for controller rating daily stats (${days} days):`,
+        error.message
+      );
+    }
+  }
+
+  try {
+    const dailyStats = await mainDb
+      .selectFrom('controller_ratings')
+      .select([
+        sql<string>`DATE(created_at)`.as('date'),
+        (eb) => eb.fn.count<number>('id').as('count'),
+        (eb) => eb.fn.avg<number>('rating').as('avg_rating'),
+      ])
+      .where(
+        'created_at',
+        '>=',
+        sql<Date>`NOW() - INTERVAL '${sql.raw(days.toString())} days'`
+      )
+      .groupBy(sql`DATE(created_at)`)
+      .orderBy(sql`DATE(created_at)`, 'asc')
+      .execute();
+
+    try {
+      await redisConnection.set(cacheKey, JSON.stringify(dailyStats), 'EX', 300);
+    } catch (error) {
+      if (error instanceof Error) {
+        console.warn(
+          `[Redis] Failed to set cache for controller rating daily stats (${days} days):`,
+          error.message
+        );
+      }
+    }
+
+    return dailyStats;
+  } catch (error) {
+    console.error('Error fetching daily controller rating stats:', error);
     throw error;
   }
 }

@@ -295,6 +295,35 @@ export interface ApiLogStats {
   }>;
 }
 
+export interface ControllerRatingStats {
+  topRated: Array<{
+    controller_id: string;
+    username: string;
+    avatar: string | null;
+    avg_rating: number;
+    rating_count: number;
+  }>;
+  mostRated: Array<{
+    controller_id: string;
+    username: string;
+    avatar: string | null;
+    rating_count: number;
+    avg_rating: number;
+  }>;
+  topPilots: Array<{
+    pilot_id: string;
+    username: string;
+    avatar: string | null;
+    rating_count: number;
+  }>;
+}
+
+export interface DailyRatingStats {
+  date: string;
+  count: number;
+  avg_rating: number;
+}
+
 async function makeAdminRequest(endpoint: string, options?: RequestInit) {
   const response = await fetch(`${API_BASE_URL}/api/admin${endpoint}`, {
     credentials: 'include',
@@ -770,4 +799,14 @@ export async function fetchApiLogStats24h(): Promise<
   }
 
   return response.json();
+}
+
+export async function fetchControllerRatingStats(): Promise<ControllerRatingStats> {
+  return makeAdminRequest('/ratings/stats');
+}
+
+export async function fetchControllerDailyRatingStats(
+  days: number = 30
+): Promise<DailyRatingStats[]> {
+  return makeAdminRequest(`/ratings/daily?days=${days}`);
 }
