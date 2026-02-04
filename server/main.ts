@@ -67,7 +67,7 @@ app.use(
       process.env.NODE_ENV === 'production'
         ? [
             'https://pfcontrol.com',
-            'https://canary.pcontrol.com',
+            'https://canary.pfcontrol.com',
           ]
         : ['http://localhost:9901', 'http://localhost:5173'],
     credentials: true,
