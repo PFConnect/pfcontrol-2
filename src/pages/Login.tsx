@@ -106,7 +106,7 @@ export default function Login() {
                 <span className="text-sm">
                   I agree to the{' '}
                   <Link
-                    to="https://terms.pfconnect.online"
+                    to="https://cephie.app/legal/terms"
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-400 underline hover:text-blue-300 transition-colors"
@@ -116,7 +116,7 @@ export default function Login() {
                   </Link>
                   ,{' '}
                   <Link
-                    to="https://privacy.pfconnect.online"
+                    to="https://cephie.app/legal/privacy"
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-400 underline hover:text-blue-300 transition-colors"
@@ -126,7 +126,7 @@ export default function Login() {
                   </Link>
                   , and{' '}
                   <Link
-                    to="https://cookies.pfconnect.online"
+                    to="https://cephie.app/legal/cookies"
                     target="_blank"
                     rel="noreferrer"
                     className="text-blue-400 underline hover:text-blue-300 transition-colors"

@@ -59,17 +59,17 @@ export default function Footer() {
 
   const legalLinks = [
     {
-      href: 'https://terms.pfconnect.online',
+      href: 'https://cephie.app/legal/terms',
       label: 'Terms of Use',
       icon: ScrollText,
     },
     {
-      href: 'https://privacy.pfconnect.online',
+      href: 'https://cephie.app/legal/privacy',
       label: 'Privacy Policy',
       icon: Shield,
     },
     {
-      href: 'https://cookies.pfconnect.online',
+      href: 'https://cephie.app/legal/cookies',
       label: 'Cookies Policy',
       icon: Cookie,
     },
