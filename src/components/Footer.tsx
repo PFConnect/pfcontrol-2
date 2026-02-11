@@ -125,7 +125,6 @@ export default function Footer() {
             </div>
           </div>
 
-          {/* Spacer only on md+ to avoid awkward mobile gaps */}
           <div className="hidden md:block md:col-span-2" />
 
           {/* Quick links */}
@@ -245,12 +244,12 @@ export default function Footer() {
             <div className="text-gray-400 text-sm">
               &copy; {year} PFControl by{' '}
               <a
-                href="https://pfconnect.online"
+                href="https://cephie.app"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-blue-400 hover:text-blue-300 underline"
               >
-                PFConnect Studios
+                Cephie Studios
               </a>
             </div>
 
