@@ -255,7 +255,7 @@ function Dropdown({
   const dropdownContent = isOpen && (
     <div
       ref={dropdownRef}
-      className={`fixed bg-gray-800 border-2 border-blue-600 rounded-2xl shadow-lg py-1 ${maxHeight} overflow-y-auto`}
+      className={`fixed bg-gray-800 border-2 border-blue-600 rounded-2xl shadow-lg py-1 ${maxHeight} overflow-y-auto px-1`}
       style={{
         top: `${dropdownPosition.top}px`,
         left: `${dropdownPosition.left}px`,
@@ -284,7 +284,7 @@ function Dropdown({
         <button
           type="button"
           key={option.value}
-          className={`block w-full text-left px-3 py-2 text-sm hover:bg-blue-600 hover:text-white
+          className={`block w-full text-left px-3 py-2 rounded-xl text-sm hover:bg-blue-600 hover:text-white
             ${
               option.selected || option.value === value
                 ? 'bg-gray-700 font-medium'
@@ -314,7 +314,7 @@ function Dropdown({
         >
           <span className="truncate ml-2 font-semibold">{displayValue}</span>
           <span
-            className="transition-transform duration-200 ml-2 flex-shrink-0"
+            className="transition-transform duration-200 ml-2 shrink-0"
             style={{
               display: 'flex',
               alignItems: 'center',

@@ -490,7 +490,7 @@ export default function ATIS({
                 key={letter}
                 type="button"
                 onClick={() => setIdent(letter)}
-                className={`p-2 rounded-lg text-center text-sm font-medium transition-colors ${
+                className={`p-2 rounded-xl text-center text-sm font-medium transition-colors ${
                   letter === ident
                     ? 'bg-blue-600 text-white border border-blue-500'
                     : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700 border border-zinc-700'
@@ -512,7 +512,7 @@ export default function ATIS({
                 key={approach}
                 type="button"
                 onClick={() => toggleApproachType(approach)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-4 py-2 rounded-xl text-sm font-medium transition-colors ${
                   selectedApproaches.includes(approach)
                     ? 'bg-blue-600 text-white border border-blue-500'
                     : 'bg-zinc-800 text-gray-300 hover:bg-zinc-700 border border-zinc-700'
