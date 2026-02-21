@@ -184,7 +184,7 @@ export default function CallsignInput({
                 key={`${airline.icao}-${airline.callsign}-${index}`}
                 type="button"
                 onClick={() => handleAirlineSelect(airline.icao)}
-                className="w-full text-left px-4 py-2 hover:bg-blue-600 transition-colors rounded-lg mx-2"
+                className="w-full text-left px-4 py-2 hover:bg-blue-600 transition-colors rounded-2xl mx-2"
                 style={{ width: 'calc(100% - 1rem)' }}
               >
                 <div className="flex items-center gap-2">

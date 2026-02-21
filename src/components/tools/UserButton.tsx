@@ -87,7 +87,7 @@ export default function CustomUserButton({
               className="w-10 h-10 rounded-full ring-2 ring-blue-500/30"
             />
           ) : (
-            <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
+            <div className="w-10 h-10 bg-linear-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
               <User className="w-6 h-6 text-white" />
             </div>
           )}
@@ -174,7 +174,7 @@ export default function CustomUserButton({
             className="w-8 h-8 rounded-full ring-2 ring-blue-500/30"
           />
         ) : (
-          <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
+          <div className="w-8 h-8 bg-linear-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
             <User className="w-5 h-5 text-white" />
           </div>
         )}
@@ -187,7 +187,7 @@ export default function CustomUserButton({
       </button>
 
       {isDropdownOpen && (
-        <div className="absolute right-0 mt-2 w-64 bg-black border border-zinc-800 rounded-xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-1 duration-200">
+        <div className="absolute right-0 mt-2 w-64 bg-black border border-zinc-800 rounded-2xl shadow-2xl py-2 z-50 animate-in slide-in-from-top-1 duration-200">
           <div className="px-4 py-3 border-b border-gray-800 block cursor-default">
             <div className="flex items-center space-x-3">
               {user.avatar ? (
@@ -197,7 +197,7 @@ export default function CustomUserButton({
                   className="w-10 h-10 rounded-full ring-2 ring-blue-500/30"
                 />
               ) : (
-                <div className="w-10 h-10 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
+                <div className="w-10 h-10 bg-glinear-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center">
                   <User className="w-6 h-6 text-white" />
                 </div>
               )}
@@ -214,13 +214,13 @@ export default function CustomUserButton({
             </div>
           </div>
 
-          <div className="py-1">
+          <div className="py-2 px-2">
             <button
               onClick={() => {
                 setIsDropdownOpen(false);
                 window.location.href = '/user/' + user.username;
               }}
-              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
             >
               <User className="w-4 h-4" />
               <span className="font-medium">Profile</span>
@@ -231,7 +231,7 @@ export default function CustomUserButton({
                 setIsDropdownOpen(false);
                 window.location.href = '/sessions';
               }}
-              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
             >
               <List className="w-4 h-4" />
               <span className="font-medium">My Sessions</span>
@@ -241,7 +241,7 @@ export default function CustomUserButton({
               onClick={() => {
                 window.location.href = '/settings';
               }}
-              className="w-full flex items-center space-x-3 px-4 py-3 text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-gray-300 hover:bg-blue-600/20 hover:text-white transition-all duration-200 group"
             >
               <Settings className="w-4 h-4" />
               <span className="font-medium">Settings</span>
@@ -253,12 +253,12 @@ export default function CustomUserButton({
                 user.rolePermissions.support ||
                 user.rolePermissions.moderation))) && (
             <ProtectedRoute requirePermission="admin" requireTester={false}>
-              <div className="border-t border-gray-700/50 py-1">
+              <div className="border-t border-gray-700/50 py-2 px-2">
                 <button
                   onClick={() => {
                     window.location.href = '/admin';
                   }}
-                  className="w-full flex items-center space-x-3 px-4 py-3 text-blue-400 hover:bg-blue-600/20 hover:text-blue-300 transition-all duration-200 group"
+                  className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-blue-400 hover:bg-blue-600/20 hover:text-blue-300 transition-all duration-200 group"
                 >
                   <LayoutDashboard className="w-4 h-4" />
                   <span className="font-medium">Dashboard</span>
@@ -266,13 +266,13 @@ export default function CustomUserButton({
               </div>
             </ProtectedRoute>
           )}
-          <div className="border-t border-gray-700/50 pt-1">
+          <div className="border-t border-gray-700/50 pt-2 px-2">
             <button
               onClick={() => {
                 setIsDropdownOpen(false);
                 logout();
               }}
-              className="w-full flex items-center space-x-3 px-4 py-3 text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-all duration-200 group"
+              className="w-full flex items-center space-x-3 px-4 py-3 rounded-xl text-red-400 hover:bg-red-600/20 hover:text-red-300 transition-all duration-200 group"
             >
               <LogOut className="w-4 h-4" />
               <span className="font-medium">Sign Out</span>

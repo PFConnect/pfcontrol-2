@@ -127,17 +127,17 @@ function validateFlightFields(updates: Partial<FlightsDatabase>) {
   }
   if (updates.cruisingfl !== undefined) {
     const fl = parseInt(String(updates.cruisingfl), 10);
-    if (isNaN(fl) || fl < 0 || fl > 200 || fl % 5 !== 0) {
+    if (isNaN(fl) || fl < 0 || fl > 500 || fl % 5 !== 0) {
       throw new Error(
-        'Cruising FL must be between 0 and 200 in 50-step increments'
+        'Cruising FL must be between 0 and 500 in 5-step increments'
       );
     }
   }
   if (updates.clearedfl !== undefined) {
     const fl = parseInt(String(updates.clearedfl), 10);
-    if (isNaN(fl) || fl < 0 || fl > 200 || fl % 5 !== 0) {
+    if (isNaN(fl) || fl < 0 || fl > 500 || fl % 5 !== 0) {
       throw new Error(
-        'Cleared FL must be between 0 and 200 in 50-step increments'
+        'Cleared FL must be between 0 and 500 in 5-step increments'
       );
     }
   }
