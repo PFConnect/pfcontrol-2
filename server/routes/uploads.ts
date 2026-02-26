@@ -10,29 +10,43 @@ const router = express.Router();
 const upload = multer({ storage: multer.memoryStorage() });
 
 const CEPHIE_API_KEY = process.env.CEPHIE_API_KEY;
-const CEPHIE_UPLOAD_URL = 'https://api.cephie.app/api/v1/pfcontrol/upload';
-const CEPHIE_DELETE_URL = 'https://api.cephie.app/api/v1/pfcontrol/delete';
+const CEPHIE_API_BASE = 'https://api.cephie.app';
+const CEPHIE_UPLOAD_URL = `${CEPHIE_API_BASE}/api/v1/images/upload`;
 
-export async function deleteOldImage(url: string | undefined) {
-  if (!url) return;
+function getImageIdFromCephieUrl(url: string): string | null {
+  if (!url || !url.startsWith('https://api.cephie.app/')) return null;
   try {
-    const response = await axios.delete(CEPHIE_DELETE_URL, {
+    const pathname = new URL(url).pathname;
+    const parts = pathname.split('/').filter(Boolean);
+    if (parts[0] === 'img' && parts.length === 2) return parts[1];
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteOldImage(url: string | undefined, userId?: string) {
+  if (!url) return;
+  const id = getImageIdFromCephieUrl(url);
+  if (!id) {
+    console.warn('Could not extract image id from URL for delete:', url);
+    return;
+  }
+  try {
+    const response = await axios.delete(`${CEPHIE_API_BASE}/api/v1/images/${id}`, {
       headers: {
         'Content-Type': 'application/json',
-        'cephie-pfcontrol-key': CEPHIE_API_KEY,
-        'cephie-api-key': CEPHIE_API_KEY,
+        'x-api-key': CEPHIE_API_KEY,
       },
-      data: { url },
+      data: userId != null ? { userId } : {},
     });
     if (response.status !== 200) {
       console.error(
         'Failed to delete old image:',
         response.status,
-        response.statusText
+        response.statusText,
+        response.data
       );
-      console.error('Response headers:', response.headers);
-      console.error('Response body:', response.data);
-      console.error('Request URL:', CEPHIE_DELETE_URL);
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {
@@ -87,7 +101,7 @@ router.post(
       const currentImageUrl = currentSettings.backgroundImage?.selectedImage;
 
       if (currentImageUrl) {
-        await deleteOldImage(currentImageUrl);
+        await deleteOldImage(currentImageUrl, userId);
       }
 
       const formData = new FormData();
@@ -95,15 +109,15 @@ router.post(
 
       const uploadResponse = await axios.post(CEPHIE_UPLOAD_URL, formData, {
         headers: {
-          'cephie-pfcontrol-key': CEPHIE_API_KEY,
-          'cephie-api-key': CEPHIE_API_KEY,
+          'x-user-id': userId,
+          'x-api-key': CEPHIE_API_KEY,
           ...formData.getHeaders(),
         },
         maxBodyLength: Infinity,
       });
 
       const uploadData = uploadResponse.data;
-      const newImageUrl = uploadData.url;
+      const newImageUrl = uploadData?.url;
       if (!newImageUrl) {
         return res
           .status(500)
@@ -166,7 +180,7 @@ router.delete(
         return res.status(400).json({ error: 'No background image to delete' });
       }
 
-      await deleteOldImage(currentImageUrl);
+      await deleteOldImage(currentImageUrl, userId);
 
       const updatedSettings = {
         ...currentSettings,
@@ -231,15 +245,15 @@ router.post(
 
       const uploadResponse = await axios.post(CEPHIE_UPLOAD_URL, formData, {
         headers: {
-          'cephie-pfcontrol-key': CEPHIE_API_KEY,
-          'cephie-api-key': CEPHIE_API_KEY,
+          'x-user-id': user.userId,
+          'x-api-key': CEPHIE_API_KEY,
           ...formData.getHeaders(),
         },
         maxBodyLength: Infinity,
       });
 
       const uploadData = uploadResponse.data;
-      const newImageUrl = uploadData.url;
+      const newImageUrl = uploadData?.url;
       if (!newImageUrl) {
         return res
           .status(500)
