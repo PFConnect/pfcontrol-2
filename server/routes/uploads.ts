@@ -200,6 +200,41 @@ router.delete(
   }
 );
 
+// GET: /api/uploads/cephie-snap-images - List current user's Cephie Snap images (for background picker)
+router.get(
+  '/cephie-snap-images',
+  requireAuth,
+  async (req: Request, res: Response) => {
+    try {
+      const user = req.user;
+      if (!isJwtPayloadClient(user)) {
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+      const response = await axios.get(
+        `${CEPHIE_API_BASE}/api/v1/images/my-images`,
+        {
+          headers: {
+            'x-user-id': user.userId,
+            'x-api-key': CEPHIE_API_KEY,
+          },
+        }
+      );
+      const images = response.data?.images ?? [];
+      return res.json({ images });
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const status = err.response?.status ?? 500;
+        const data = err.response?.data;
+        return res.status(status).json(
+          data && typeof data === 'object' ? data : { error: 'Failed to load Cephie Snap images' }
+        );
+      }
+      console.error('Error fetching Cephie Snap images:', err);
+      return res.status(500).json({ error: 'Failed to load Cephie Snap images' });
+    }
+  }
+);
+
 // GET: /api/uploads/background-url/:filename - Get full URL for a background image
 router.get(
   '/background-url/:filename',

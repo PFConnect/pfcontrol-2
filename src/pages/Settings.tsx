@@ -11,6 +11,7 @@ import {
   Settings as SettingsIcon,
   Check,
   RotateCcw,
+  ImageIcon,
 } from 'lucide-react';
 import type {
   Settings,
@@ -342,10 +343,20 @@ export default function Settings() {
           <div className="absolute inset-0 bg-gradient-to-b from-gray-950/40 via-gray-950/70 to-gray-950"></div>
         </div>
 
-        <div className="relative h-full flex flex-col items-center justify-center px-6 md:px-10">
+        <div className="relative h-full flex flex-col items-center justify-center px-6 md:px-10 gap-4">
           <h1 className="text-3xl sm:text-5xl md:text-6xl font-black text-white tracking-tight text-center">
             YOUR SETTINGS
           </h1>
+          <button
+            type="button"
+            onClick={() => {
+              document.getElementById('background-image-settings')?.scrollIntoView({ behavior: 'smooth' });
+            }}
+            className="inline-flex items-center gap-2 px-4 py-2.5 rounded-full bg-black hover:bg-white/20 text-white text-sm font-medium transition-colors border border-white/20"
+          >
+            <ImageIcon className="h-4 w-4" />
+            Set a custom background picture
+          </button>
         </div>
       </div>
 
